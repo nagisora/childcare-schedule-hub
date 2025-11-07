@@ -1,0 +1,17 @@
+node_modules/
+.env
+.env.*
+.supabase/
+.vercel/
+.DS_Store
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Editor directories and files
+.idea/
+.vscode/
+*.swp
