@@ -23,6 +23,7 @@ Next.js (App Router, ISR)
   - 拠点一覧ページは ISR (60 分) で再生成し、アクセス集中時にも低遅延を保つ [[3]](#ref3)
   - Supabase Edge Function 経由のデータ取得にはサーバーサイドキャッシュ層を挟み、結果を 5 分間保持
   - Instagram 埋め込みは公式ウィジェットを利用（キャッシュ不可のためレイアウト最適化で吸収）
+  - データ更新時は API もしくは管理者操作から `revalidateTag('facilities')` / `revalidateTag('schedules')` を呼び出し、ISR キャッシュを明示的に無効化する
 
 ## 2. データベース設計
 ### 2.1 ER 図コンセプト
@@ -49,6 +50,7 @@ facilities (1) ──< schedules (n)
 推奨インデックス:
 
 - `CREATE INDEX idx_facilities_area ON facilities (area);`（エリア別検索向け）
+- UUID 生成には `pgcrypto` 拡張を利用するため、Supabase プロジェクトで `CREATE EXTENSION IF NOT EXISTS pgcrypto;` を有効化しておく。
 
 #### `schedules`（拠点スケジュール）
 
@@ -183,6 +185,23 @@ CREATE POLICY "favorites_owner_write"
 ### 3.3 アクセシビリティ配慮
 - ナビゲーションにキーボードフォーカスインジケータを表示
 - 画像には代替テキストを設定し、Instagram 埋め込みには説明文を付与 [[3]](#ref3)
+
+### 3.4 状態管理方針
+- App Router のサーバーコンポーネントで初期データを取得し、`cookies()` API からお気に入りクッキーを読み込んで初期状態を整形する。
+- クライアント側のお気に入り操作はクライアントコンポーネントで管理し、`useOptimistic` 等を用いて UI を即時更新後にクッキーを書き換える。
+- クッキー更新は `app/api/favorites` の Route Handler （将来追加）経由で行い、必要に応じて `revalidateTag('facilities')` を呼び出す。
+
+### 3.5 セキュリティ対策（CSP 例）
+- 推奨 Content Security Policy:
+  ```
+  default-src 'self';
+  script-src 'self' https://www.instagram.com;
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' https://*.supabase.co data:;
+  frame-src https://www.instagram.com https://www.facebook.com;
+  connect-src 'self' https://*.supabase.co;
+  ```
+- Instagram 埋め込み用の `iframe` には `sandbox="allow-scripts allow-same-origin"` を設定し、CSP と組み合わせてスクリプト実行範囲を最小限にする。
 
 ## 4. ディレクトリ構成（予定）
 ```

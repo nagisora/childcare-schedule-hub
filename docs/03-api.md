@@ -17,6 +17,16 @@ Supabase は PostgreSQL をベースとした BaaS であり、自動生成さ�
 | favorites | GET | `/rest/v1/favorites?cookie_id=eq.{cookie}` | お気に入り取得（MVP では未使用） |
 | favorites | UPSERT | `/rest/v1/favorites` | お気に入り登録/並び順更新（将来） |
 
+- N+1問題を防ぐため、拠点一覧と最新スケジュールは以下のように JOIN して取得する。
+  ```
+  /rest/v1/facilities?select=*,schedules!inner(id,month,image_url,post_url,embed_html)&schedules.order=created_at.desc&schedules.limit=1
+  ```
+- `limit`, `offset`, `order`, `select`（`fields` に相当）の利用規約:
+  - `limit`: 1〜50 を許容し、未指定時は 20。
+  - `offset`: 0 以上。ページネーション UI は `offset = page * limit` とする。
+  - `order`: `order=created_at.desc` のようにカラムと方向を指定。複数指定はカンマ区切り。
+  - `select`: 返却フィールドを制御し、不要な列の送信を避ける。
+
 ### 1.3 Edge Functions（予定）
 - `sync-instagram`: Instagram 投稿リンクをバリデーションし、最新画像 URL を抽出。
 - `update-favorites`: 認証済ユーザーの並び替えをバッチで保存。
@@ -52,6 +62,11 @@ Supabase は PostgreSQL をベースとした BaaS であり、自動生成さ�
 
 - Supabase REST でエラーが発生した場合は `supabase-js` のエラーオブジェクトをラップし、上記フォーマットに変換する。
 - Edge Function では例外をキャッチし、`status` を明示的に設定してレスポンスを返す。
+
+### 1.6 バージョニングとレート制限
+- Supabase REST は `/rest/v1` を基本とし、非互換な変更が必要な場合は `/rest/v2` のように新バージョンを追加する。
+- パブリックエンドポイントへのアクセスは IP 単位でレート制限（例: 100 req/10min）を設け、429 発生時には `Retry-After` を返す。
+
 ## 2. Instagram Embed API
 ### 2.1 埋め込み方式
 - 公式の oEmbed エンドポイントを使用: `https://graph.facebook.com/v17.0/instagram_oembed?url={POST_URL}` [[1]](#ref1)
@@ -74,14 +89,15 @@ Supabase は PostgreSQL をベースとした BaaS であり、自動生成さ�
 ## 3. クッキー仕様
 ### 3.1 名称と属性
 - 名前: `csh_favorites`
-- 値: `"{facilityId}:{sortOrder}"` をカンマ区切りで複数保持
-- 期限: 180 日
-- 属性: `SameSite=Lax; Secure`（本番）、開発環境では Secure を無効化
+- 値: JSON 文字列。例: `[{"facilityId":"<uuid>","sortOrder":1}]`
+- 期限: 180 日（`Max-Age=15552000`）
+- 属性: `SameSite=Lax; Secure; Path=/`（本番）、開発環境では `Secure` を無効化
+- PII やユーザー識別情報は保持しない。
 
 ### 3.2 読み書きフロー
 1. 初回アクセス時にクッキーがなければ生成。
-2. お気に入り登録時に `facilityId` を追加。
-3. 並び替え操作時に順序を更新し、クッキーを再保存。
+2. お気に入り登録時に JSON 配列へ `facilityId` を追加し、`sortOrder` を更新。
+3. 並び替え操作時に順序を更新し、クッキーを再保存。配列は最大 30 件までとする。
 4. クッキーはサーバーコンポーネントで読み込み、初期状態に反映。
 
 ## 4. 将来の API 拡張

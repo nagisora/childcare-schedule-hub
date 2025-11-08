@@ -40,17 +40,47 @@
 - Instagram URL と埋め込み HTML を登録（Embed 取得ツールを別途用意）
 - テストデータ例は `seed/initial_data.sql`（将来作成）にまとめる
 
-## 4. パフォーマンス・キャッシュ
+## 4. Supabase CLI とデータ管理
+1. 初回セットアップ
+   ```bash
+   supabase init
+   supabase start # ローカルでPostgres/Studioを起動
+   ```
+2. スキーマの適用
+   ```bash
+   supabase db push
+   ```
+3. Migration 作成と適用
+   ```bash
+   supabase migration new add_schedules_table
+   supabase db push
+   git add supabase/migrations
+   ```
+4. データリセットと Seed
+   ```bash
+   supabase db reset --linked
+   supabase db seed --file seed/initial_data.sql
+   ```
+5. CI では `supabase db lint` を実行し、Migration の整合性を確認する。
+
+## 5. パフォーマンス・キャッシュ
 - Next.js ISR を 60 分に設定し、キャッシュ安定性を確保 [[3]](#ref3)
 - Supabase Edge Functions でレスポンスをキャッシュし、高負荷時の安定性を向上
 - Vercel Speed Insights を定期確認し、LCP < 2.5s を維持
 
-## 5. アクセシビリティ・品質
+## 6. アクセシビリティ・品質
 - Storybook で UI コンポーネントのアクセシビリティ検証を実施
 - Axe DevTools / Lighthouse で自動テスト
 - キーボード操作、スクリーンリーダー対応を定期チェック [[3]](#ref3)
 
-## 6. テスト戦略
+## 7. コーディング規約
+- **命名規則**: React コンポーネントは PascalCase、hooks は `use` 接頭辞、ファイル名は実装単位で統一。
+- **ディレクトリ構成**: UI は `apps/web/components` に集約し、ビジネスロジックは `apps/web/lib` に配置。3 ファイル以上の共通化対象が出た場合は専用ディレクトリを新設。
+- **スタイル指針**: Tailwind CSS を用い、任意のカスタム CSS は `apps/web/app/globals.css` に限定する。
+- **LLM 活用時のガイドライン**: 生成コードは eslint/prettier を通し、2 名レビューまたはセルフレビューで根拠（仕様参照箇所）をコメントに残す。
+- **型安全性**: `any`・`as` 推奨禁止。必要な場合は Zod でスキーマを定義し、`infer` で型を生成する。
+
+## 8. テスト戦略
 - **単体テスト (Vitest)**: UI コンポーネントとユーティリティを対象に `pnpm test --filter web` を実行。`apps/web` 配下の `__tests__` ディレクトリに配置し、スナップショットは極力避ける。
 - **型チェック (TypeScript)**: `pnpm typecheck --filter web` を CI で実行し、`tsconfig.build.json` を参照。型エラーをゼロに保つ。
 - **統合テスト (Playwright)**: ユーザーフロー（拠点一覧表示、お気に入り操作など）を `apps/web/tests/e2e` に実装。`pnpm e2e --filter web` で実行し、CI ではヘッドレスモードを使用。
@@ -58,12 +88,12 @@
 - **カバレッジ目標**: 単体テスト 70% / 重要なユースケース 100% を目標に CI で `pnpm test --filter web --coverage` を実行し、閾値を下回った場合はビルドを失敗させる。
 - **CI 実行順序**: `lint` → `typecheck` → `test` → `e2e` の順で GitHub Actions を設定し、Playwright の結果はアーティファクトとして保存する。
 
-## 7. デプロイ
+## 9. デプロイ
 1. GitHub リポジトリと Vercel を連携
 2. 環境変数を Vercel のプロジェクト設定に反映
 3. プレビュー URL で動作確認後、本番にデプロイ
 
-## 8. トラブルシューティング
+## 10. トラブルシューティング
 | 問題 | 対処 |
 | --- | --- |
 | Instagram 埋め込みが読み込めない | 投稿 URL の有効性を確認し、oEmbed レスポンスとサニタイズ前後の HTML を Supabase ログに保存。必要に応じてフォールバック画像で代替。 |
@@ -75,6 +105,12 @@
 | ISR が更新されない | `revalidateTag('facilities')` / `revalidateTag('schedules')` を手動で呼び出す API を実行。Vercel のビルドログで ISR エラーが出ていないか確認。 |
 | Vercel デプロイが環境変数不足で失敗する | Vercel Dashboard の Environment Variables を確認し、Production/Preview/Development のそれぞれに値が入っているかチェック。再デプロイをトリガーする。 |
 
-## 9. 参考文献
+## 11. 運用 Runbook
+- **ISR 再生成**: 管理者は `/api/revalidate` エンドポイントに対象タグ (`facilities` / `schedules`) を付与して POST。成功レスポンスと Vercel ダッシュボードを確認。
+- **ログ確認**: Supabase Studio の Logs タブでエラー/関数ログを確認し、Cloud Logging と突合。Instagram 埋め込み失敗ログは 24 時間以内にレビュー。
+- **ロールバック**: 重大障害時は Vercel の Deploy ログから直前成功ビルドにロールバックし、Supabase `supabase db restore` で最新バックアップを適用。
+- **連絡体制**: 管理者メール `ops@childcare-hub.example` と Slack `#childcare-hub-ops` に通知。SLO 逸脱時は 30 分以内に一次報告を行う。
+
+## 12. 参考文献
 - <a id="ref3"></a>[3] Jun Ito, 『みらい まる見え政治資金』を支える技術, https://note.com/jujunjun110/n/nee305ca004ac
 - <a id="ref4"></a>[4] Jun Ito, どのようにして95%以上のコードをLLMに書かせることができたのか, https://note.com/jujunjun110/n/na653d4120d7e
