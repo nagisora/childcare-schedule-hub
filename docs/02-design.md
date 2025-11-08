@@ -99,10 +99,10 @@ ALTER TABLE public.favorites ENABLE ROW LEVEL SECURITY;
 ```
 
 #### 管理者ロール判定
-- `auth.users` の `app_metadata.role = 'admin'` を基準とし、以下の関数で判定。
+- `auth.jwt()` のカスタムクレーム `app_metadata.role = 'admin'` を基準とし、以下の関数で判定。
 
 ```sql
-CREATE OR REPLACE FUNCTION public.is_admin(uid uuid)
+CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS boolean
 LANGUAGE sql
 SECURITY DEFINER
@@ -126,8 +126,8 @@ CREATE POLICY "facilities_public_read"
 CREATE POLICY "facilities_admin_write"
   ON public.facilities
   FOR ALL
-  USING (is_admin(auth.uid()))
-  WITH CHECK (is_admin(auth.uid()));
+  USING (is_admin())
+  WITH CHECK (is_admin());
 ```
 
 #### `schedules`（拠点スケジュール）
@@ -141,8 +141,8 @@ CREATE POLICY "schedules_public_read"
 CREATE POLICY "schedules_admin_write"
   ON public.schedules
   FOR ALL
-  USING (is_admin(auth.uid()))
-  WITH CHECK (is_admin(auth.uid()));
+  USING (is_admin())
+  WITH CHECK (is_admin());
 ```
 
 - 親拠点の存在を保証するため、`facility_id` は外部キー制約で管理。削除は `ON DELETE CASCADE`。
@@ -155,14 +155,14 @@ CREATE POLICY "favorites_cookie_read"
   FOR SELECT
   USING (
     cookie_id = current_setting('request.jwt.claims.csh_cookie_id', TRUE)
-    OR is_admin(auth.uid())
+    OR is_admin()
   );
 
 CREATE POLICY "favorites_owner_write"
   ON public.favorites
   FOR ALL
-  USING (is_admin(auth.uid()))
-  WITH CHECK (is_admin(auth.uid()));
+  USING (is_admin())
+  WITH CHECK (is_admin());
 ```
 
 - MVP では `favorites` テーブルを利用しないため RLS は将来のための設計として記載。
