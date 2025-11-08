@@ -25,19 +25,51 @@ Supabase は PostgreSQL をベースとした BaaS であり、自動生成さ�
 - 詳細は `docs/02-design.md` のデータベース設計を参照。
 - JSON Schema / Zod スキーマは `packages/shared` に配置予定。
 
+### 1.5 エラーハンドリング
+- REST API から返却する JSON は以下の形式に統一する。
+
+```json
+{
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "schedule not found",
+    "details": "facility_id=00000000-0000-0000-0000-000000000000"
+  }
+}
+```
+
+- HTTP ステータスコードの対応:
+
+| ステータス | コード例 | 説明 | クライアント側の対応 |
+| --- | --- | --- | --- |
+| `400 Bad Request` | `VALIDATION_ERROR` | クエリパラメータや body の検証エラー | 入力値を再確認しフォームにエラー表示 |
+| `401 Unauthorized` | `UNAUTHENTICATED` | 認証が必要な操作でトークンが無効 | 再ログインを促す |
+| `403 Forbidden` | `FORBIDDEN` | 認証済みだが権限が不足 | アクセス不可メッセージを表示 |
+| `404 Not Found` | `NOT_FOUND` | 対象データが存在しない | 「データなし」表示にフォールバック |
+| `409 Conflict` | `CONFLICT` | 一意制約違反など登録競合 | 再送せずユーザーに通知 |
+| `429 Too Many Requests` | `RATE_LIMITED` | レート制限超過 | 再試行までの待機時間を表示 |
+| `500 Internal Server Error` | `INTERNAL_ERROR` | 想定外エラー | 監視通知しユーザーにはお詫び表示 |
+
+- Supabase REST でエラーが発生した場合は `supabase-js` のエラーオブジェクトをラップし、上記フォーマットに変換する。
+- Edge Function では例外をキャッチし、`status` を明示的に設定してレスポンスを返す。
 ## 2. Instagram Embed API
 ### 2.1 埋め込み方式
-- 公式の oEmbed エンドポイントを使用: `https://graph.facebook.com/v17.0/instagram_oembed?url={POST_URL}`
-- 取得した HTML を `dangerouslySetInnerHTML` ではなく、`next/script` を用いてサンドボックス化する。
+- 公式の oEmbed エンドポイントを使用: `https://graph.facebook.com/v17.0/instagram_oembed?url={POST_URL}` [[1]](#ref1)
+- oEmbed レスポンスから得られた HTML をサーバー側（Supabase Edge Function もしくは Next.js Route Handler）で DOMPurify などを用いてサニタイズし、`iframe` 要素と `script` の読み込み情報を分離して保存する。
+- クライアント側では `sandbox="allow-scripts allow-same-origin"` を付与した `iframe` を描画し、`next/script` で Instagram SDK (`https://www.instagram.com/embed.js`) の読み込みのみを行う。
 
 ### 2.2 表示手順
-1. Supabase に保存した Instagram 投稿 URL をページロード時に取得。
-2. サーバーコンポーネントで oEmbed を取得し、HTML とスクリプトを分離。
-3. クライアントコンポーネントで Instagram の SDK をロードしてレンダリング。
+1. Supabase の `schedules` テーブルから `post_url`・`embed_html`（サニタイズ済み）・フォールバック画像 URL を取得。
+2. サーバーコンポーネント（例: `app/page.tsx`）で `embed_html` を `InstagramEmbed` コンポーネントへ渡す。
+3. `InstagramEmbed` コンポーネントでは以下を実施する。
+   - `iframe` を JSX として再構築し、`title`・`aria-label`・`loading="lazy"`・`referrerPolicy="no-referrer"` を付与。
+   - `sandbox` 属性を付与し、`allowfullscreen`・`allowtransparency` は許可しない。
+   - `next/script` で Instagram SDK を読み込み、`window.instgrm?.Embeds.process()` を呼び出す。
+4. 定期バッチまたは手動更新時には Edge Function で oEmbed を再取得し、HTML をサニタイズして `embed_html` を更新する。
 
 ### 2.3 フォールバック
-- 埋め込み取得に失敗した場合は、スケジュール画像 URL を `<img>` 要素で表示。
-- 失敗情報を Supabase のログテーブルに保存し、手動で確認できるようにする。
+- 埋め込み取得に失敗した場合は、スケジュール画像 URL を `<img>` 要素で表示し、`alt` テキストに拠点名と対象月を含める。
+- フォールバックが発生した際は Supabase のログテーブルに保存し、手動で確認できるようにする。
 
 ## 3. クッキー仕様
 ### 3.1 名称と属性
@@ -58,6 +90,6 @@ Supabase は PostgreSQL をベースとした BaaS であり、自動生成さ�
 - CSV ダウンロード用に `/api/export` を実装し、最新データを生成。
 
 ## 5. 参考文献
-- [Instagram Embed API ドキュメント](https://developers.facebook.com/docs/instagram/oembed)
-- Jun Ito, 『みらい まる見え政治資金』を支える技術, https://note.com/jujunjun110/n/nee305ca004ac
-- Jun Ito, どのようにして95%以上のコードをLLMに書かせることができたのか, https://note.com/jujunjun110/n/na653d4120d7e
+- <a id="ref1"></a>[1] Instagram Embed API ドキュメント, https://developers.facebook.com/docs/instagram/oembed
+- <a id="ref2"></a>[2] Jun Ito, 『みらい まる見え政治資金』を支える技術, https://note.com/jujunjun110/n/nee305ca004ac
+- <a id="ref3"></a>[3] Jun Ito, どのようにして95%以上のコードをLLMに書かせることができたのか, https://note.com/jujunjun110/n/na653d4120d7e

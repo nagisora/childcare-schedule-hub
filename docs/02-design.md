@@ -33,17 +33,138 @@ facilities (1) ──< schedules (n)
 ```
 
 ### 2.2 テーブル定義
-- `facilities`
-  - 基本属性（名称、エリア、住所、連絡先、Instagram URL 等）
-- `schedules`
-  - 拠点ごとのスケジュール画像情報、Instagram 投稿リンク、対象月
-- `favorites`
-  - ユーザー ID（将来用）とクッキー ID、並び順
+#### `facilities`（拠点）
+
+| カラム | 型 | 制約 | デフォルト | 備考 |
+| --- | --- | --- | --- | --- |
+| `id` | `uuid` | `PRIMARY KEY` | `gen_random_uuid()` | Supabase 既定の UUID 生成関数 |
+| `name` | `text` | `NOT NULL` |  | 拠点名称 |
+| `area` | `text` |  |  | 市区単位などのエリア情報 |
+| `address` | `text` |  |  | 住所（任意） |
+| `phone` | `text` |  |  | 電話番号（任意） |
+| `instagram_url` | `text` |  |  | 公式 Instagram アカウント URL |
+| `website_url` | `text` |  |  | 公式 Web サイト URL |
+| `created_at` | `timestamptz` | `NOT NULL` | `now()` | Supabase 既定の行作成日時 |
+
+推奨インデックス:
+
+- `CREATE INDEX idx_facilities_area ON facilities (area);`（エリア別検索向け）
+
+#### `schedules`（拠点スケジュール）
+
+| カラム | 型 | 制約 | デフォルト | 備考 |
+| --- | --- | --- | --- | --- |
+| `id` | `uuid` | `PRIMARY KEY` | `gen_random_uuid()` | |
+| `facility_id` | `uuid` | `NOT NULL`, `REFERENCES facilities(id)` |  | 親拠点が削除された場合は `ON DELETE CASCADE` |
+| `month` | `int` | `NOT NULL`, `CHECK (month BETWEEN 200001 AND 999912)` |  | `YYYYMM` 形式の対象月 |
+| `image_url` | `text` |  |  | スケジュール画像のストレージ URL |
+| `post_url` | `text` |  |  | 該当 Instagram 投稿の URL |
+| `embed_html` | `text` |  |  | oEmbed で取得した HTML（サニタイズ後） |
+| `created_at` | `timestamptz` | `NOT NULL` | `now()` | |
+
+制約・インデックス:
+
+- 一意制約: `UNIQUE (facility_id, month)` で重複登録を防止
+- インデックス:
+  - `CREATE INDEX idx_schedules_facility_month_desc ON schedules (facility_id, month DESC);`
+  - `CREATE INDEX idx_schedules_created_at ON schedules (created_at DESC);`
+
+#### `favorites`（お気に入り、MVP スコープ外）
+
+MVP ではお気に入り情報をクッキーのみで保持し、データベースには保存しない。将来の多デバイス同期に備え、拡張仕様として設計を残す。
+
+| カラム | 型 | 制約 | デフォルト | 備考 |
+| --- | --- | --- | --- | --- |
+| `id` | `uuid` | `PRIMARY KEY` | `gen_random_uuid()` | |
+| `user_id` | `uuid` |  |  | 認証ユーザー向け（将来対応） |
+| `cookie_id` | `text` |  |  | 匿名ユーザー識別子 |
+| `facility_id` | `uuid` | `NOT NULL`, `REFERENCES facilities(id)` |  | |
+| `sort_order` | `smallint` |  |  | 並び順を表す整数 |
+| `created_at` | `timestamptz` | `NOT NULL` | `now()` | |
+
+将来導入時の制約:
+
+- 一意制約: `UNIQUE (cookie_id, facility_id)` / `UNIQUE (user_id, facility_id)`
+- インデックス: `CREATE INDEX idx_favorites_cookie_sort ON favorites (cookie_id, sort_order);`
 
 ### 2.3 RLS ポリシー
-- `facilities`: 公開読み取り可、書き込みは管理者ロールのみ
-- `schedules`: 公開読み取り可、書き込みは管理者ロールのみ
-- `favorites`: クッキー ID or ユーザー ID によるフィルタを設定（将来対応）
+Supabase の全テーブルで Row Level Security を有効化し、匿名ユーザーは読み取りのみ許可、管理者ロールのみ書き込みを許可する。
+
+```sql
+ALTER TABLE public.facilities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.schedules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.favorites ENABLE ROW LEVEL SECURITY;
+```
+
+#### 管理者ロール判定
+- `auth.users` の `app_metadata.role = 'admin'` を基準とし、以下の関数で判定。
+
+```sql
+CREATE OR REPLACE FUNCTION public.is_admin(uid uuid)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT COALESCE(
+    (auth.jwt()->'app_metadata'->>'role') = 'admin',
+    FALSE
+  );
+$$;
+```
+
+#### `facilities`（拠点）
+
+```sql
+CREATE POLICY "facilities_public_read"
+  ON public.facilities
+  FOR SELECT
+  USING (true);
+
+CREATE POLICY "facilities_admin_write"
+  ON public.facilities
+  FOR ALL
+  USING (is_admin(auth.uid()))
+  WITH CHECK (is_admin(auth.uid()));
+```
+
+#### `schedules`（拠点スケジュール）
+
+```sql
+CREATE POLICY "schedules_public_read"
+  ON public.schedules
+  FOR SELECT
+  USING (true);
+
+CREATE POLICY "schedules_admin_write"
+  ON public.schedules
+  FOR ALL
+  USING (is_admin(auth.uid()))
+  WITH CHECK (is_admin(auth.uid()));
+```
+
+- 親拠点の存在を保証するため、`facility_id` は外部キー制約で管理。削除は `ON DELETE CASCADE`。
+
+#### `favorites`（お気に入り、将来対応）
+
+```sql
+CREATE POLICY "favorites_cookie_read"
+  ON public.favorites
+  FOR SELECT
+  USING (
+    cookie_id = current_setting('request.jwt.claims.csh_cookie_id', TRUE)
+    OR is_admin(auth.uid())
+  );
+
+CREATE POLICY "favorites_owner_write"
+  ON public.favorites
+  FOR ALL
+  USING (is_admin(auth.uid()))
+  WITH CHECK (is_admin(auth.uid()));
+```
+
+- MVP では `favorites` テーブルを利用しないため RLS は将来のための設計として記載。
+- 匿名ユーザーのクッキー ID は Edge Function で JWT カスタムクレーム `csh_cookie_id` に注入する予定。
 
 ## 3. UI/UX 設計
 ### 3.1 画面構成
