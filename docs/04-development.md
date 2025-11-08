@@ -61,7 +61,8 @@
    supabase db reset --linked
    supabase db seed --file seed/initial_data.sql
    ```
-5. CI では `supabase db lint` を実行し、Migration の整合性を確認する。
+5. リモートプロジェクトと連携する場合は `supabase link --project-ref <id>` を実行し、Service Role Key を設定しておく。
+6. CI では `supabase db lint` を実行し、Migration の整合性を確認する。
 
 ## 5. パフォーマンス・キャッシュ
 - Next.js ISR を 60 分に設定し、キャッシュ安定性を確保 [[3]](#ref3)

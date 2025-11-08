@@ -199,7 +199,7 @@ CREATE POLICY "favorites_owner_write"
   style-src 'self' 'unsafe-inline';
   img-src 'self' https://*.supabase.co data:;
   frame-src https://www.instagram.com https://www.facebook.com;
-  connect-src 'self' https://*.supabase.co;
+  connect-src 'self' https://*.supabase.co https://graph.facebook.com https://www.instagram.com;
   ```
 - Instagram 埋め込み用の `iframe` には `sandbox="allow-scripts allow-same-origin"` を設定し、CSP と組み合わせてスクリプト実行範囲を最小限にする。
 

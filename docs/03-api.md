@@ -10,7 +10,7 @@ Supabase は PostgreSQL をベースとした BaaS であり、自動生成さ�
 ### 1.2 エンドポイント
 | リソース | メソッド | パス | 概要 |
 | --- | --- | --- | --- |
-| facilities | GET | `/rest/v1/facilities` | 拠点一覧取得（`select=name,area,address,phone,instagram_url,instagram_embed_code,website_url`） |
+| facilities | GET | `/rest/v1/facilities` | 拠点一覧取得（`select=id,name,area,address,phone,instagram_url,website_url`） |
 | facilities | POST | `/rest/v1/facilities` | 管理者による拠点登録（将来） |
 | schedules | GET | `/rest/v1/schedules?facility_id=eq.{id}&order=created_at.desc&limit=1` | 最新スケジュール取得 |
 | schedules | POST | `/rest/v1/schedules` | 管理者によるスケジュール登録（将来） |
@@ -19,8 +19,9 @@ Supabase は PostgreSQL をベースとした BaaS であり、自動生成さ�
 
 - N+1問題を防ぐため、拠点一覧と最新スケジュールは以下のように JOIN して取得する。
   ```
-  /rest/v1/facilities?select=*,schedules!inner(id,month,image_url,post_url,embed_html)&schedules.order=created_at.desc&schedules.limit=1
+  /rest/v1/facilities?select=*,schedules(id,month,image_url,post_url,embed_html)&schedules.order=created_at.desc&schedules.limit=1
   ```
+- スケジュールが存在しない拠点も一覧に表示する場合は上記のようにデフォルトの left join を用いる。最新スケジュールを必須としたい場合のみ `!inner` を付与する。
 - `limit`, `offset`, `order`, `select`（`fields` に相当）の利用規約:
   - `limit`: 1〜50 を許容し、未指定時は 20。
   - `offset`: 0 以上。ページネーション UI は `offset = page * limit` とする。
