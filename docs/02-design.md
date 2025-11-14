@@ -35,9 +35,10 @@ Next.js (App Router, ISR)
 ```
 
 ### 2.3 キャッシュ戦略
-- MVP: 拠点一覧は ISR (再生成間隔 60 分) を採用し、初回表示は 3 秒以内を目標とする（[01 要件定義](./01-requirements.md) の非機能要件と一致）。
-- ポストMVP: Supabase Edge Functions での自動更新導入を想定し、結果をサーバーキャッシュで 5 分間保持する。失敗時は REST 経由のフォールバックを設ける。
-- Instagram 埋め込みはキャッシュ不可のため、レイアウト最適化とプレースホルダー表示で UX を担保する。
+- MVP: 拠点一覧は ISR（再生成間隔 60 分）を採用し、初回表示は 3 秒以内を目標とする（[01 要件定義](./01-requirements.md) の非機能要件と整合）。
+- Supabase Edge Functions 経由のデータ取得にはサーバーサイドキャッシュ層を挟み、結果を 5 分間保持する。失敗時は REST API をフォールバックとして利用する。
+- データ更新時は API もしくは管理者操作から `revalidateTag('facilities')` / `revalidateTag('schedules')` を呼び出し、ISR キャッシュを明示的に無効化する。
+- Instagram 埋め込みはキャッシュ不可のため、公式ウィジェットの挙動を前提にレイアウト最適化とプレースホルダー表示で UX を担保し、CSP 設定でセキュリティを維持する。
 
 ## 3. データベース設計
 
@@ -63,34 +64,128 @@ facilities (1) ──< schedules (n)
 | created_at | timestamptz | `now()` | 作成日時 |
 | updated_at | timestamptz | `now()` | 更新日時 |
 
+推奨インデックスと補足:
+- `CREATE INDEX idx_facilities_area ON facilities (area);`（エリア別検索向け）
+- UUID 生成には `pgcrypto` 拡張を利用するため、Supabase プロジェクトで `CREATE EXTENSION IF NOT EXISTS pgcrypto;` を有効化する。
+
 #### schedules（MVP 想定）
 | カラム | 型 | 制約/既定値 | 用途 |
 | --- | --- | --- | --- |
 | id | uuid | PK, `gen_random_uuid()` | スケジュール識別子 |
-| facility_id | uuid | FK → facilities.id | 拠点との関連（ON DELETE CASCADE） |
+| facility_id | uuid | FK → facilities.id | 拠点との関連（`ON DELETE CASCADE`） |
 | image_url | text | NOT NULL | Supabase Storage の公開 URL |
 | instagram_post_url | text | NULL 可 | 埋め込み用 Instagram 投稿 URL |
-| published_month | date | NOT NULL | 対象月の 1 日で管理 |
-| status | text | `published` | 公開ステータス（`draft` / `archived` 等を想定） |
+| embed_html | text | NULL 可 | oEmbed で取得した HTML（サニタイズ後に保存） |
+| published_month | date | NOT NULL | 対象月の 1 日で管理（`UNIQUE (facility_id, published_month)`） |
+| status | text | `'published'` | 公開ステータス（`draft` / `archived` 等を想定） |
 | notes | text | NULL 可 | 運用メモ |
 | created_at | timestamptz | `now()` | 作成日時 |
 | updated_at | timestamptz | `now()` | 更新日時 |
+
+制約・インデックス:
+- 一意制約: `UNIQUE (facility_id, published_month)` で重複登録を防止する。
+- インデックス:
+  - `CREATE INDEX idx_schedules_facility_month_desc ON schedules (facility_id, published_month DESC);`
+  - `CREATE INDEX idx_schedules_created_at ON schedules (created_at DESC);`
 
 #### favorites（ポストMVP）
 | カラム | 型 | 制約/既定値 | 用途 |
 | --- | --- | --- | --- |
 | id | uuid | PK, `gen_random_uuid()` | お気に入り識別子 |
 | facility_id | uuid | FK → facilities.id | 拠点 ID |
-| cookie_id | text | NOT NULL | MVP: クッキー識別子を保持 |
+| cookie_id | text | NULL 可 | MVP: クッキー識別子を保持 |
 | user_id | uuid | NULL 可 | ポストMVP: Supabase Auth ユーザー |
-| sort_order | integer | `0` | 表示順序。MVP ではクライアント側並び順を保持 |
+| sort_order | integer | `0` | 表示順序。クライアント側並び順を保持 |
 | created_at | timestamptz | `now()` | 作成日時 |
 | updated_at | timestamptz | `now()` | 更新日時 |
 
-### 3.3 RLS と単一ソース
-- `facilities` と `schedules` は公開読み取り、書き込みは管理者ロールに限定する。ポリシー定義は [04 開発ガイド](./04-development.md) に記載。
-- `favorites` はポストMVP で RLS を有効化し、`cookie_id` または `user_id` によるフィルタリングを行う。
-- フィールドの正規仕様は本章を単一ソースとし、[03 API 仕様](./03-api.md) は API 視点で要約・参照する。
+将来導入時の制約:
+- 一意制約: `UNIQUE (cookie_id, facility_id)` / `UNIQUE (user_id, facility_id)`
+- インデックス: `CREATE INDEX idx_favorites_cookie_sort ON favorites (cookie_id, sort_order);`
+
+### 3.3 RLS ポリシーと単一ソース
+- `facilities` と `schedules` は公開読み取り、書き込みは管理者ロールに限定する。詳細なポリシー定義は [04 開発ガイド](./04-development.md) に記載し、本章を単一ソースとして参照する。
+- Supabase の全テーブルで Row Level Security を有効化し、匿名ユーザーは読み取りのみ許可、管理者ロールのみ書き込みを許可する。
+- 例: 管理者ロール判定は `auth.jwt()` のカスタムクレーム `app_metadata.role = 'admin'` を基準とし、Edge Function から JWT に `csh_cookie_id`（匿名ユーザー識別子）を注入する。
+
+```sql
+ALTER TABLE public.facilities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.schedules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.favorites ENABLE ROW LEVEL SECURITY;
+```
+
+```sql
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT COALESCE(
+    (auth.jwt()->'app_metadata'->>'role') = 'admin',
+    FALSE
+  );
+$$;
+```
+
+```sql
+CREATE POLICY "facilities_public_read"
+  ON public.facilities
+  FOR SELECT
+  USING (true);
+
+CREATE POLICY "facilities_admin_write"
+  ON public.facilities
+  FOR ALL
+  USING (is_admin())
+  WITH CHECK (is_admin());
+```
+
+```sql
+CREATE POLICY "schedules_public_read"
+  ON public.schedules
+  FOR SELECT
+  USING (true);
+
+CREATE POLICY "schedules_admin_write"
+  ON public.schedules
+  FOR ALL
+  USING (is_admin())
+  WITH CHECK (is_admin());
+```
+
+```sql
+CREATE POLICY "favorites_cookie_read"
+  ON public.favorites
+  FOR SELECT
+  USING (
+    cookie_id = current_setting('request.jwt.claims.csh_cookie_id', TRUE)
+    OR is_admin()
+  );
+
+CREATE POLICY "favorites_owner_write"
+  ON public.favorites
+  FOR ALL
+  USING (is_admin())
+  WITH CHECK (is_admin());
+```
+
+### 3.4 状態管理方針
+- App Router のサーバーコンポーネントで初期データを取得し、`cookies()` API からお気に入りクッキーを読み込んで初期状態を整形する。
+- クライアント側のお気に入り操作はクライアントコンポーネントで管理し、`useOptimistic` 等を用いて UI を即時更新後にクッキーを書き換える。
+- クッキー更新は `app/api/favorites` の Route Handler（将来追加）経由で行い、必要に応じて `revalidateTag('facilities')` を呼び出す。
+
+### 3.5 セキュリティ対策（CSP 例）
+- 推奨 Content Security Policy:
+  ```
+  default-src 'self';
+  script-src 'self' https://www.instagram.com;
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' https://*.supabase.co data:;
+  frame-src https://www.instagram.com https://www.facebook.com;
+  connect-src 'self' https://*.supabase.co https://graph.facebook.com https://www.instagram.com;
+  ```
+- Instagram 埋め込み用の `iframe` には `sandbox="allow-scripts allow-same-origin"` を設定し、CSP と組み合わせてスクリプト実行範囲を最小限にする。
 
 ## 4. UI/UX 設計
 

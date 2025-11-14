@@ -78,6 +78,19 @@ Supabase は PostgreSQL に対して自動生成された REST エンドポイ�
 | instagram_post_url | string | ✖ | oEmbed 対象の投稿 URL |
 | published_month | string (ISO-8601 `YYYY-MM-DD`) | ✔ | 対象月（1 日固定） |
 | status | string | ✔ | `published` / `draft` / `archived` |
+| embed_html | string | ✖ | サニタイズ済み埋め込み HTML（存在する場合） |
+| notes | string | ✖ | 運用メモ |
+
+#### API 利用ガイド
+- 拠点一覧と最新スケジュールを同時取得する場合は、以下の JOIN クエリを推奨する。
+  ```
+  /rest/v1/facilities?select=*,schedules(id,published_month,image_url,instagram_post_url,embed_html)&schedules.order=published_month.desc&schedules.limit=1
+  ```
+- `limit`, `offset`, `order`, `select` の利用規約:
+  - `limit`: 1〜50 を許容し、未指定時は 20。
+  - `offset`: 0 以上。ページネーション UI は `offset = page * limit` とする。
+  - `order`: `order=published_month.desc` のようにカラムと方向を指定。複数指定はカンマ区切り。
+  - `select`: 返却フィールドを制御し、不要な列の送信を避ける。
 
 #### FavoriteRecord（ポストMVP）
 | フィールド | 型 | 必須 | 説明 |
@@ -89,31 +102,60 @@ Supabase は PostgreSQL に対して自動生成された REST エンドポイ�
 | sort_order | number | ✔ | 並び順（昇順） |
 
 ### 2.4 Edge Functions（計画）
-- `sync-instagram`（ポストMVP）: Instagram 投稿 URL を検証し、画像 URL と oEmbed HTML をキャッシュ。失敗時は監視アラートを送信。
-- `update-favorites`: 認証済ユーザーの並び順をバッチ更新。クッキー同期との整合を [01 要件定義](./01-requirements.md) のリスク対応に従って実装。
+- `sync-instagram`（ポストMVP）: Instagram 投稿 URL を検証し、画像 URL と oEmbed HTML をキャッシュ。失敗時は監視アラートを送信し、`embed_html` を更新する際は DOMPurify 等でサニタイズする。
+- `update-favorites`: 認証済ユーザーの並び順をバッチ更新し、クッキー同期との整合を [01 要件定義](./01-requirements.md) のリスク対応に従って実装。必要に応じて `revalidateTag('facilities')` / `revalidateTag('schedules')` を呼び出す。
 
 ### 2.5 JSON Schema / Zod スキーマ
 - `packages/shared/schemas/facility.ts`（予定）に Zod スキーマ `Facility`, `FacilityCreate` を定義。
 - `packages/shared/schemas/schedule.ts` に `Schedule`, `ScheduleCreate` を定義。
 - `packages/shared/schemas/favorite.ts` に `Favorite`, `FavoriteUpsert` を定義。
 
+### 2.6 エラーハンドリング
+- REST API から返却する JSON は以下の形式に統一する。
+  ```json
+  {
+    "error": {
+      "code": "NOT_FOUND",
+      "message": "schedule not found",
+      "details": "facility_id=00000000-0000-0000-0000-000000000000"
+    }
+  }
+  ```
+- Supabase REST でエラーが発生した場合は `supabase-js` のエラーオブジェクトをラップし、上記フォーマットに変換する。Edge Function でも例外をキャッチし、`status` を明示的に設定してレスポンスを返す。
+- HTTP ステータスコードの対応:
+
+| ステータス | コード例 | 説明 | クライアント側の対応 |
+| --- | --- | --- | --- |
+| `400 Bad Request` | `VALIDATION_ERROR` | クエリパラメータや body の検証エラー | 入力値を再確認しフォームにエラー表示 |
+| `401 Unauthorized` | `UNAUTHENTICATED` | 認証が必要な操作でトークンが無効 | 再ログインを促す |
+| `403 Forbidden` | `FORBIDDEN` | 認証済みだが権限が不足 | アクセス不可メッセージを表示 |
+| `404 Not Found` | `NOT_FOUND` | 対象データが存在しない | 「データなし」表示にフォールバック |
+| `409 Conflict` | `CONFLICT` | 一意制約違反など登録競合 | 再送せずユーザーに通知 |
+| `429 Too Many Requests` | `RATE_LIMITED` | レート制限超過 | 再試行までの待機時間を表示 |
+| `500 Internal Server Error` | `INTERNAL_ERROR` | 想定外エラー | 監視通知しユーザーにはお詫び表示 |
+
+### 2.7 バージョニングとレート制限
+- Supabase REST は `/rest/v1` を基本とし、非互換な変更が必要な場合は `/rest/v2` のように新バージョンを追加する。
+- パブリックエンドポイントへのアクセスは IP 単位でレート制限（例: 100 req/10min）を設け、429 発生時には `Retry-After` を返す。
+
 ## 3. Instagram Embed API
 Instagram 埋め込みは oEmbed を利用してサーバー側で安全に処理する。
 
 ### 3.1 認証・前提条件
-- エンドポイント: `https://graph.facebook.com/v17.0/instagram_oembed?url={POST_URL}`。
+- エンドポイント: `https://graph.facebook.com/v17.0/instagram_oembed?url={POST_URL}` [[1]](#ref1)
 - Facebook アプリのアクセストークンが必要。環境変数は `INSTAGRAM_OEMBED_TOKEN` としてサーバーサイドに保持し、クライアントへ露出させない（[04 開発ガイド](./04-development.md) で設定手順を管理）。
-- TODO: トークンの有効期限と更新手順を調査し、本章に追記する。
+- oEmbed レスポンスから得られた HTML は DOMPurify などでサニタイズし、`iframe` 要素と `script` の読み込み情報を分離して保存する。
 
 ### 3.2 表示フロー
-1. Supabase の `schedules.instagram_post_url` を取得。
-2. サーバーコンポーネントまたは Edge Function で oEmbed API を呼び出し、HTML・スクリプトを分離。
-3. レンダリング時に `next/script` で Instagram SDK を遅延読み込みし、iframe を安全に埋め込む。
-4. JavaScript 無効時はスケジュール画像（`image_url`）をフォールバック表示する。
+1. Supabase の `schedules.instagram_post_url`・`embed_html`・`image_url` を取得する。
+2. サーバーコンポーネントまたは Edge Function で oEmbed API を呼び出し、HTML とスクリプトを分離したうえで `embed_html` を保存する。
+3. レンダリング時に `InstagramEmbed` コンポーネントで `iframe` を再構築し、`title`・`aria-label`・`loading="lazy"`・`referrerPolicy="no-referrer"` を付与する。
+4. `sandbox="allow-scripts allow-same-origin"` を設定し、`next/script` で Instagram SDK (`https://www.instagram.com/embed.js`) を遅延読み込み後 `window.instgrm?.Embeds.process()` を呼び出す。
+5. JavaScript 無効時や埋め込み失敗時はスケジュール画像（`image_url`）をフォールバック表示する。
 
-### 3.3 エラーハンドリング
-- oEmbed 取得失敗時は 503 を返し、Supabase ログテーブル `instagram_errors`（予定）に保存。
-- 連続エラーが発生した場合は Edge Function で通知（Slack / Email）を送信。
+### 3.3 フォールバックと監視
+- フォールバックが発生した場合は Supabase のログテーブル（例: `instagram_errors`）に保存し、Slack/Email で通知する。
+- 連続エラー発生時は Edge Function 側でリトライポリシーを制御し、必要に応じてキャッシュを無効化する。
 
 ## 4. クッキー仕様（MVP）
 
@@ -121,19 +163,19 @@ Instagram 埋め込みは oEmbed を利用してサーバー側で安全に処�
 | 項目 | 値 |
 | --- | --- |
 | クッキー名 | `csh_favorites` |
-| 値の形式 | カンマ区切り文字列 `facilityId:sortOrder` |
-| 有効期限 | 180 日 |
+| 値の形式 | JSON 文字列（例: `[{"facilityId":"<uuid>","sortOrder":1}]`） |
+| 有効期限 | 180 日（`Max-Age=15552000`） |
 | 属性 | `SameSite=Lax; Secure; Path=/`（開発環境では `Secure` を除外） |
 
 ### 4.2 読み書きフロー
-1. 初回アクセス時にクッキーが存在しない場合は匿名 ID を生成。
-2. お気に入り登録時に `facilityId` を追記し、クッキーを再発行。
-3. 並び替え操作で `sortOrder` を再計算し、サーバーコンポーネントで同期。
-4. ポストMVP では認証ユーザーの `favorites` テーブルと同期を取り、クッキーは一時キャッシュとする。
+1. 初回アクセス時にクッキーが存在しない場合は匿名 ID を生成し、空の JSON 配列を保存する。
+2. お気に入り登録時に `facilityId` と `sortOrder` を追加し、配列サイズは最大 30 件までとする。
+3. 並び替え操作で `sortOrder` を更新し、クッキーを書き換える。将来的に Edge Function と同期する際は `update-favorites` を利用する。
+4. ポストMVP では認証ユーザーの `favorites` テーブルと同期を取り、クッキーは一時キャッシュとして扱う。
 
 ### 4.3 セキュリティ注意
 - クッキーには個人情報を含めない。
-- 将来的に JWT を利用し DB と同期する際は、`HttpOnly` + `Secure` クッキーを導入し、CSRF 対策を合わせて実装する。
+- 将来的に JWT を利用して DB と同期する際は、`HttpOnly` + `Secure` クッキーを導入し、CSRF 対策を合わせて実装する。
 
 ## 5. 将来拡張
 - GraphQL / RPC: 複数テーブルをまとめて返す用途に備え、Supabase RPC でカスタムビューを提供する。
@@ -141,6 +183,6 @@ Instagram 埋め込みは oEmbed を利用してサーバー側で安全に処�
 - エクスポート API: CSV/JSON ダウンロード用エンドポイント `/api/export` を Next.js 側で提供し、Supabase からのデータ抽出を行う。
 
 ## 6. 参考文献
-- [Instagram Embed API ドキュメント](https://developers.facebook.com/docs/instagram/oembed)
-- Jun Ito, 『みらい まる見え政治資金』を支える技術, https://note.com/jujunjun110/n/nee305ca004ac
-- Jun Ito, どのようにして95%以上のコードをLLMに書かせることができたのか, https://note.com/jujunjun110/n/na653d4120d7e
+- <a id="ref1"></a>[1] Instagram Embed API ドキュメント, https://developers.facebook.com/docs/instagram/oembed
+- <a id="ref2"></a>[2] Jun Ito, 『みらい まる見え政治資金』を支える技術, https://note.com/jujunjun110/n/nee305ca004ac
+- <a id="ref3"></a>[3] Jun Ito, どのようにして95%以上のコードをLLMに書かせることができたのか, https://note.com/jujunjun110/n/na653d4120d7e
