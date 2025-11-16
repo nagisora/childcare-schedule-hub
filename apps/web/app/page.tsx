@@ -19,7 +19,7 @@ export default function HomePage() {
 						お気に入り拠点
 					</h2>
 					<span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">
-						2 / 5 ・この端末のみ
+						2 / 5
 					</span>
 				</div>
 				{/* 縦並び（Instagram 埋め込み想定のプレースホルダー + 解除ボタン） */}
