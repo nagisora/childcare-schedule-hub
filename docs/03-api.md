@@ -92,6 +92,10 @@ Supabase は PostgreSQL に対して自動生成された REST エンドポイ�
   - `order`: `order=published_month.desc` のようにカラムと方向を指定。複数指定はカンマ区切り。
   - `select`: 返却フィールドを制御し、不要な列の送信を避ける。
 
+補足（MVP UI での利用範囲）:
+- トップページの「拠点一覧」はテキスト表のみのため、`/rest/v1/facilities` の基本フィールド（`name/area/address/phone`）に限定して利用する。
+- スケジュール取得（`/rest/v1/schedules`）は「よく使う拠点」エリア（最大5件）および将来の拠点詳細ページでのみ使用し、一覧テーブルでは呼び出さない。
+
 #### FavoriteRecord（ポストMVP）
 | フィールド | 型 | 必須 | 説明 |
 | --- | --- | --- | --- |
