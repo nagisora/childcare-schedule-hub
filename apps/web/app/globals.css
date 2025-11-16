@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
 	--foreground: #111213;
 	--background: #ffffff;
@@ -19,5 +23,4 @@ main {
 	max-width: 880px;
 	margin: 0 auto;
 }
-
 
