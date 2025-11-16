@@ -11,36 +11,63 @@ export default function HomePage() {
 				<p className="mt-3 text-base md:text-lg text-slate-600">
 					名古屋市内の子育て応援拠点のスケジュールを、ひと目で確認できます。
 				</p>
-				{/* 将来の検索フォームプレースホルダー */}
-				<div className="mt-6 h-12 rounded-lg border border-dashed border-slate-300/80 bg-white/50 backdrop-blur-sm flex items-center justify-center text-xs text-slate-400">
-					検索フォーム（ポストMVP予定）
-				</div>
 			</section>
 
 			<section aria-labelledby="favorites-heading" className="max-w-6xl mx-auto">
 				<div className="flex items-center justify-between mb-3">
 					<h2 id="favorites-heading" className="text-xl font-semibold text-slate-900">
-						よく使う拠点
+						お気に入り拠点
 					</h2>
 					<span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">
-						最大5拠点・この端末のみ
+						2 / 5 ・この端末のみ
 					</span>
 				</div>
-				{/* 仮のリスト（後で動的に差し替え） */}
-				<ul className="space-y-2">
-					<li className="rounded-xl border bg-white px-3 py-2 text-sm shadow-sm hover:shadow-md transition">
-						★ 拠点A（仮） — 中区 / 名古屋市中区1-1-1
-					</li>
-					<li className="rounded-xl border bg-white px-3 py-2 text-sm shadow-sm hover:shadow-md transition">
-						★ 拠点B（仮） — 西区 / 名古屋市西区2-2-2
-					</li>
-				</ul>
+				{/* 縦並び（Instagram 埋め込み想定のプレースホルダー + 解除ボタン） */}
+				<div className="space-y-4">
+					<article className="rounded-xl border bg-white p-3 shadow-sm">
+						<header className="flex items-center justify-between">
+							<h3 className="text-sm font-medium text-slate-900">拠点A（仮） — 中区</h3>
+							<button
+								aria-label="お気に入りから削除"
+								className="rounded-md border px-2 py-1 text-xs hover:bg-slate-50"
+							>
+								解除
+							</button>
+						</header>
+						<div className="mt-3 h-64 rounded-lg bg-slate-50 flex items-center justify-center text-xs text-slate-400">
+							Instagram 埋め込み（プレースホルダー）
+						</div>
+					</article>
+					<article className="rounded-xl border bg-white p-3 shadow-sm">
+						<header className="flex items-center justify-between">
+							<h3 className="text-sm font-medium text-slate-900">拠点B（仮） — 西区</h3>
+							<button
+								aria-label="お気に入りから削除"
+								className="rounded-md border px-2 py-1 text-xs hover:bg-slate-50"
+							>
+								解除
+							</button>
+						</header>
+						<div className="mt-3 h-64 rounded-lg bg-slate-50 flex items-center justify-center text-xs text-slate-400">
+							Instagram 埋め込み（プレースホルダー）
+						</div>
+					</article>
+				</div>
 			</section>
 
 			<section aria-labelledby="facilities-heading" className="max-w-6xl mx-auto">
 				<h2 id="facilities-heading" className="text-xl font-semibold mb-4 text-slate-900">
 					拠点一覧
 				</h2>
+				{/* エリア内リンク（ページ内ジャンプ） */}
+				<nav className="mb-3 flex flex-wrap gap-2 text-xs text-slate-600">
+					<a className="rounded-full border px-2 py-0.5 hover:bg-slate-50" href="#area-中区">
+						中区へ
+					</a>
+					<a className="rounded-full border px-2 py-0.5 hover:bg-slate-50" href="#area-西区">
+						西区へ
+					</a>
+				</nav>
 				<div className="overflow-x-auto rounded-xl border bg-white shadow-sm">
 					<table className="w-full text-sm">
 						<thead className="bg-slate-50 text-slate-600">
@@ -53,6 +80,12 @@ export default function HomePage() {
 							</tr>
 						</thead>
 						<tbody>
+							{/* 中区 グルーピング見出し */}
+							<tr className="bg-slate-50/70">
+								<td colSpan={5} className="px-3 py-2 font-semibold text-slate-700" id="area-中区">
+									中区
+								</td>
+							</tr>
 							<tr className="border-t">
 								<td className="px-3 py-2 font-medium text-slate-900">〇〇子育て応援拠点（仮）</td>
 								<td className="px-3 py-2 text-slate-700 whitespace-nowrap">中区</td>
@@ -65,6 +98,12 @@ export default function HomePage() {
 									>
 										＋
 									</button>
+								</td>
+							</tr>
+							{/* 西区 グルーピング見出し */}
+							<tr className="bg-slate-50/70 border-t">
+								<td colSpan={5} className="px-3 py-2 font-semibold text-slate-700" id="area-西区">
+									西区
 								</td>
 							</tr>
 							<tr className="border-t">
