@@ -23,33 +23,66 @@ export default function HomePage() {
 						よく使う拠点
 					</h2>
 					<span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">
-						最大30拠点・この端末のみ
+						最大5拠点・この端末のみ
 					</span>
 				</div>
-				{/* 仮のカード群（後で動的に差し替え） */}
-				<div className="flex gap-3 overflow-x-auto pb-1">
-					<button className="min-w-[180px] rounded-xl border bg-white px-3 py-2 text-left text-sm shadow-sm hover:shadow-md transition">
-						★ 拠点A（仮）
-					</button>
-					<button className="min-w-[180px] rounded-xl border bg-white px-3 py-2 text-left text-sm shadow-sm hover:shadow-md transition">
-						★ 拠点B（仮）
-					</button>
-				</div>
+				{/* 仮のリスト（後で動的に差し替え） */}
+				<ul className="space-y-2">
+					<li className="rounded-xl border bg-white px-3 py-2 text-sm shadow-sm hover:shadow-md transition">
+						★ 拠点A（仮） — 中区 / 名古屋市中区1-1-1
+					</li>
+					<li className="rounded-xl border bg-white px-3 py-2 text-sm shadow-sm hover:shadow-md transition">
+						★ 拠点B（仮） — 西区 / 名古屋市西区2-2-2
+					</li>
+				</ul>
 			</section>
 
 			<section aria-labelledby="facilities-heading" className="max-w-6xl mx-auto">
 				<h2 id="facilities-heading" className="text-xl font-semibold mb-4 text-slate-900">
 					拠点一覧
 				</h2>
-				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-					{/* 仮カード（実際は Supabase から取得） */}
-					<article className="rounded-xl border bg-white p-3 text-sm shadow-sm hover:shadow-md transition">
-						<h3 className="font-medium text-slate-900">〇〇子育て応援拠点（仮）</h3>
-						<p className="text-xs text-slate-500 mt-1">中区 / 名古屋市中区1-1-1</p>
-						<div className="mt-3 h-24 rounded-lg bg-slate-50 flex items-center justify-center text-xs text-slate-400">
-							スケジュール画像 or Instagram 埋め込み（プレースホルダー）
-						</div>
-					</article>
+				<div className="overflow-x-auto rounded-xl border bg-white shadow-sm">
+					<table className="w-full text-sm">
+						<thead className="bg-slate-50 text-slate-600">
+							<tr>
+								<th className="text-left font-medium px-3 py-2">拠点名</th>
+								<th className="text-left font-medium px-3 py-2">エリア</th>
+								<th className="text-left font-medium px-3 py-2">住所</th>
+								<th className="text-left font-medium px-3 py-2">電話</th>
+								<th className="text-left font-medium px-3 py-2">お気に入り</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr className="border-t">
+								<td className="px-3 py-2 font-medium text-slate-900">〇〇子育て応援拠点（仮）</td>
+								<td className="px-3 py-2 text-slate-700 whitespace-nowrap">中区</td>
+								<td className="px-3 py-2 text-slate-700">名古屋市中区1-1-1</td>
+								<td className="px-3 py-2 text-slate-700 whitespace-nowrap">052-000-0000</td>
+								<td className="px-3 py-2">
+									<button
+										aria-label="お気に入りに追加"
+										className="rounded-md border px-2 py-1 text-xs hover:bg-slate-50"
+									>
+										＋
+									</button>
+								</td>
+							</tr>
+							<tr className="border-t">
+								<td className="px-3 py-2 font-medium text-slate-900">△△子育て支援拠点（仮）</td>
+								<td className="px-3 py-2 text-slate-700 whitespace-nowrap">西区</td>
+								<td className="px-3 py-2 text-slate-700">名古屋市西区2-2-2</td>
+								<td className="px-3 py-2 text-slate-700 whitespace-nowrap">052-111-1111</td>
+								<td className="px-3 py-2">
+									<button
+										aria-label="お気に入りに追加"
+										className="rounded-md border px-2 py-1 text-xs hover:bg-slate-50"
+									>
+										＋
+									</button>
+								</td>
+							</tr>
+						</tbody>
+					</table>
 				</div>
 			</section>
 		</main>
