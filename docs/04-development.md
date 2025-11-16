@@ -21,19 +21,31 @@
 - Git、Vercel CLI（プレビュー確認用）
 - Supabase CLI 1.150.x 以上（ローカル DB・マイグレーション管理）
 
-### 2.2 初期準備
-1. リポジトリを取得し依存関係をインストール:
+### 2.2 初期準備（mise を利用）
+このプロジェクトでは Node.js / pnpm などのランタイムを **mise** で管理します。
+
+1. リポジトリ取得（未取得の場合）
    ```bash
 git clone <REPO_URL>
 cd childcare-schedule-hub
-pnpm install
+```
+
+2. mise の信頼設定とインストール
+```bash
+mise trust -y mise.toml
+mise install
+```
+
+3. 依存パッケージのインストール（パッケージ構成が揃っている場合）
+```bash
+mise exec -- pnpm install
    ```
 2. Tailwind / ESLint などの設定はリポジトリに同梱。アップデート時は `pnpm dlx @next/codemod` 等を活用。
 3. Supabase プロジェクトを用意し、接続情報を `.env.local` に設定（詳細は [3. 環境変数管理](#3-環境変数管理)）。
 
 ### 2.3 ローカル開発サーバー
 ```bash
-pnpm dev --filter apps/web
+mise exec -- pnpm dev --filter apps/web
 ```
 - ブラウザで `http://localhost:3000` を開く。
 - Supabase ローカルを利用する場合は `supabase start` 後に `.env.local` を更新する。
