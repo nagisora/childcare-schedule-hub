@@ -162,6 +162,37 @@ SUPABASE_DB_PASSWORD=""        # Supabase CLI を使う場合
 - **カバレッジ目標**: 単体 70% / 重要ユースケース 100% を目標に `pnpm test --filter web --coverage` を実行。閾値を下回った場合はビルドを失敗させる。
 - **CI 実行順序**: `lint` → `typecheck` → `test` → `e2e` の順で GitHub Actions を設定し、Playwright の結果はアーティファクトとして保存する。
 
+### 5.7 MVP 代表フロー実装方針（apps/web）
+
+代表フロー「拠点一覧 → スケジュール表示 → お気に入り」は、`apps/web` のルーティング・状態管理・API 利用を一貫した形で実装する。
+
+- ルーティングとページ構成
+  - トップページ: `apps/web/app/page.tsx`
+    - サーバーコンポーネントとして実装し、Supabase から拠点一覧を取得する。
+    - 「よく使う拠点」セクションと「拠点一覧」テーブルを 1 ページ内に配置する。
+  - 拠点詳細ページ（ポストMVP）: `apps/web/app/facilities/[id]/page.tsx`
+    - 指定拠点の基本情報と最新スケジュールを表示し、代表フロー上の「スケジュール表示」を担う。
+- データ取得とキャッシュ
+  - トップページでは Supabase REST（もしくは `@supabase/supabase-js`）を用いて `facilities` テーブルを取得する。
+    - 代表的なクエリ: `select id,name,area,address,phone,instagram_url,website_url order by area,name`
+    - ISR / `revalidateTag('facilities')` の設定は [02 設計資料](./02-design.md) 3.3 節と整合させる。
+  - （ポストMVP）拠点詳細ページでは `schedules` テーブルから対象拠点の最新スケジュールを取得する。
+- お気に入り状態管理
+  - サーバー側: `cookies()` API から `csh_favorites` を読み取り、初期状態をサーバーコンポーネントで組み立てる。
+  - クライアント側:
+    - 「よく使う拠点」セクションをクライアントコンポーネントとして分離し、`useOptimistic` などで並び替え操作を即時に反映する。
+    - お気に入り追加/削除・並び替えのたびにクッキーを書き換えるヘルパー関数（例: `updateFavoritesCookie`）を `apps/web/lib/cookies.ts` に定義する。
+  - 制約:
+    - 最大 5 件までをお気に入りとして扱う（[01 要件定義](./01-requirements.md) の MVP 要件に準拠）。
+    - MVP では DB への書き込みは行わず、ポストMVPで `favorites` テーブルと同期する。
+- UI コンポーネント構成（例）
+  - `FavoriteFacilitiesSection`: 「よく使う拠点」エリア。お気に入りカードの並び替え・削除を担当。
+  - `FacilityTable`: 全拠点一覧を表形式で表示し、「+」ボタンでお気に入り追加を行う。
+  - `SchedulePreview`（ポストMVP）: 拠点の最新スケジュール画像/埋め込みを表示するコンポーネント。
+  - 共通レイアウトやカード UI は `packages/ui` に切り出すことを検討する。
+
+これらの方針に従うことで、仕様変更時にも「代表フロー」を起点にコードベース全体の影響範囲を把握しやすくする。
+
 ## 6. Git フローとレビュー
 - `main` ブランチは常にデプロイ可能な状態を維持。
 - PR は `main`（または指定の release ブランチ）へのマージのみ許可し、レビューは最低 1 名必須。

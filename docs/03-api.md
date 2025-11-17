@@ -28,6 +28,51 @@ Supabase は PostgreSQL に対して自動生成された REST エンドポイ�
 | favorites | GET | `/rest/v1/favorites?cookie_id=eq.{cookie}` | 匿名（ポストMVP準備） | `cookie_id`, `select` | 200 + お気に入り配列 | 401 認証必要（ポストMVP） |
 | favorites | UPSERT | `/rest/v1/favorites` | ユーザー JWT（ポストMVP） | JSON ボディ（Schema: `FavoriteUpsert`） | 200 + 更新行 | 401 認証失敗、409 競合 |
 
+### 2.2.1 MVP 代表フローで利用するエンドポイント
+
+「拠点一覧 → スケジュール表示 → お気に入り」の代表フローでは、主に次のエンドポイントを利用する。MVP では読み取り専用とし、お気に入りの保存はクライアント側クッキーで行う。
+
+1. トップページの拠点一覧表示
+   - エンドポイント: `GET /rest/v1/facilities`
+   - 認証: 匿名（`anon` ロール）
+   - 主なクエリ例:
+     - `select=id,name,area,address,phone,instagram_url,website_url`
+     - `order=area.asc,name.asc`
+     - `limit=50`（ページネーション時は `offset` と組み合わせ）
+   - 利用箇所:
+     - トップページの「拠点一覧（テキスト表）」および「よく使う拠点」エリアの表示に利用する（[02 設計資料](./02-design.md) の 4.2 節）。
+   - レスポンス: `FacilitySummary`（[2.3 入出力スキーマ概要](#23-入出力スキーマ概要)）を配列で返す。
+
+2. 拠点ごとの最新スケジュール表示（ポストMVPを含む）
+   - エンドポイント: `GET /rest/v1/schedules`
+   - 認証: 匿名（`anon` ロール）
+   - 主なクエリ例:
+     - 代表フローで 1 件の最新スケジュールを取得する場合:
+       - `facility_id=eq.{facility_id}`
+       - `order=published_month.desc`
+       - `limit=1`
+   - 利用箇所:
+     - 「よく使う拠点」エリア内のスケジュール表示、および拠点詳細ページ（ポストMVP）で利用する。
+   - レスポンス: `ScheduleSummary` の配列（通常は 0〜1 件）。
+
+3. 拠点 + 最新スケジュールのまとめ取得（JOIN パターン）
+   - エンドポイント: `GET /rest/v1/facilities`
+   - 認証: 匿名（`anon` ロール）
+   - 主なクエリ例:
+     - 代表フローで「拠点 + 最新スケジュール」をまとめて取得する場合:
+       ```text
+       /rest/v1/facilities
+         ?select=id,name,area,address,phone,instagram_url,website_url,
+                 schedules(id,published_month,image_url,instagram_post_url,embed_html)
+         &schedules.order=published_month.desc
+         &schedules.limit=1
+       ```
+   - 利用箇所:
+     - 拠点詳細ページで「拠点情報 + 最新スケジュール」を 1 回の API で取得する場合に利用する。
+
+補足:
+- MVP ではお気に入りの登録・並び替えは REST API を介さずクッキー `csh_favorites` で完結させる。`favorites` エンドポイントはポストMVPで DB 同期を導入する際に利用する（[04 クッキー仕様](./03-api.md#4-クッキー仕様mvp) と整合）。
+
 #### レスポンス例: facilities GET
 ```json
 [
@@ -93,7 +138,7 @@ Supabase は PostgreSQL に対して自動生成された REST エンドポイ�
   - `select`: 返却フィールドを制御し、不要な列の送信を避ける。
 
 補足（MVP UI での利用範囲）:
-- トップページの「拠点一覧」はテキスト表のみのため、`/rest/v1/facilities` の基本フィールド（`name/area/address/phone`）に限定して利用する。
+- トップページの「拠点一覧」はテキスト表のみのため、`/rest/v1/facilities` の基本フィールド（`id/name/area/address/phone` など）に限定して利用する。
 - スケジュール取得（`/rest/v1/schedules`）は「よく使う拠点」エリア（最大5件）および将来の拠点詳細ページでのみ使用し、一覧テーブルでは呼び出さない。
 
 #### FavoriteRecord（ポストMVP）
@@ -185,6 +230,8 @@ Instagram 埋め込みは oEmbed を利用してサーバー側で安全に処�
 - GraphQL / RPC: 複数テーブルをまとめて返す用途に備え、Supabase RPC でカスタムビューを提供する。
 - Scheduled Functions: Instagram 自動巡回やキャッシュ更新を定期実行する機能を追加。
 - エクスポート API: CSV/JSON ダウンロード用エンドポイント `/api/export` を Next.js 側で提供し、Supabase からのデータ抽出を行う。
+- 通知系 API: 将来的に「お気に入り拠点のスケジュール更新通知」などを実装する場合は、ユーザー/トークン管理テーブルと連携した通知送信 API を別途設計する。
+- 管理画面用 API: 拠点・スケジュール・お気に入りを管理者が操作するための専用 API 群を `apps/admin` から利用することを想定する。
 
 ## 6. 参考文献
 - <a id="ref1"></a>[1] Instagram Embed API ドキュメント, https://developers.facebook.com/docs/instagram/oembed
