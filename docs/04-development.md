@@ -45,10 +45,11 @@ mise exec -- pnpm install
 
 ### 2.3 ローカル開発サーバー
 ```bash
-mise exec -- pnpm dev --filter apps/web
+mise exec -- pnpm --filter web dev
 ```
 - ブラウザで `http://localhost:3000` を開く。
 - Supabase ローカルを利用する場合は `supabase start` 後に `.env.local` を更新する。
+- 注: `apps/web/package.json` の name が `web` のため、`--filter web` でフィルタする。mise を使わない場合は `cd apps/web && pnpm dev` でも可。
 
 ### 2.4 Supabase プロジェクト設定
 1. [02 設計資料](./02-design.md) の定義で `facilities` / `schedules` テーブルを作成。
@@ -131,12 +132,15 @@ SUPABASE_DB_PASSWORD=""        # Supabase CLI を使う場合
 ### 5.2 pnpm スクリプト
 | コマンド | 説明 |
 | --- | --- |
-| `pnpm lint` | ESLint チェック |
-| `pnpm typecheck` | TypeScript 型チェック |
-| `pnpm test` | ユニットテスト（導入後） |
-| `pnpm format` | Prettier フォーマット |
-| `pnpm storybook` | Storybook 起動（導入後） |
-| `pnpm dev --filter apps/web` | フロントエンドの開発サーバー |
+| `mise exec -- pnpm --filter web lint` | ESLint チェック |
+| `mise exec -- pnpm --filter web typecheck` | TypeScript 型チェック |
+| `mise exec -- pnpm --filter web test` | ユニットテスト |
+| `mise exec -- pnpm --filter web test:coverage` | カバレッジ取得 |
+| `mise exec -- pnpm --filter web e2e` | E2E テスト（Playwright） |
+| `mise exec -- pnpm --filter web dev` | フロントエンドの開発サーバー |
+| `mise exec -- pnpm --filter web build` | プロダクションビルド |
+
+注: mise を使わない場合は `cd apps/web && pnpm <command>` でも実行可能。
 
 ### 5.3 パフォーマンス・キャッシュ
 - ISR を 60 分に設定し、初回表示 3 秒以内を維持（[01 要件定義](./01-requirements.md)）。

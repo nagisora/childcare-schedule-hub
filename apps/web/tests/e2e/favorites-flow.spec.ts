@@ -113,6 +113,53 @@ test.describe('代表フロー: お気に入り追加', () => {
 		}
 	});
 
+	// Given: お気に入りを1件追加済み
+	// When: ページを再読み込みして、既に追加済みの拠点を確認
+	// Then: 「追加済み」と表示され、「+」ボタンが表示されない
+	test('TC-E2E-05: 既に追加済みの拠点では「追加済み」と表示され、ボタンが無効化される', async ({ page, context }) => {
+		// クッキーをクリア
+		await context.clearCookies();
+		await page.goto('/');
+
+		// 最初の「+」ボタンをクリックして1件追加
+		const firstAddButton = page.getByRole('button', { name: /をお気に入りに追加/ }).first();
+		await expect(firstAddButton).toBeVisible();
+		
+		// 拠点名を取得
+		const row = firstAddButton.locator('..').locator('..').locator('..');
+		const facilityName = await row.locator('td').first().textContent();
+		
+		await firstAddButton.click();
+
+		// ページが再読み込みされるのを待つ
+		await page.waitForLoadState('networkidle');
+
+		// お気に入りエリアに追加された拠点が表示されることを確認
+		await expect(page.getByRole('heading', { name: 'お気に入り拠点' })).toBeVisible();
+		
+		// ページを再読み込みして、クッキーの状態を反映させる
+		await page.reload();
+		await page.waitForLoadState('networkidle');
+
+		// 既に追加済みの拠点を探す
+		if (facilityName) {
+			// 拠点名を含む行を探す
+			const rowWithFavorite = page.locator('tr').filter({ hasText: facilityName.trim() });
+			
+			// 「追加済み」ラベルが表示されることを確認
+			const addedLabel = rowWithFavorite.getByText('追加済み');
+			await expect(addedLabel).toBeVisible();
+			
+			// 「+」ボタンが表示されないことを確認
+			const addButtonInRow = rowWithFavorite.getByRole('button', { name: /をお気に入りに追加/ });
+			await expect(addButtonInRow).not.toBeVisible();
+		}
+
+		// お気に入りエリアにも該当拠点が表示されていることを確認
+		const favoriteArticle = page.getByRole('article').filter({ hasText: facilityName?.trim() || '' });
+		await expect(favoriteArticle).toBeVisible();
+	});
+
 	// Given: お気に入りを追加済み
 	// When: お気に入りから「解除」ボタンをクリック
 	// Then: 該当のお気に入りが削除され、一覧に「+」ボタンが再表示される
