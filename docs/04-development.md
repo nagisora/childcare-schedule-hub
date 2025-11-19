@@ -56,10 +56,10 @@ mise exec -- pnpm --filter web dev
 ### 2.4 Supabase プロジェクト設定
 
 1. Supabase プロジェクトの作成・環境変数設定・テーブル作成は、**原則として Cursor + Supabase MCP を用いて AI に実行させることを推奨**します。詳細な手順は [06 DB セットアップ & 手動オペレーション](./06-db-operations.md) を参照してください:
-   - Supabase MCP の導入手順: [06 節 4](./06-db-operations.md#4-supabase-mcpcursor-連携)
-   - AI への依頼パターン: [06 節 2.1](./06-db-operations.md#21-aiへの依頼パターン)
-   - 環境変数設定手順: [06 節 3.2](./06-db-operations.md#32-環境変数の取得と設定)
-   - テーブル作成手順: [06 節 3.3](./06-db-operations.md#33-テーブル作成)
+   - Supabase MCP の導入手順: [06 節 2](./06-db-operations.md#2-supabase-mcpcursor-連携)
+   - AI への依頼パターン: [06 節 3.1](./06-db-operations.md#31-aiへの依頼パターン)
+   - 環境変数設定手順: [06 節 4.2](./06-db-operations.md#42-環境変数の取得と設定)
+   - テーブル作成手順: [06 節 4.3](./06-db-operations.md#43-テーブル作成)
 2. RLS ポリシーは「公開読み取り / 管理者書き込み」を原則とし、`favorites` はポストMVPで有効化（[02 設計資料](./02-design.md) 3.4 節を参照）
 3. Vercel 環境変数に Supabase URL / キーを登録する（[3.4 環境別運用](#34-環境別運用) を参照）
 
@@ -128,18 +128,18 @@ SUPABASE_DB_PASSWORD=""        # Supabase CLI を使う場合
 
 詳細な手順は [06 DB セットアップ & 手動オペレーション](./06-db-operations.md) を参照してください:
 
-- **Supabase MCP のセットアップ**（初回のみ、[06 節 4](./06-db-operations.md#4-supabase-mcpcursor-連携)）
-- **Supabase プロジェクトの作成・設定**（推奨: AI に依頼、[06 節 3.1](./06-db-operations.md#31-supabase-プロジェクトの作成設定)）
-- **環境変数の取得と設定**（推奨: AI に依頼、[06 節 3.2](./06-db-operations.md#32-環境変数の取得と設定)）
-- **テーブル作成**（推奨: Supabase MCP で AI に実行させる、[06 節 3.3](./06-db-operations.md#33-テーブル作成)）
+- **Supabase MCP のセットアップ**（初回のみ、[06 節 2](./06-db-operations.md#2-supabase-mcpcursor-連携)）
+- **Supabase プロジェクトの作成・設定**（推奨: AI に依頼、[06 節 4.1](./06-db-operations.md#41-supabase-プロジェクトの作成設定)）
+- **環境変数の取得と設定**（推奨: AI に依頼、[06 節 4.2](./06-db-operations.md#42-環境変数の取得と設定)）
+- **テーブル作成**（推奨: Supabase MCP で AI に実行させる、[06 節 4.3](./06-db-operations.md#43-テーブル作成)）
   - `facilities` テーブル（MVP 必須）
   - `schedules` テーブル（MVP 必須、データは任意）
-- **サンプルデータの投入**（推奨: Supabase MCP で AI に実行させる、[06 節 3.4](./06-db-operations.md#34-サンプルデータの投入)）
+- **サンプルデータの投入**（推奨: Supabase MCP で AI に実行させる、[06 節 4.4](./06-db-operations.md#44-サンプルデータの投入)）
   - `facilities` テーブルに最低 3 件のデータ（必須）
   - `schedules` テーブルのサンプルデータ（任意）
-- **動作確認**（[06 節 3.5](./06-db-operations.md#35-動作確認)）
+- **動作確認**（[06 節 4.5](./06-db-operations.md#45-動作確認)）
 
-**注意**: MCP 利用がデフォルト、手動実行はフォールバックです。AI への依頼パターンは [06 節 2.1](./06-db-operations.md#21-aiへの依頼パターン) を参照してください。
+**注意**: MCP 利用がデフォルト、手動実行はフォールバックです。AI への依頼パターンは [06 節 3.1](./06-db-operations.md#31-aiへの依頼パターン) を参照してください。
 
 ### 4.2 マイグレーションフロー（スキーマ変更時）
 

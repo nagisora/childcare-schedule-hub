@@ -13,20 +13,86 @@
 
 **重要**: 本書は、Cursor + Supabase MCP を使った AI 実行をデフォルト経路として想定しています。MCP を利用できない環境では、人間がターミナルや Supabase Studio で実行する手順としても利用できます。テーブル定義の詳細は [02 設計資料](./02-design.md) 3.3 節を、開発全体の流れは [04 開発ガイド](./04-development.md) と [05 開発フェーズ](./05-development-phases.md) を参照してください。
 
-## 2. Supabase MCP を使う場合の共通フロー
+## 2. Supabase MCP（Cursor 連携）
+
+Supabase MCP（Model Context Protocol）を使うことで、Cursor などの AI アシスタントが Supabase プロジェクトに直接アクセスし、DB 操作を実行できます。このプロジェクトでは、**DB セットアップのデフォルト経路として Supabase MCP を推奨**します。
+
+### 2.1 Cursor への Supabase MCP 導入手順
+
+#### 方法 A: 1-Click インストール（推奨）
+
+1. [Supabase MCP 公式ドキュメント](https://supabase.com/docs/guides/getting-started/mcp) にアクセス
+2. **Cursor** を選択し、「Add to Cursor」ボタンをクリック
+3. 設定が自動的に `.cursor/mcp.json` に追加されます
+
+#### 方法 B: 手動設定
+
+1. `.cursor/mcp.json` ファイルを作成または編集（プロジェクトルートに配置）
+2. 以下の最小設定を追加:
+
+```json
+{
+  "mcpServers": {
+    "supabase": {
+      "url": "https://mcp.supabase.com/mcp"
+    }
+  }
+}
+```
+
+3. Cursor を再起動して設定を反映
+
+### 2.2 初回認証フロー
+
+1. Cursor で Supabase MCP を使用するコマンドを初めて実行すると、ブラウザウィンドウが自動的に開きます
+2. Supabase アカウントにログインします
+3. 組織アクセスを許可する画面が表示されるので、**許可（Authorize）** をクリックします
+4. これにより、Cursor が Supabase プロジェクトにアクセスできるようになります
+
+### 2.3 CI 環境での利用（オプション）
+
+CI 環境で Supabase MCP を使う場合は、Personal Access Token (PAT) を使用します：
+
+1. [Supabase Access Tokens](https://app.supabase.com/account/tokens) にアクセス
+2. 新しいトークンを生成（例: "CI MCP Token"）
+3. `.cursor/mcp.json` に以下のようにトークンを追加:
+
+```json
+{
+  "mcpServers": {
+    "supabase": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=${SUPABASE_PROJECT_REF}",
+      "headers": {
+        "Authorization": "Bearer ${SUPABASE_ACCESS_TOKEN}"
+      }
+    }
+  }
+}
+```
+
+**注意**: CI 環境では、環境変数 `SUPABASE_ACCESS_TOKEN` と `SUPABASE_PROJECT_REF` を設定してください。また、**本番データに接続しないよう注意**してください。
+
+### 2.4 よくある操作例
+
+MCP を利用したよくある操作は、[3.1 AI への依頼パターン](#31-aiへの依頼パターン) を参照してください。
+
+詳細: [Supabase MCP 公式ドキュメント](https://supabase.com/docs/guides/getting-started/mcp)
+
+## 3. Supabase MCP を使う場合の共通フロー
 
 フェーズ3の DB セットアップは、**基本的に Cursor + Supabase MCP を用いて AI が実行し、人間は指示と確認を行う**ことが推奨されます。
 
-### 2.1 AI への依頼パターン
+### 3.1 AI への依頼パターン
 
 以下のような指示を Cursor のチャットで行うことで、AI が Supabase MCP 経由で DB 操作を実行します：
 
 - **テーブル作成**: 「Supabase MCP を使って開発用プロジェクトで `facilities` テーブルを作成して」  
-  または「`docs/06-db-operations.md` の 2.3 節に従って `facilities` と `schedules` テーブルを作成して」
+  または「`docs/06-db-operations.md` の 4.3 節に従って `facilities` と `schedules` テーブルを作成して」
 - **サンプルデータ投入**: 「`facilities` テーブルにサンプルデータを 3 件投入して」
 - **環境変数確認**: 「現在の Supabase プロジェクトの環境変数設定を確認して」
 
-### 2.2 AI に任せるべき操作と人間が判断すべき操作
+### 3.2 AI に任せるべき操作と人間が判断すべき操作
 
 **AI に任せるべき操作（MCP で実行）:**
 - 開発用プロジェクトでのテーブル作成・インデックス作成・RLS ポリシー設定
@@ -40,7 +106,7 @@
 - プロジェクト作成・削除・組織管理
 - セキュリティポリシーの最終決定
 
-### 2.3 安全性の考慮事項
+### 3.3 安全性の考慮事項
 
 Supabase MCP を利用する際は、以下の安全性方針に従ってください（参考: [Supabase MCP 公式ドキュメント](https://supabase.com/docs/guides/getting-started/mcp)）：
 
@@ -52,19 +118,19 @@ Supabase MCP を利用する際は、以下の安全性方針に従ってくだ�
 3. **Cursor でのツールコール手動承認**: Cursor の設定で、すべてのツールコールを手動承認する設定を有効にしてください。AI が実行する SQL の内容を必ず確認してから承認するようにしてください。
 4. **機密データの保護**: 本番データに接続する場合は、機密情報（個人情報、パスワードなど）が含まれていないか事前に確認してください。
 
-## 3. 初回セットアップ（フェーズ3）
+## 4. 初回セットアップ（フェーズ3）
 
 フェーズ3の代表フロー「拠点一覧 → スケジュール表示 → お気に入り」を動作させるため、以下の手順を順番に実行してください。
 
-**注意**: 以下の手順は、AI（Cursor + Supabase MCP）が実行しても、人間が自分で実行してもよい「標準手順書」です。MCP を利用する場合は、[2. Supabase MCP を使う場合の共通フロー](#2-supabase-mcp-を使う場合の共通フロー) に従って AI に依頼してください。
+**注意**: 以下の手順は、AI（Cursor + Supabase MCP）が実行しても、人間が自分で実行してもよい「標準手順書」です。MCP を利用する場合は、[3. Supabase MCP を使う場合の共通フロー](#3-supabase-mcp-を使う場合の共通フロー) に従って AI に依頼してください。
 
-### 3.1 Supabase プロジェクトの作成・設定
+### 4.1 Supabase プロジェクトの作成・設定
 
 1. Supabase ダッシュボード（https://app.supabase.com）にアクセス
 2. 新しいプロジェクトを作成（プロジェクト名・データベースパスワードを設定）
 3. プロジェクトが作成されるまで待機（数分かかります）
 
-### 3.2 環境変数の取得と設定
+### 4.2 環境変数の取得と設定
 
 1. Supabase プロジェクトのダッシュボードで、左メニューから **Settings**（歯車アイコン） > **API** を開く
 2. 以下の値を取得:
@@ -88,7 +154,7 @@ Supabase MCP を利用する際は、以下の安全性方針に従ってくだ�
 
 詳細: [04 開発ガイド](./04-development.md) 3.2 節を参照
 
-### 3.3 テーブル作成
+### 4.3 テーブル作成
 
 #### facilities テーブル作成
 
@@ -222,7 +288,7 @@ CREATE POLICY "Allow public read access" ON public.schedules
 
 ポストMVPで `favorites` テーブルを作成する場合は、[02 設計資料](./02-design.md) 3.3 節のテーブル定義と [02 設計資料](./02-design.md) 3.4 節の RLS ポリシー定義を参照してください。
 
-### 3.4 サンプルデータの投入
+### 4.4 サンプルデータの投入
 
 #### facilities テーブルへのサンプルデータ投入（必須）
 
@@ -294,7 +360,7 @@ LIMIT 3;
 - 将来的な拠点詳細ページ（`/facilities/[id]`）でスケジュール表示を実装する際に必要になります
 - `image_url` は実際の Supabase Storage URL またはダミーURLを使用してください
 
-### 3.5 動作確認
+### 4.5 動作確認
 
 1. 開発サーバーを起動:
    ```bash
@@ -305,72 +371,6 @@ LIMIT 3;
    - 拠点一覧が表示される
    - 「+」ボタンでお気に入り追加ができる
    - 上部の「お気に入り拠点」エリアに追加された拠点が表示される
-
-## 4. Supabase MCP（Cursor 連携）
-
-Supabase MCP（Model Context Protocol）を使うことで、Cursor などの AI アシスタントが Supabase プロジェクトに直接アクセスし、DB 操作を実行できます。このプロジェクトでは、**DB セットアップのデフォルト経路として Supabase MCP を推奨**します。
-
-### 4.1 Cursor への Supabase MCP 導入手順
-
-#### 方法 A: 1-Click インストール（推奨）
-
-1. [Supabase MCP 公式ドキュメント](https://supabase.com/docs/guides/getting-started/mcp) にアクセス
-2. **Cursor** を選択し、「Add to Cursor」ボタンをクリック
-3. 設定が自動的に `.cursor/mcp.json` に追加されます
-
-#### 方法 B: 手動設定
-
-1. `.cursor/mcp.json` ファイルを作成または編集（プロジェクトルートに配置）
-2. 以下の最小設定を追加:
-
-```json
-{
-  "mcpServers": {
-    "supabase": {
-      "url": "https://mcp.supabase.com/mcp"
-    }
-  }
-}
-```
-
-3. Cursor を再起動して設定を反映
-
-### 4.2 初回認証フロー
-
-1. Cursor で Supabase MCP を使用するコマンドを初めて実行すると、ブラウザウィンドウが自動的に開きます
-2. Supabase アカウントにログインします
-3. 組織アクセスを許可する画面が表示されるので、**許可（Authorize）** をクリックします
-4. これにより、Cursor が Supabase プロジェクトにアクセスできるようになります
-
-### 4.3 CI 環境での利用（オプション）
-
-CI 環境で Supabase MCP を使う場合は、Personal Access Token (PAT) を使用します：
-
-1. [Supabase Access Tokens](https://app.supabase.com/account/tokens) にアクセス
-2. 新しいトークンを生成（例: "CI MCP Token"）
-3. `.cursor/mcp.json` に以下のようにトークンを追加:
-
-```json
-{
-  "mcpServers": {
-    "supabase": {
-      "type": "http",
-      "url": "https://mcp.supabase.com/mcp?project_ref=${SUPABASE_PROJECT_REF}",
-      "headers": {
-        "Authorization": "Bearer ${SUPABASE_ACCESS_TOKEN}"
-      }
-    }
-  }
-}
-```
-
-**注意**: CI 環境では、環境変数 `SUPABASE_ACCESS_TOKEN` と `SUPABASE_PROJECT_REF` を設定してください。また、**本番データに接続しないよう注意**してください。
-
-### 4.4 よくある操作例
-
-MCP を利用したよくある操作は、[2.1 AI への依頼パターン](#21-aiへの依頼パターン) を参照してください。
-
-詳細: [Supabase MCP 公式ドキュメント](https://supabase.com/docs/guides/getting-started/mcp)
 
 ## 5. Supabase CLI の基本操作
 
@@ -447,26 +447,26 @@ ON CONFLICT DO NOTHING;
 
 ---
 
-**注意**: 本書の 3.x 節（初回セットアップ）の手順は、AI（Cursor + Supabase MCP）が実行しても、人間が自分で実行してもよい「標準手順書」です。MCP を利用する場合は、[2. Supabase MCP を使う場合の共通フロー](#2-supabase-mcp-を使う場合の共通フロー) を参照してください。
+**注意**: 本書の 4.x 節（初回セットアップ）の手順は、AI（Cursor + Supabase MCP）が実行しても、人間が自分で実行してもよい「標準手順書」です。MCP を利用する場合は、[3. Supabase MCP を使う場合の共通フロー](#3-supabase-mcp-を使う場合の共通フロー) を参照してください。
 
 ## 6. トラブルシューティング
 
 ### テーブルが存在しないエラー
 
 - `ERROR: relation "public.facilities" does not exist` などのエラーが出る場合:
-  - [3.3 テーブル作成](#33-テーブル作成) の手順を実行しているか確認してください
+  - [4.3 テーブル作成](#43-テーブル作成) の手順を実行しているか確認してください
   - `facilities` → `schedules` の順で作成しているか確認してください（外部キー制約のため）
 
 ### 環境変数が設定されていないエラー
 
 - `Missing Supabase environment variables` エラーが出る場合:
-  - [3.2 環境変数の取得と設定](#32-環境変数の取得と設定) の手順を実行しているか確認してください
+  - [4.2 環境変数の取得と設定](#42-環境変数の取得と設定) の手順を実行しているか確認してください
   - `apps/web/.env.local` ファイルが存在し、正しい値が設定されているか確認してください
 
 ### RLS ポリシーによるアクセスエラー
 
 - `new row violates row-level security policy` エラーが出る場合:
-  - [3.3 テーブル作成](#33-テーブル作成) の手順で RLS ポリシーが正しく作成されているか確認してください
+  - [4.3 テーブル作成](#43-テーブル作成) の手順で RLS ポリシーが正しく作成されているか確認してください
   - 匿名読み取りポリシー（`Allow public read access`）が有効になっているか確認してください
 
 ## 7. 参考資料
