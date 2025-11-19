@@ -45,12 +45,55 @@
 - 完了条件:
   - 主要フロー（拠点一覧→スケジュール表示→お気に入り）が動作
   - `04` の品質・テスト方針にある最小チェックをクリア
-- 完了確認時の実行コマンド例:
-  - `pnpm --filter web lint`（ESLint チェック）
-  - `pnpm --filter web typecheck`（TypeScript 型チェック）
-  - `pnpm --filter web test`（単体テスト）
-  - `pnpm --filter web build`（ビルド成功）※ Supabase 環境変数が必要
-  - 注: E2E テスト（`pnpm --filter web e2e`）はフェーズ4で整備予定
+
+### フェーズ3で人間がやる作業（チェックリスト）
+
+フェーズ3を完了させるために、以下の作業を**人間が手動で**実施する必要があります。
+
+**詳細な手順は [06 DB セットアップ & 手動オペレーション](./06-db-operations.md) を参照してください。**
+
+- [ ] **Supabase プロジェクトの作成・設定**
+  - Supabase ダッシュボード（https://app.supabase.com）でプロジェクトを作成
+  - 詳細手順: [06 節 2.1](./06-db-operations.md#21-supabase-プロジェクトの作成設定) を参照
+
+- [ ] **環境変数の取得と設定**
+  - Settings > API から以下を取得:
+    - `NEXT_PUBLIC_SUPABASE_URL`（Project URL）
+    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`（anon public key）
+    - `SUPABASE_SERVICE_ROLE_KEY`（service_role key）
+  - `apps/web/env.local.example` を `apps/web/.env.local` にコピーし、取得したキーを設定
+  - 詳細手順: [06 節 2.2](./06-db-operations.md#22-環境変数の取得と設定) を参照
+
+- [ ] **テーブル作成**
+  - `facilities` テーブルを作成（Supabase SQL Editor または Table Editor で手動作成）
+  - `schedules` テーブルを作成（`facilities` テーブル作成後）
+  - 詳細手順: [06 節 2.3](./06-db-operations.md#23-テーブル作成) を参照
+  - 手順 A（SQL Editor で実行）または手順 B（Table Editor で手動作成）のどちらかを選択
+
+- [ ] **サンプルデータの投入**
+  - `facilities` テーブルに最低 3 件のサンプルデータを投入（必須）
+  - `schedules` テーブルへのサンプルデータ投入（任意、将来の拠点詳細ページ検証用）
+  - 詳細手順: [06 節 2.4](./06-db-operations.md#24-サンプルデータの投入) を参照
+  - 手順 A（Supabase Studio で手動投入）または手順 B（SQL で投入）のどちらかを選択
+
+- [ ] **代表フローの動作確認**
+  - `mise exec -- pnpm --filter web dev` で開発サーバーを起動
+  - ブラウザで `http://localhost:3000` を開き、以下を確認:
+    - 拠点一覧が表示される
+    - 「+」ボタンでお気に入り追加ができる
+    - 上部の「お気に入り拠点」エリアに追加された拠点が表示される
+  - 詳細手順: [06 節 2.5](./06-db-operations.md#25-動作確認) を参照
+
+### フェーズ3完了確認コマンド
+
+上記の作業完了後、以下のコマンドを実行して確認します:
+
+- [ ] `mise exec -- pnpm --filter web lint`（ESLint チェック）
+- [ ] `mise exec -- pnpm --filter web typecheck`（TypeScript 型チェック）
+- [ ] `mise exec -- pnpm --filter web test`（単体テスト）
+- [ ] `mise exec -- pnpm --filter web build`（ビルド成功）※ Supabase 環境変数が必要
+  - 環境変数が未設定の場合、`Missing Supabase environment variables` エラーで失敗します（セットアップできているかの自動チェック）
+- 注: E2E テスト（`pnpm --filter web e2e`）はフェーズ4で整備予定
 
 ## フェーズ4: テスト / リリース準備
 - 目的: 品質を確認し、プレビュー/本番への移行を安全に行う

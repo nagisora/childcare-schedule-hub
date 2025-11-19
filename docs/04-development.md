@@ -54,9 +54,12 @@ mise exec -- pnpm --filter web dev
 - 注: `apps/web/package.json` の name が `web` のため、`--filter web` でフィルタする。mise を使わない場合は `cd apps/web && pnpm dev` でも可。
 
 ### 2.4 Supabase プロジェクト設定
-1. [02 設計資料](./02-design.md) の定義で `facilities` / `schedules` テーブルを作成。
-2. RLS ポリシーは「公開読み取り / 管理者書き込み」を原則とし、`favorites` はポストMVPで有効化。
-3. `.env.local` および Vercel 環境変数に Supabase URL / キーを登録する。
+
+1. Supabase プロジェクトの作成・環境変数設定・テーブル作成は [06 DB セットアップ & 手動オペレーション](./06-db-operations.md) を参照してください
+   - 環境変数設定手順: [06 節 2.2](./06-db-operations.md#22-環境変数の取得と設定)
+   - テーブル作成手順: [06 節 2.3](./06-db-operations.md#23-テーブル作成)
+2. RLS ポリシーは「公開読み取り / 管理者書き込み」を原則とし、`favorites` はポストMVPで有効化（[02 設計資料](./02-design.md) 3.4 節を参照）
+3. Vercel 環境変数に Supabase URL / キーを登録する（[3.4 環境別運用](#34-環境別運用) を参照）
 
 ### 2.5 Supabase CLI の基本操作
 - プロジェクト初期化: `supabase init`
@@ -117,79 +120,44 @@ SUPABASE_DB_PASSWORD=""        # Supabase CLI を使う場合
 
 ## 4. データベースと Supabase CLI
 
-### 4.1 マイグレーションフロー
+### 4.1 初回セットアップ（フェーズ3）
+
+フェーズ3の代表フロー「拠点一覧 → スケジュール表示 → お気に入り」を動作させるため、以下の作業を**人間が手動で**実施する必要があります。
+
+詳細な手順は [06 DB セットアップ & 手動オペレーション](./06-db-operations.md) を参照してください:
+
+- **Supabase プロジェクトの作成・設定**（[06 節 2.1](./06-db-operations.md#21-supabase-プロジェクトの作成設定)）
+- **環境変数の取得と設定**（[06 節 2.2](./06-db-operations.md#22-環境変数の取得と設定)）
+- **テーブル作成**（[06 節 2.3](./06-db-operations.md#23-テーブル作成)）
+  - `facilities` テーブル（MVP 必須）
+  - `schedules` テーブル（MVP 必須、データは任意）
+- **サンプルデータの投入**（[06 節 2.4](./06-db-operations.md#24-サンプルデータの投入)）
+  - `facilities` テーブルに最低 3 件のデータ（必須）
+  - `schedules` テーブルのサンプルデータ（任意）
+- **動作確認**（[06 節 2.5](./06-db-operations.md#25-動作確認)）
+
+### 4.2 マイグレーションフロー（スキーマ変更時）
+
+本番環境やチーム開発でスキーマ変更を行う場合は、Supabase CLI を活用したマイグレーション管理を行います。
+
+詳細なコマンドは [06 DB セットアップ & 手動オペレーション](./06-db-operations.md) 3.2 節を参照してください:
+
 1. スキーマ変更 → `supabase db diff --schema public > supabase/migrations/<timestamp>_<name>.sql`
-2. 生成物を確認し、不要な DDL がないかレビュー。
-3. `supabase db push` でローカル DB に適用。
-4. Git に `supabase/migrations` を追加し、PR でレビューを受ける。
+2. 生成物を確認し、不要な DDL がないかレビュー
+3. `supabase db push` でローカル DB に適用
+4. Git に `supabase/migrations` を追加し、PR でレビューを受ける
 
-### 4.2 シードデータとテストデータ準備
+### 4.3 Supabase CLI の基本操作
 
-**代表フロー検証用サンプルデータ（最低限）**
+Supabase CLI を使ったローカル開発環境やマイグレーション管理のコマンドは、[06 DB セットアップ & 手動オペレーション](./06-db-operations.md) 3 節を参照してください。
 
-フェーズ3の代表フロー「拠点一覧 → スケジュール表示 → お気に入り」を検証するため、`facilities` テーブルに最低 3 件のデータが必要です。
-
-**手順 A: Supabase Studio で手動投入（推奨・簡易）**
-
-1. Supabase プロジェクトのダッシュボードにアクセス（https://app.supabase.com）
-2. Table Editor > `facilities` テーブルを開く
-3. Insert > Insert row から以下の 3 件を追加:
-
-| name | area | address | phone | instagram_url | website_url |
-| --- | --- | --- | --- | --- | --- |
-| 中区子育て支援センター | 中区 | 〒460-0001 名古屋市中区三の丸1-1-1 | 052-123-4567 | (任意) | (任意) |
-| 西区子育て応援拠点 | 西区 | 〒451-0065 名古屋市西区名駅2-27-8 | 052-234-5678 | (任意) | (任意) |
-| 東区地域子育て支援拠点 | 東区 | 〒461-0005 名古屋市東区東桜2-13-32 | 052-345-6789 | (任意) | (任意) |
-
-**注意事項:**
-- `id` は UUID で自動生成される（手動で設定しない）
-- `phone` / `instagram_url` / `website_url` は NULL 可なので、空欄でも可
-- `created_at` / `updated_at` は自動的に設定される
-
-**手順 B: SQL で直接投入（Supabase SQL Editor）**
-
-以下の SQL を Supabase SQL Editor で実行:
-
-```sql
--- facilities テーブルに代表フロー検証用のサンプルデータを投入
-INSERT INTO public.facilities (name, area, address, phone, instagram_url, website_url)
-VALUES
-  ('中区子育て支援センター', '中区', '〒460-0001 名古屋市中区三の丸1-1-1', '052-123-4567', NULL, NULL),
-  ('西区子育て応援拠点', '西区', '〒451-0065 名古屋市西区名駅2-27-8', '052-234-5678', NULL, NULL),
-  ('東区地域子育て支援拠点', '東区', '〒461-0005 名古屋市東区東桜2-13-32', '052-345-6789', NULL, NULL);
-```
-
-**シードファイル方式（将来拡張用）**
-
-より本格的な運用では、`supabase/seed/initial_data.sql` を作成し、以下のように実行します:
-
-```bash
-# ローカル Supabase の場合
-supabase db reset --seed supabase/seed/initial_data.sql
-
-# リモート Supabase の場合（注意: 本番データを上書きしないよう確認）
-supabase db push --seed supabase/seed/initial_data.sql
-```
-
-シードファイルの例（`supabase/seed/initial_data.sql`）:
-```sql
--- facilities: 名称/エリア/住所/Instagram URL を揃えた 3 件
-INSERT INTO public.facilities (name, area, address, phone, instagram_url, website_url)
-VALUES
-  ('中区子育て支援センター', '中区', '〒460-0001 名古屋市中区三の丸1-1-1', '052-123-4567', NULL, NULL),
-  ('西区子育て応援拠点', '西区', '〒451-0065 名古屋市西区名駅2-27-8', '052-234-5678', NULL, NULL),
-  ('東区地域子育て支援拠点', '東区', '〒461-0005 名古屋市東区東桜2-13-32', '052-345-6789', NULL, NULL)
-ON CONFLICT DO NOTHING;
-
--- schedules: 各拠点に最新月の画像 URL を 1 件（ポストMVPで追加）
--- ポストMVP: `favorites` のダミーデータ
-```
-
-### 4.3 CLI コマンドリファレンス
+主要コマンド:
 - ローカル起動/停止: `supabase start` / `supabase stop`
-- マイグレーション修復: `supabase migration repair`
-- リンク済みプロジェクトでのリセット: `supabase db reset --linked`
-- CI チェック: `supabase db lint` でマイグレーション整合性を検証
+- マイグレーション管理: `supabase db diff`, `supabase db push`, `supabase migration repair`
+- リモート連携: `supabase link`, `supabase db reset --linked`
+- CI チェック: `supabase db lint`
+
+詳細: [06 DB セットアップ & 手動オペレーション](./06-db-operations.md) 3 節
 
 ### 4.4 リモート連携メモ
 - `supabase link --project-ref <id>` でリモート DB と接続し、Service Role Key を設定。
