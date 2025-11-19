@@ -28,7 +28,7 @@ export default async function HomePage() {
 		<main className="space-y-12 px-4 py-10">
 			<HeroSection />
 			<FavoritesSection initialFavorites={favoriteFacilities} allFacilities={facilities} limit={limit} />
-			<FacilitiesTable areas={areas} facilitiesByArea={facilitiesByArea} allFacilities={facilities} />
+			<FacilitiesTable areas={areas} facilitiesByArea={facilitiesByArea} />
 		</main>
 	);
 }

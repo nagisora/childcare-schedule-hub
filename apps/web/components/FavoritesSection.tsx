@@ -1,8 +1,10 @@
 'use client';
 
 import { useOptimistic } from 'react';
+import { matchFavoritesWithFacilities } from '../lib/favorites';
 import type { FavoriteFacility } from '../lib/favorites';
 import type { Facility } from '../lib/types';
+import type { FavoriteCookieItem } from '../lib/cookies';
 import {
 	readFavoritesCookieClient,
 	updateFavoritesCookieClient,
@@ -17,25 +19,32 @@ type FavoritesSectionProps = {
 };
 
 export function FavoritesSection({ initialFavorites, allFacilities, limit }: FavoritesSectionProps) {
+	// FavoriteFacility[] から FavoriteCookieItem[] への変換ヘルパー
+	const convertToCookieItems = (favorites: FavoriteFacility[]): FavoriteCookieItem[] =>
+		favorites.map((f) => ({
+			facilityId: f.facility.id,
+			sortOrder: f.sortOrder,
+		}));
+
 	// お気に入りをクライアント側の状態として管理（useOptimistic で即時反映）
 	const [favorites, setFavorites] = useOptimistic(
 		initialFavorites,
 		(state, action: { type: 'remove' | 'reorder'; payload: { facilityId?: string; facilityIds?: string[] } }) => {
+			const currentCookieItems = convertToCookieItems(state);
+
 			if (action.type === 'remove') {
 				const { facilityId } = action.payload;
-				const currentCookieItems = state.map((f) => ({
-					facilityId: f.facility.id,
-					sortOrder: f.sortOrder,
-				}));
+				if (!facilityId) {
+					return state;
+				}
 				const updated = removeFavorite(facilityId, currentCookieItems);
 				return matchFavoritesWithFacilities(updated, allFacilities);
 			}
 			if (action.type === 'reorder') {
 				const { facilityIds } = action.payload;
-				const currentCookieItems = state.map((f) => ({
-					facilityId: f.facility.id,
-					sortOrder: f.sortOrder,
-				}));
+				if (!facilityIds) {
+					return state;
+				}
 				const updated = reorderFavorites(facilityIds, currentCookieItems);
 				return matchFavoritesWithFacilities(updated, allFacilities);
 			}
@@ -120,29 +129,4 @@ export function FavoritesSection({ initialFavorites, allFacilities, limit }: Fav
 		</section>
 	);
 }
-
-/**
- * お気に入りクッキーアイテムを Facility データとマッチングする（クライアント側用）
- */
-function matchFavoritesWithFacilities(
-	favoriteItems: Array<{ facilityId: string; sortOrder: number }>,
-	facilities: Facility[],
-): FavoriteFacility[] {
-	const facilityMap = new Map(facilities.map((f) => [f.id, f]));
-
-	return favoriteItems
-		.map((item) => {
-			const facility = facilityMap.get(item.facilityId);
-			if (!facility) {
-				return null;
-			}
-			return {
-				facility,
-				sortOrder: item.sortOrder,
-			};
-		})
-		.filter((item): item is FavoriteFacility => item !== null)
-		.sort((a, b) => a.sortOrder - b.sortOrder);
-}
-
 

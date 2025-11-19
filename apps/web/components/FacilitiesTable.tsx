@@ -1,12 +1,11 @@
 'use client';
 
 import { addFavorite, readFavoritesCookieClient, updateFavoritesCookieClient } from '../lib/cookies';
-import type { Facility, FacilitiesByArea } from '../lib/types';
+import type { FacilitiesByArea } from '../lib/types';
 
 type FacilitiesTableProps = {
 	areas: string[];
 	facilitiesByArea: FacilitiesByArea;
-	allFacilities: Facility[];
 };
 
 export function FacilitiesTable({ areas, facilitiesByArea }: FacilitiesTableProps) {
@@ -66,24 +65,24 @@ export function FacilitiesTable({ areas, facilitiesByArea }: FacilitiesTableProp
 									const isFavorite = favoriteIds.has(f.id);
 									return (
 										<tr key={f.id} className="border-t">
-											<td className="px-3 py-2 font-medium text-slate-900">{f.name}</td>
-											<td className="px-3 py-2 text-slate-700 whitespace-nowrap">{f.area}</td>
-											<td className="px-3 py-2 text-slate-700">{f.address}</td>
+										<td className="px-3 py-2 font-medium text-slate-900">{f.name}</td>
+										<td className="px-3 py-2 text-slate-700 whitespace-nowrap">{f.area}</td>
+										<td className="px-3 py-2 text-slate-700">{f.address}</td>
 											<td className="px-3 py-2 text-slate-700 whitespace-nowrap">{f.phone || '-'}</td>
-											<td className="px-3 py-2">
+										<td className="px-3 py-2">
 												{isFavorite ? (
 													<span className="text-xs text-slate-400">追加済み</span>
 												) : (
-													<button
+											<button
 														aria-label={`${f.name}をお気に入りに追加`}
-														className="rounded-md border px-2 py-1 text-xs hover:bg-slate-50"
+												className="rounded-md border px-2 py-1 text-xs hover:bg-slate-50"
 														onClick={() => handleAddFavorite(f.id)}
-													>
-														＋
-													</button>
+											>
+												＋
+											</button>
 												)}
-											</td>
-										</tr>
+										</td>
+									</tr>
 									);
 								})}
 							</>
