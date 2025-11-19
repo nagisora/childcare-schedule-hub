@@ -55,9 +55,11 @@ mise exec -- pnpm --filter web dev
 
 ### 2.4 Supabase プロジェクト設定
 
-1. Supabase プロジェクトの作成・環境変数設定・テーブル作成は [06 DB セットアップ & 手動オペレーション](./06-db-operations.md) を参照してください
-   - 環境変数設定手順: [06 節 2.2](./06-db-operations.md#22-環境変数の取得と設定)
-   - テーブル作成手順: [06 節 2.3](./06-db-operations.md#23-テーブル作成)
+1. Supabase プロジェクトの作成・環境変数設定・テーブル作成は、**原則として Cursor + Supabase MCP を用いて AI に実行させることを推奨**します。詳細な手順は [06 DB セットアップ & 手動オペレーション](./06-db-operations.md) を参照してください:
+   - Supabase MCP の導入手順: [06 節 4](./06-db-operations.md#4-supabase-mcpcursor-連携)
+   - AI への依頼パターン: [06 節 2.1](./06-db-operations.md#21-aiへの依頼パターン)
+   - 環境変数設定手順: [06 節 3.2](./06-db-operations.md#32-環境変数の取得と設定)
+   - テーブル作成手順: [06 節 3.3](./06-db-operations.md#33-テーブル作成)
 2. RLS ポリシーは「公開読み取り / 管理者書き込み」を原則とし、`favorites` はポストMVPで有効化（[02 設計資料](./02-design.md) 3.4 節を参照）
 3. Vercel 環境変数に Supabase URL / キーを登録する（[3.4 環境別運用](#34-環境別運用) を参照）
 
@@ -122,25 +124,28 @@ SUPABASE_DB_PASSWORD=""        # Supabase CLI を使う場合
 
 ### 4.1 初回セットアップ（フェーズ3）
 
-フェーズ3の代表フロー「拠点一覧 → スケジュール表示 → お気に入り」を動作させるため、以下の作業を**人間が手動で**実施する必要があります。
+フェーズ3の代表フロー「拠点一覧 → スケジュール表示 → お気に入り」を動作させるための DB セットアップは、**基本的に Cursor + Supabase MCP を用いて AI が実行し、人間は確認を行う**ことを推奨します。MCP を利用できない場合のみ、[06 DB セットアップ & 手動オペレーション](./06-db-operations.md) に従って手動実行してください。
 
 詳細な手順は [06 DB セットアップ & 手動オペレーション](./06-db-operations.md) を参照してください:
 
-- **Supabase プロジェクトの作成・設定**（[06 節 2.1](./06-db-operations.md#21-supabase-プロジェクトの作成設定)）
-- **環境変数の取得と設定**（[06 節 2.2](./06-db-operations.md#22-環境変数の取得と設定)）
-- **テーブル作成**（[06 節 2.3](./06-db-operations.md#23-テーブル作成)）
+- **Supabase MCP のセットアップ**（初回のみ、[06 節 4](./06-db-operations.md#4-supabase-mcpcursor-連携)）
+- **Supabase プロジェクトの作成・設定**（推奨: AI に依頼、[06 節 3.1](./06-db-operations.md#31-supabase-プロジェクトの作成設定)）
+- **環境変数の取得と設定**（推奨: AI に依頼、[06 節 3.2](./06-db-operations.md#32-環境変数の取得と設定)）
+- **テーブル作成**（推奨: Supabase MCP で AI に実行させる、[06 節 3.3](./06-db-operations.md#33-テーブル作成)）
   - `facilities` テーブル（MVP 必須）
   - `schedules` テーブル（MVP 必須、データは任意）
-- **サンプルデータの投入**（[06 節 2.4](./06-db-operations.md#24-サンプルデータの投入)）
+- **サンプルデータの投入**（推奨: Supabase MCP で AI に実行させる、[06 節 3.4](./06-db-operations.md#34-サンプルデータの投入)）
   - `facilities` テーブルに最低 3 件のデータ（必須）
   - `schedules` テーブルのサンプルデータ（任意）
-- **動作確認**（[06 節 2.5](./06-db-operations.md#25-動作確認)）
+- **動作確認**（[06 節 3.5](./06-db-operations.md#35-動作確認)）
+
+**注意**: MCP 利用がデフォルト、手動実行はフォールバックです。AI への依頼パターンは [06 節 2.1](./06-db-operations.md#21-aiへの依頼パターン) を参照してください。
 
 ### 4.2 マイグレーションフロー（スキーマ変更時）
 
-本番環境やチーム開発でスキーマ変更を行う場合は、Supabase CLI を活用したマイグレーション管理を行います。
+本番環境やチーム開発でスキーマ変更を行う場合は、Supabase CLI を活用したマイグレーション管理を行います。**開発環境でのスキーマ変更は Supabase MCP を利用して AI に実行させることも可能ですが、本番への反映は CLI によるマイグレーション管理を推奨**します。
 
-詳細なコマンドは [06 DB セットアップ & 手動オペレーション](./06-db-operations.md) 3.2 節を参照してください:
+詳細なコマンドは [06 DB セットアップ & 手動オペレーション](./06-db-operations.md) 5.2 節を参照してください:
 
 1. スキーマ変更 → `supabase db diff --schema public > supabase/migrations/<timestamp>_<name>.sql`
 2. 生成物を確認し、不要な DDL がないかレビュー
@@ -149,7 +154,9 @@ SUPABASE_DB_PASSWORD=""        # Supabase CLI を使う場合
 
 ### 4.3 Supabase CLI の基本操作
 
-Supabase CLI を使ったローカル開発環境やマイグレーション管理のコマンドは、[06 DB セットアップ & 手動オペレーション](./06-db-operations.md) 3 節を参照してください。
+Supabase CLI を使ったローカル開発環境やマイグレーション管理のコマンドは、[06 DB セットアップ & 手動オペレーション](./06-db-operations.md) 5 節を参照してください。
+
+**注意**: 日常の DB 操作（テーブル作成・データ投入など）は Supabase MCP を優先してください。Supabase CLI は、スキーマ差分管理や CI でのマイグレーション整合性チェックなどに使用します。
 
 主要コマンド:
 - ローカル起動/停止: `supabase start` / `supabase stop`
@@ -157,7 +164,7 @@ Supabase CLI を使ったローカル開発環境やマイグレーション管�
 - リモート連携: `supabase link`, `supabase db reset --linked`
 - CI チェック: `supabase db lint`
 
-詳細: [06 DB セットアップ & 手動オペレーション](./06-db-operations.md) 3 節
+詳細: [06 DB セットアップ & 手動オペレーション](./06-db-operations.md) 5 節
 
 ### 4.4 リモート連携メモ
 - `supabase link --project-ref <id>` でリモート DB と接続し、Service Role Key を設定。

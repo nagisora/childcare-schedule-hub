@@ -46,35 +46,45 @@
   - 主要フロー（拠点一覧→スケジュール表示→お気に入り）が動作
   - `04` の品質・テスト方針にある最小チェックをクリア
 
-### フェーズ3で人間がやる作業（チェックリスト）
+### フェーズ3で行う DB セットアップ（Supabase MCP 推奨）
 
-フェーズ3を完了させるために、以下の作業を**人間が手動で**実施する必要があります。
+フェーズ3を完了させるために、以下の DB セットアップ作業を実施する必要があります。
+
+**原則として、Supabase への操作は Cursor + Supabase MCP を用いて AI に実行させることを推奨します。** 各チェックボックスは「AI に依頼し、その結果が満たされているか」を確認するための観点です。MCP が利用できない環境では、[06 DB セットアップ & 手動オペレーション](./06-db-operations.md) の手順を人間が直接実行しても構いません。
 
 **詳細な手順は [06 DB セットアップ & 手動オペレーション](./06-db-operations.md) を参照してください。**
+- Supabase MCP の導入手順: [06 節 4](./06-db-operations.md#4-supabase-mcpcursor-連携)
+- AI への依頼パターン: [06 節 2.1](./06-db-operations.md#21-aiへの依頼パターン)
+- 手動手順（フォールバック）: [06 節 3](./06-db-operations.md#3-初回セットアップフェーズ3)
 
-- [ ] **Supabase プロジェクトの作成・設定**
+- [ ] **Supabase MCP のセットアップ（初回のみ）**
+  - Cursor への Supabase MCP 導入を完了（推奨: 1-Click インストール）
+  - 初回認証フローを完了（ブラウザで Supabase アカウントにログイン & 組織アクセスを許可）
+  - 詳細手順: [06 節 4.1](./06-db-operations.md#41-cursor-への-supabase-mcp-導入手順) を参照
+
+- [ ] **Supabase プロジェクトの作成・設定**（推奨: Cursor セッションで AI に依頼または手動作成）
   - Supabase ダッシュボード（https://app.supabase.com）でプロジェクトを作成
-  - 詳細手順: [06 節 2.1](./06-db-operations.md#21-supabase-プロジェクトの作成設定) を参照
+  - 詳細手順: [06 節 3.1](./06-db-operations.md#31-supabase-プロジェクトの作成設定) を参照
 
-- [ ] **環境変数の取得と設定**
+- [ ] **環境変数の取得と設定**（推奨: Cursor セッションで AI に依頼または手動設定）
   - Settings > API から以下を取得:
     - `NEXT_PUBLIC_SUPABASE_URL`（Project URL）
     - `NEXT_PUBLIC_SUPABASE_ANON_KEY`（anon public key）
     - `SUPABASE_SERVICE_ROLE_KEY`（service_role key）
   - `apps/web/env.local.example` を `apps/web/.env.local` にコピーし、取得したキーを設定
-  - 詳細手順: [06 節 2.2](./06-db-operations.md#22-環境変数の取得と設定) を参照
+  - 詳細手順: [06 節 3.2](./06-db-operations.md#32-環境変数の取得と設定) を参照
 
-- [ ] **テーブル作成**
+- [ ] **テーブル作成**（推奨: Cursor セッションで Supabase MCP に実行させる）
   - `facilities` テーブルを作成（Supabase SQL Editor または Table Editor で手動作成）
   - `schedules` テーブルを作成（`facilities` テーブル作成後）
-  - 詳細手順: [06 節 2.3](./06-db-operations.md#23-テーブル作成) を参照
-  - 手順 A（SQL Editor で実行）または手順 B（Table Editor で手動作成）のどちらかを選択
+  - 詳細手順: [06 節 3.3](./06-db-operations.md#33-テーブル作成) を参照
+  - AI への依頼例: 「Supabase MCP を使って開発用プロジェクトで `facilities` と `schedules` テーブルを作成して」
 
-- [ ] **サンプルデータの投入**
+- [ ] **サンプルデータの投入**（推奨: Cursor セッションで Supabase MCP に実行させる）
   - `facilities` テーブルに最低 3 件のサンプルデータを投入（必須）
   - `schedules` テーブルへのサンプルデータ投入（任意、将来の拠点詳細ページ検証用）
-  - 詳細手順: [06 節 2.4](./06-db-operations.md#24-サンプルデータの投入) を参照
-  - 手順 A（Supabase Studio で手動投入）または手順 B（SQL で投入）のどちらかを選択
+  - 詳細手順: [06 節 3.4](./06-db-operations.md#34-サンプルデータの投入) を参照
+  - AI への依頼例: 「`facilities` テーブルにサンプルデータを 3 件投入して」
 
 - [ ] **代表フローの動作確認**
   - `mise exec -- pnpm --filter web dev` で開発サーバーを起動
@@ -82,11 +92,11 @@
     - 拠点一覧が表示される
     - 「+」ボタンでお気に入り追加ができる
     - 上部の「お気に入り拠点」エリアに追加された拠点が表示される
-  - 詳細手順: [06 節 2.5](./06-db-operations.md#25-動作確認) を参照
+  - 詳細手順: [06 節 3.5](./06-db-operations.md#35-動作確認) を参照
 
 ### フェーズ3完了確認コマンド
 
-上記の作業完了後、以下のコマンドを実行して確認します:
+上記の DB セットアップ作業（Supabase MCP を利用して実施済みであることを前提）完了後、以下のコマンドを実行して確認します:
 
 - [ ] `mise exec -- pnpm --filter web lint`（ESLint チェック）
 - [ ] `mise exec -- pnpm --filter web typecheck`（TypeScript 型チェック）
