@@ -42,6 +42,8 @@ mise exec -- pnpm install
    ```
 2. Tailwind / ESLint などの設定はリポジトリに同梱。アップデート時は `pnpm dlx @next/codemod` 等を活用。
 3. Supabase プロジェクトを用意し、接続情報を `.env.local` に設定（詳細は [3. 環境変数管理](#3-環境変数管理)）。
+   - `apps/web/env.local.example` を `apps/web/.env.local` にコピーし、Supabase プロジェクトの実際の値を設定する。
+   - この `.env.local` ファイルは Git にコミットされない（`.gitignore` で除外されている）。
 
 ### 2.3 ローカル開発サーバー
 ```bash
@@ -76,6 +78,19 @@ mise exec -- pnpm --filter web dev
 | `CSH_COOKIE_SIGNING_SECRET` | 任意 | サーバーのみ | ランダム文字列 | お気に入りクッキーへ署名を付与する場合に利用。32 文字以上を推奨。 |
 
 ### 3.2 `.env.local` テンプレート（ローカル用）
+
+このプロジェクトでは、`apps/web/env.local.example` をテンプレートとして提供しています。
+
+**セットアップ手順:**
+1. `apps/web/env.local.example` を `apps/web/.env.local` にコピーする。
+2. Supabase プロジェクトのダッシュボード（https://app.supabase.com）にアクセスする。
+3. Settings > API から以下を取得し、`.env.local` に設定する:
+   - Project URL → `NEXT_PUBLIC_SUPABASE_URL`
+   - anon public key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - service_role key → `SUPABASE_SERVICE_ROLE_KEY`
+4. `.env.local` は Git にコミットされない（`.gitignore` で除外されている）。
+
+**テンプレート例 (`apps/web/env.local.example`):**
 ```ini
 # クライアントから参照可能（NEXT_PUBLIC_ プレフィックスを付与）
 NEXT_PUBLIC_SUPABASE_URL="https://<project>.supabase.co"
@@ -86,6 +101,10 @@ SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJI..."
 INSTAGRAM_OEMBED_TOKEN=""
 SUPABASE_DB_PASSWORD=""        # Supabase CLI を使う場合
 ```
+
+**注意事項:**
+- `apps/web/.env.local` は Next.js のビルド時・実行時に自動的に読み込まれる。
+- 環境変数が未設定の場合、`apps/web/lib/supabase.ts` で初期化時にエラーが発生し、ビルド・実行が失敗する。
 
 ### 3.3 管理方針
 - `NEXT_PUBLIC_*` 以外の値はクライアントバンドルへ含めない。
@@ -104,12 +123,67 @@ SUPABASE_DB_PASSWORD=""        # Supabase CLI を使う場合
 3. `supabase db push` でローカル DB に適用。
 4. Git に `supabase/migrations` を追加し、PR でレビューを受ける。
 
-### 4.2 シードデータ
-- `seed/initial_data.sql` に最低限のテストデータを定義。
-  - `facilities`: 名称/エリア/住所/Instagram URL を揃えた 3 件。
-  - `schedules`: 各拠点に最新月の画像 URL を 1 件。
-  - ポストMVP: `favorites` のダミーデータ。
-- 実行例: `supabase db reset --seed seed/initial_data.sql`
+### 4.2 シードデータとテストデータ準備
+
+**代表フロー検証用サンプルデータ（最低限）**
+
+フェーズ3の代表フロー「拠点一覧 → スケジュール表示 → お気に入り」を検証するため、`facilities` テーブルに最低 3 件のデータが必要です。
+
+**手順 A: Supabase Studio で手動投入（推奨・簡易）**
+
+1. Supabase プロジェクトのダッシュボードにアクセス（https://app.supabase.com）
+2. Table Editor > `facilities` テーブルを開く
+3. Insert > Insert row から以下の 3 件を追加:
+
+| name | area | address | phone | instagram_url | website_url |
+| --- | --- | --- | --- | --- | --- |
+| 中区子育て支援センター | 中区 | 〒460-0001 名古屋市中区三の丸1-1-1 | 052-123-4567 | (任意) | (任意) |
+| 西区子育て応援拠点 | 西区 | 〒451-0065 名古屋市西区名駅2-27-8 | 052-234-5678 | (任意) | (任意) |
+| 東区地域子育て支援拠点 | 東区 | 〒461-0005 名古屋市東区東桜2-13-32 | 052-345-6789 | (任意) | (任意) |
+
+**注意事項:**
+- `id` は UUID で自動生成される（手動で設定しない）
+- `phone` / `instagram_url` / `website_url` は NULL 可なので、空欄でも可
+- `created_at` / `updated_at` は自動的に設定される
+
+**手順 B: SQL で直接投入（Supabase SQL Editor）**
+
+以下の SQL を Supabase SQL Editor で実行:
+
+```sql
+-- facilities テーブルに代表フロー検証用のサンプルデータを投入
+INSERT INTO public.facilities (name, area, address, phone, instagram_url, website_url)
+VALUES
+  ('中区子育て支援センター', '中区', '〒460-0001 名古屋市中区三の丸1-1-1', '052-123-4567', NULL, NULL),
+  ('西区子育て応援拠点', '西区', '〒451-0065 名古屋市西区名駅2-27-8', '052-234-5678', NULL, NULL),
+  ('東区地域子育て支援拠点', '東区', '〒461-0005 名古屋市東区東桜2-13-32', '052-345-6789', NULL, NULL);
+```
+
+**シードファイル方式（将来拡張用）**
+
+より本格的な運用では、`supabase/seed/initial_data.sql` を作成し、以下のように実行します:
+
+```bash
+# ローカル Supabase の場合
+supabase db reset --seed supabase/seed/initial_data.sql
+
+# リモート Supabase の場合（注意: 本番データを上書きしないよう確認）
+supabase db push --seed supabase/seed/initial_data.sql
+```
+
+シードファイルの例（`supabase/seed/initial_data.sql`）:
+```sql
+-- facilities: 名称/エリア/住所/Instagram URL を揃えた 3 件
+INSERT INTO public.facilities (name, area, address, phone, instagram_url, website_url)
+VALUES
+  ('中区子育て支援センター', '中区', '〒460-0001 名古屋市中区三の丸1-1-1', '052-123-4567', NULL, NULL),
+  ('西区子育て応援拠点', '西区', '〒451-0065 名古屋市西区名駅2-27-8', '052-234-5678', NULL, NULL),
+  ('東区地域子育て支援拠点', '東区', '〒461-0005 名古屋市東区東桜2-13-32', '052-345-6789', NULL, NULL)
+ON CONFLICT DO NOTHING;
+
+-- schedules: 各拠点に最新月の画像 URL を 1 件（ポストMVPで追加）
+-- ポストMVP: `favorites` のダミーデータ
+```
 
 ### 4.3 CLI コマンドリファレンス
 - ローカル起動/停止: `supabase start` / `supabase stop`

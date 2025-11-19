@@ -7,9 +7,10 @@ import { getFacilities } from '../../../lib/facilities';
  * MVP では最小限の実装（拠点情報とスケジュール表示のプレースホルダー）
  * [02 設計資料](../../../docs/02-design.md) 4.2節を参照
  */
-export default async function FacilityDetailPage({ params }: { params: { id: string } }) {
+export default async function FacilityDetailPage({ params }: { params: Promise<{ id: string }> }) {
+	const { id } = await params;
 	const facilities = await getFacilities();
-	const facility = facilities.find((f) => f.id === params.id);
+	const facility = facilities.find((f) => f.id === id);
 
 	if (!facility) {
 		notFound();

@@ -2,7 +2,7 @@ import { HeroSection } from '../components/HeroSection';
 import { FavoritesSection } from '../components/FavoritesSection';
 import { FacilitiesTable } from '../components/FacilitiesTable';
 import { getFacilities, groupFacilitiesByArea } from '../lib/facilities';
-import { readFavoritesCookie } from '../lib/cookies';
+import { readFavoritesCookie } from '../lib/cookies-server';
 import { matchFavoritesWithFacilities } from '../lib/favorites';
 
 /**

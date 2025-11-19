@@ -45,6 +45,12 @@
 - 完了条件:
   - 主要フロー（拠点一覧→スケジュール表示→お気に入り）が動作
   - `04` の品質・テスト方針にある最小チェックをクリア
+- 完了確認時の実行コマンド例:
+  - `pnpm --filter web lint`（ESLint チェック）
+  - `pnpm --filter web typecheck`（TypeScript 型チェック）
+  - `pnpm --filter web test`（単体テスト）
+  - `pnpm --filter web build`（ビルド成功）※ Supabase 環境変数が必要
+  - 注: E2E テスト（`pnpm --filter web e2e`）はフェーズ4で整備予定
 
 ## フェーズ4: テスト / リリース準備
 - 目的: 品質を確認し、プレビュー/本番への移行を安全に行う
