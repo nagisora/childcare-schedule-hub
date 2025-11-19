@@ -42,3 +42,10 @@ yarn-error.log*
 .idea/
 .vscode/
 *.swp
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Test results
+playwright-report/
+test-results/
