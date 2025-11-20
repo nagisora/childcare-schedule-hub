@@ -46,6 +46,32 @@
   - 主要フロー（拠点一覧→スケジュール表示→お気に入り）が動作
   - `04` の品質・テスト方針にある最小チェックをクリア
 
+### フェーズ3で行う DB セットアップ
+
+フェーズ3を完了させるために、Supabase MCP を用いた DB セットアップが必要です。
+
+**詳細な手順は [06 DB セットアップ & 手動オペレーション](./06-db-operations.md) を参照してください。**
+- セットアップの流れ: [06 節 2（Supabase MCP 導入）](./06-db-operations.md#2-supabase-mcpcursor-連携) → [06 節 3（共通フロー）](./06-db-operations.md#3-supabase-mcp-を使う場合の共通フロー) → [06 節 4（初回セットアップ）](./06-db-operations.md#4-初回セットアップフェーズ3)
+
+**確認すべき観点:**
+- [ ] Supabase MCP のセットアップ完了（Cursor への導入・初回認証）
+- [ ] Supabase プロジェクトの作成完了
+- [ ] 環境変数の設定完了（`NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY`）
+- [ ] テーブル作成完了（`facilities` / `schedules`）
+- [ ] サンプルデータの投入完了（`facilities` 最低 3 件）
+- [ ] 代表フローの動作確認完了（拠点一覧表示・お気に入り追加）
+
+### フェーズ3完了確認コマンド
+
+上記の DB セットアップ完了後、以下のコマンドを実行して確認します:
+
+- [ ] `mise exec -- pnpm --filter web lint`（ESLint チェック）
+- [ ] `mise exec -- pnpm --filter web typecheck`（TypeScript 型チェック）
+- [ ] `mise exec -- pnpm --filter web test`（単体テスト）
+- [ ] `mise exec -- pnpm --filter web build`（ビルド成功）※ Supabase 環境変数が必要
+  - 環境変数が未設定の場合、`Missing Supabase environment variables` エラーで失敗します（セットアップできているかの自動チェック）
+- 注: E2E テスト（`pnpm --filter web e2e`）はフェーズ4で整備予定
+
 ## フェーズ4: テスト / リリース準備
 - 目的: 品質を確認し、プレビュー/本番への移行を安全に行う
 - 主に触るドキュメント: `04`

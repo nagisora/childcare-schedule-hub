@@ -42,6 +42,8 @@ mise exec -- pnpm install
    ```
 2. Tailwind / ESLint などの設定はリポジトリに同梱。アップデート時は `pnpm dlx @next/codemod` 等を活用。
 3. Supabase プロジェクトを用意し、接続情報を `.env.local` に設定（詳細は [3. 環境変数管理](#3-環境変数管理)）。
+   - `apps/web/env.local.example` を `apps/web/.env.local` にコピーし、Supabase プロジェクトの実際の値を設定する。
+   - この `.env.local` ファイルは Git にコミットされない（`.gitignore` で除外されている）。
 
 ### 2.3 ローカル開発サーバー
 ```bash
@@ -52,9 +54,14 @@ mise exec -- pnpm --filter web dev
 - 注: `apps/web/package.json` の name が `web` のため、`--filter web` でフィルタする。mise を使わない場合は `cd apps/web && pnpm dev` でも可。
 
 ### 2.4 Supabase プロジェクト設定
-1. [02 設計資料](./02-design.md) の定義で `facilities` / `schedules` テーブルを作成。
-2. RLS ポリシーは「公開読み取り / 管理者書き込み」を原則とし、`favorites` はポストMVPで有効化。
-3. `.env.local` および Vercel 環境変数に Supabase URL / キーを登録する。
+
+1. Supabase プロジェクトの作成・環境変数設定・テーブル作成は、**原則として Cursor + Supabase MCP を用いて AI に実行させることを推奨**します。詳細な手順は [06 DB セットアップ & 手動オペレーション](./06-db-operations.md) を参照してください:
+   - Supabase MCP の導入手順: [06 節 2](./06-db-operations.md#2-supabase-mcpcursor-連携)
+   - AI への依頼パターン: [06 節 3.1](./06-db-operations.md#31-aiへの依頼パターン)
+   - 環境変数設定手順: [06 節 4.2](./06-db-operations.md#42-環境変数の取得と設定)
+   - テーブル作成手順: [06 節 4.3](./06-db-operations.md#43-テーブル作成)
+2. RLS ポリシーは「公開読み取り / 管理者書き込み」を原則とし、`favorites` はポストMVPで有効化（[02 設計資料](./02-design.md) 3.4 節を参照）
+3. Vercel 環境変数に Supabase URL / キーを登録する（[3.4 環境別運用](#34-環境別運用) を参照）
 
 ### 2.5 Supabase CLI の基本操作
 - プロジェクト初期化: `supabase init`
@@ -76,6 +83,19 @@ mise exec -- pnpm --filter web dev
 | `CSH_COOKIE_SIGNING_SECRET` | 任意 | サーバーのみ | ランダム文字列 | お気に入りクッキーへ署名を付与する場合に利用。32 文字以上を推奨。 |
 
 ### 3.2 `.env.local` テンプレート（ローカル用）
+
+このプロジェクトでは、`apps/web/env.local.example` をテンプレートとして提供しています。
+
+**セットアップ手順:**
+1. `apps/web/env.local.example` を `apps/web/.env.local` にコピーする。
+2. Supabase プロジェクトのダッシュボード（https://app.supabase.com）にアクセスする。
+3. Settings > API から以下を取得し、`.env.local` に設定する:
+   - Project URL → `NEXT_PUBLIC_SUPABASE_URL`
+   - anon public key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - service_role key → `SUPABASE_SERVICE_ROLE_KEY`
+4. `.env.local` は Git にコミットされない（`.gitignore` で除外されている）。
+
+**テンプレート例 (`apps/web/env.local.example`):**
 ```ini
 # クライアントから参照可能（NEXT_PUBLIC_ プレフィックスを付与）
 NEXT_PUBLIC_SUPABASE_URL="https://<project>.supabase.co"
@@ -86,6 +106,10 @@ SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJI..."
 INSTAGRAM_OEMBED_TOKEN=""
 SUPABASE_DB_PASSWORD=""        # Supabase CLI を使う場合
 ```
+
+**注意事項:**
+- `apps/web/.env.local` は Next.js のビルド時・実行時に自動的に読み込まれる。
+- 環境変数が未設定の場合、`apps/web/lib/supabase.ts` で初期化時にエラーが発生し、ビルド・実行が失敗する。
 
 ### 3.3 管理方針
 - `NEXT_PUBLIC_*` 以外の値はクライアントバンドルへ含めない。
@@ -98,24 +122,49 @@ SUPABASE_DB_PASSWORD=""        # Supabase CLI を使う場合
 
 ## 4. データベースと Supabase CLI
 
-### 4.1 マイグレーションフロー
+### 4.1 初回セットアップ（フェーズ3）
+
+フェーズ3の代表フロー「拠点一覧 → スケジュール表示 → お気に入り」を動作させるための DB セットアップは、**基本的に Cursor + Supabase MCP を用いて AI が実行し、人間は確認を行う**ことを推奨します。MCP を利用できない場合のみ、[06 DB セットアップ & 手動オペレーション](./06-db-operations.md) に従って手動実行してください。
+
+詳細な手順は [06 DB セットアップ & 手動オペレーション](./06-db-operations.md) を参照してください:
+
+- **Supabase MCP のセットアップ**（初回のみ、[06 節 2](./06-db-operations.md#2-supabase-mcpcursor-連携)）
+- **Supabase プロジェクトの作成・設定**（推奨: AI に依頼、[06 節 4.1](./06-db-operations.md#41-supabase-プロジェクトの作成設定)）
+- **環境変数の取得と設定**（推奨: AI に依頼、[06 節 4.2](./06-db-operations.md#42-環境変数の取得と設定)）
+- **テーブル作成**（推奨: Supabase MCP で AI に実行させる、[06 節 4.3](./06-db-operations.md#43-テーブル作成)）
+  - `facilities` テーブル（MVP 必須）
+  - `schedules` テーブル（MVP 必須、データは任意）
+- **サンプルデータの投入**（推奨: Supabase MCP で AI に実行させる、[06 節 4.4](./06-db-operations.md#44-サンプルデータの投入)）
+  - `facilities` テーブルに最低 3 件のデータ（必須）
+  - `schedules` テーブルのサンプルデータ（任意）
+- **動作確認**（[06 節 4.5](./06-db-operations.md#45-動作確認)）
+
+**注意**: MCP 利用がデフォルト、手動実行はフォールバックです。AI への依頼パターンは [06 節 3.1](./06-db-operations.md#31-aiへの依頼パターン) を参照してください。
+
+### 4.2 マイグレーションフロー（スキーマ変更時）
+
+本番環境やチーム開発でスキーマ変更を行う場合は、Supabase CLI を活用したマイグレーション管理を行います。**開発環境でのスキーマ変更は Supabase MCP を利用して AI に実行させることも可能ですが、本番への反映は CLI によるマイグレーション管理を推奨**します。
+
+詳細なコマンドは [06 DB セットアップ & 手動オペレーション](./06-db-operations.md) 5.2 節を参照してください:
+
 1. スキーマ変更 → `supabase db diff --schema public > supabase/migrations/<timestamp>_<name>.sql`
-2. 生成物を確認し、不要な DDL がないかレビュー。
-3. `supabase db push` でローカル DB に適用。
-4. Git に `supabase/migrations` を追加し、PR でレビューを受ける。
+2. 生成物を確認し、不要な DDL がないかレビュー
+3. `supabase db push` でローカル DB に適用
+4. Git に `supabase/migrations` を追加し、PR でレビューを受ける
 
-### 4.2 シードデータ
-- `seed/initial_data.sql` に最低限のテストデータを定義。
-  - `facilities`: 名称/エリア/住所/Instagram URL を揃えた 3 件。
-  - `schedules`: 各拠点に最新月の画像 URL を 1 件。
-  - ポストMVP: `favorites` のダミーデータ。
-- 実行例: `supabase db reset --seed seed/initial_data.sql`
+### 4.3 Supabase CLI の基本操作
 
-### 4.3 CLI コマンドリファレンス
+Supabase CLI を使ったローカル開発環境やマイグレーション管理のコマンドは、[06 DB セットアップ & 手動オペレーション](./06-db-operations.md) 5 節を参照してください。
+
+**注意**: 日常の DB 操作（テーブル作成・データ投入など）は Supabase MCP を優先してください。Supabase CLI は、スキーマ差分管理や CI でのマイグレーション整合性チェックなどに使用します。
+
+主要コマンド:
 - ローカル起動/停止: `supabase start` / `supabase stop`
-- マイグレーション修復: `supabase migration repair`
-- リンク済みプロジェクトでのリセット: `supabase db reset --linked`
-- CI チェック: `supabase db lint` でマイグレーション整合性を検証
+- マイグレーション管理: `supabase db diff`, `supabase db push`, `supabase migration repair`
+- リモート連携: `supabase link`, `supabase db reset --linked`
+- CI チェック: `supabase db lint`
+
+詳細: [06 DB セットアップ & 手動オペレーション](./06-db-operations.md) 5 節
 
 ### 4.4 リモート連携メモ
 - `supabase link --project-ref <id>` でリモート DB と接続し、Service Role Key を設定。
