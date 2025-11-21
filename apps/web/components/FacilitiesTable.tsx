@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { addFavorite, readFavoritesCookieClient, updateFavoritesCookieClient } from '../lib/cookies';
 import { getWardName } from '../lib/facilities-utils';
 import type { FacilitiesByWard } from '../lib/types';
-import { reloadAfterCookieUpdate } from '../lib/navigation';
 
 type FacilitiesTableProps = {
 	wards: string[];
@@ -33,7 +32,10 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 		}
 
 		updateFavoritesCookieClient(updated);
-		reloadAfterCookieUpdate();
+		// クライアント側の状態も即時更新して「追加済み」を反映
+		setFavoriteIds(new Set(updated.map((f) => f.facilityId)));
+		// ページリロードは削除（クライアント側の状態のみで管理）
+		// お気に入りセクションの更新は、次回ページ読み込み時に反映される
 	};
 
 	return (
@@ -68,7 +70,7 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 										{ward}
 									</td>
 								</tr>
-								{facilitiesByWard[ward].map((f) => {
+								{(facilitiesByWard[ward] ?? []).map((f) => {
 									const isFavorite = favoriteIds.has(f.id);
 									return (
 										<tr key={f.id} className="border-t">

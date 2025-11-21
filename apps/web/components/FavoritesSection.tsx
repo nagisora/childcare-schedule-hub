@@ -1,6 +1,6 @@
 'use client';
 
-import { useOptimistic } from 'react';
+import { useOptimistic, useEffect, useRef } from 'react';
 import { matchFavoritesWithFacilities } from '../lib/favorites';
 import { getWardName } from '../lib/facilities-utils';
 import type { FavoriteFacility } from '../lib/favorites';
@@ -9,10 +9,10 @@ import type { FavoriteCookieItem } from '../lib/cookies';
 import {
 	readFavoritesCookieClient,
 	updateFavoritesCookieClient,
+	addFavorite,
 	removeFavorite,
 	reorderFavorites,
 } from '../lib/cookies';
-import { reloadAfterCookieUpdate } from '../lib/navigation';
 
 type FavoritesSectionProps = {
 	initialFavorites: FavoriteFacility[];
@@ -30,8 +30,15 @@ export function FavoritesSection({ initialFavorites, allFacilities }: FavoritesS
 	// お気に入りをクライアント側の状態として管理（useOptimistic で即時反映）
 	const [favorites, setFavorites] = useOptimistic(
 		initialFavorites,
-		(state, action: { type: 'remove' | 'reorder'; payload: { facilityId?: string; facilityIds?: string[] } }) => {
+		(state, action: { type: 'add' | 'remove' | 'reorder'; payload: { facilityId?: string; facilityIds?: string[] } }) => {
 			const currentCookieItems = convertToCookieItems(state);
+
+			if (action.type === 'add') {
+				const { facilityId } = action.payload;
+				if (!facilityId) return state;
+				const updated = addFavorite(facilityId, currentCookieItems);
+				return matchFavoritesWithFacilities(updated, allFacilities);
+			}
 
 			if (action.type === 'remove') {
 				const { facilityId } = action.payload;
@@ -51,12 +58,50 @@ export function FavoritesSection({ initialFavorites, allFacilities }: FavoritesS
 		},
 	);
 
+	// クッキーの変更を監視して状態を同期（FacilitiesTableからの変更を検知）
+	const lastCookieRef = useRef<string>('');
+	const favoritesRef = useRef(favorites);
+	
+	// favoritesの最新値を常に保持
+	useEffect(() => {
+		favoritesRef.current = favorites;
+	}, [favorites]);
+
+	useEffect(() => {
+		const checkCookieChanges = () => {
+			const currentCookieItems = readFavoritesCookieClient();
+			const currentIds = currentCookieItems.map((f) => f.facilityId).sort().join(',');
+			
+			// 前回のクッキー値と比較して変更があった場合のみ更新
+			if (currentIds !== lastCookieRef.current) {
+				lastCookieRef.current = currentIds;
+				const stateIds = favoritesRef.current.map((f) => f.facility.id).sort().join(',');
+				
+				// クッキーと状態が一致しない場合は更新
+				if (currentIds !== stateIds) {
+					// reorderアクションを使って状態を更新（facilityIdsの順序に基づいてsortOrderを再割り当て）
+					setFavorites({ type: 'reorder', payload: { facilityIds: currentCookieItems.map((f) => f.facilityId) } });
+				}
+			}
+		};
+
+		// 初回チェック
+		const initialCookieItems = readFavoritesCookieClient();
+		lastCookieRef.current = initialCookieItems.map((f) => f.facilityId).sort().join(',');
+
+		// 定期的にチェック（FacilitiesTableからの変更を検知）
+		const interval = setInterval(checkCookieChanges, 300);
+		return () => clearInterval(interval);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []); // 初回のみ実行
+
 	const handleRemove = (facilityId: string) => {
 		setFavorites({ type: 'remove', payload: { facilityId } });
 		const currentCookieItems = readFavoritesCookieClient();
 		const updated = removeFavorite(facilityId, currentCookieItems);
 		updateFavoritesCookieClient(updated);
-		reloadAfterCookieUpdate();
+		// ページリロードは削除（クライアント側の状態のみで管理）
+		// 拠点一覧テーブルの更新は、次回ページ読み込み時に反映される
 	};
 
 	if (favorites.length === 0) {
