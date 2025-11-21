@@ -469,7 +469,23 @@ ON CONFLICT DO NOTHING;
   - [4.3 テーブル作成](#43-テーブル作成) の手順で RLS ポリシーが正しく作成されているか確認してください
   - 匿名読み取りポリシー（`Allow public read access`）が有効になっているか確認してください
 
-## 7. 参考資料
+## 7. フェーズ5で適用したマイグレーション
+
+フェーズ5（施設情報データ取得・投入フロー）では、`facilities` テーブルを全国対応スキーマに拡張するマイグレーションを適用しました。
+
+**マイグレーション内容**:
+- `facility_type`（施設種別）、`detail_page_url`（詳細ページURL）の追加
+- 全国対応の住所カラム追加（`prefecture_code`, `municipality_code`, `ward_code`, `postal_code`, `prefecture_name`, `city_name`, `ward_name`, `address_rest`, `address_full_raw`）
+- 位置情報カラム追加（`latitude`, `longitude`）
+- インデックス追加（`idx_facilities_facility_type`, `idx_facilities_prefecture_code`, `idx_facilities_municipality_code`）
+
+**マイグレーションファイル**: `apps/scripts/migrations/add_facilities_national_schema.sql`
+
+**適用方法**: Supabase MCP の `mcp_supabase_apply_migration` を使用して適用。
+
+詳細は [02 設計資料](./02-design.md) 3.3 節（facilities テーブル定義）を参照してください。
+
+## 8. 参考資料
 
 - [02 設計資料](./02-design.md) 3.3 節: テーブル定義の詳細
 - [02 設計資料](./02-design.md) 3.4 節: RLS ポリシーの詳細

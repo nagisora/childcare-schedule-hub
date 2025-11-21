@@ -51,8 +51,8 @@ MVP およびポストMVPを通じて中核となるドメインは次の通り�
   - MVP ではログイン機能を持たず、ユーザー識別はブラウザクッキー（`csh_favorites` など）による匿名IDで代替する。
   - ポストMVP で Supabase Auth を利用した `users` テーブルを導入し、`favorites` と紐付ける。
 - 拠点（Facility）
-  - 名古屋市の子育て応援拠点・地域子育て支援拠点を表す中核エンティティ。
-  - 名前・エリア・住所・電話・Instagram/公式サイト URL を保持し、一覧表示や検索の起点となる。
+  - 全国展開を前提とした子育て応援拠点・地域子育て支援拠点を表す中核エンティティ（MVP では名古屋市のデータを扱う）。
+  - 名前・施設種別（`facility_type`）・全国対応の住所情報（都道府県コード・市区町村コード・区コード等）・電話・Instagram/公式サイト URL・詳細ページURL を保持し、一覧表示や検索の起点となる。
 - スケジュール（Schedule）
   - 各拠点ごとの月次スケジュールを表す。Supabase Storage への画像 URL や Instagram 投稿 URL / 埋め込み HTML を紐付ける。
   - 「どの拠点の」「どの月の」スケジュールかを識別できればよい前提で、MVP では月単位の粒度とする。
@@ -73,23 +73,50 @@ facilities (1) ──< schedules (n)
 ```
 
 ### 3.3 テーブル定義（MVP とポストMVP）
-#### facilities（MVP 想定）
+#### facilities（全国対応版・MVP 想定）
+
+**重要**: 本テーブルは全国展開を前提としたスキーマです。MVP では名古屋市のデータのみを扱いますが、将来的に他自治体のデータも同じスキーマで管理できるように設計されています。
+
 | カラム | 型 | 制約/既定値 | 用途 |
 | --- | --- | --- | --- |
 | id | uuid | PK, `gen_random_uuid()` | 拠点識別子（API では `facility_id`） |
 | name | text | NOT NULL | 拠点名 |
-| area | text | NOT NULL | 名古屋市の区などのエリア |
-| address | text | NOT NULL | 郵便番号・住所 |
+| facility_type | text | NOT NULL | 施設種別（例: `childcare_ouen_base`, `childcare_support_base`） |
+| **住所関連（全国対応）** | | | |
+| prefecture_code | text | NULL 可 | 都道府県コード（JIS X 0401 等） |
+| municipality_code | text | NULL 可 | 市区町村コード（JIS X 0402 等） |
+| ward_code | text | NULL 可 | 政令指定都市の区コード（あれば） |
+| postal_code | text | NULL 可 | 郵便番号 |
+| prefecture_name | text | NULL 可 | 都道府県名（表示用） |
+| city_name | text | NULL 可 | 市区町村名（表示用） |
+| ward_name | text | NULL 可 | 区名（政令指定都市の場合、表示用） |
+| address_rest | text | NULL 可 | 丁目以降の住所 |
+| address_full_raw | text | NULL 可 | スクレイピングで取得した住所の生文字列（元データ保持用） |
+| **既存カラム（段階的移行予定）** | | | |
+| area | text | NULL 可 | 名古屋市の区などのエリア（後方互換性のため暫定保持、将来的に `ward_name` 等に移行） |
+| address | text | NULL 可 | 郵便番号・住所（後方互換性のため暫定保持、将来的に全国対応カラムに移行） |
+| **連絡先・URL** | | | |
 | phone | text | NULL 可 | 連絡先。フォーマットは [03 API 仕様](./03-api.md) 参照 |
 | instagram_url | text | NULL 可 | 公式 Instagram アカウント |
 | website_url | text | NULL 可 | 公式サイト URL |
+| detail_page_url | text | NULL 可 | 自治体サイト上の拠点詳細ページURL（スクレイピング元のリンク先） |
+| **位置情報** | | | |
 | latitude / longitude | numeric | NULL 可 | 地図表示用（将来拡張） |
+| **メタデータ** | | | |
 | created_at | timestamptz | `now()` | 作成日時 |
 | updated_at | timestamptz | `now()` | 更新日時 |
 
 推奨インデックスと補足:
-- `CREATE INDEX idx_facilities_area ON facilities (area);`（エリア別検索向け）
+- `CREATE INDEX idx_facilities_area ON facilities (area);`（エリア別検索向け、既存）
+- `CREATE INDEX idx_facilities_facility_type ON facilities (facility_type);`（施設種別検索向け）
+- `CREATE INDEX idx_facilities_prefecture_code ON facilities (prefecture_code);`（都道府県別検索向け）
+- `CREATE INDEX idx_facilities_municipality_code ON facilities (municipality_code);`（市区町村別検索向け）
 - UUID 生成には `pgcrypto` 拡張を利用するため、Supabase プロジェクトで `CREATE EXTENSION IF NOT EXISTS pgcrypto;` を有効化する。
+
+**既存カラム（`area`, `address`）の移行方針**:
+- MVP 段階では、既存の `area` / `address` カラムも併用可能とする（後方互換性のため）。
+- フェーズ5以降、スクレイピングで取得したデータは全国対応カラム（`prefecture_name`, `city_name`, `ward_name`, `address_rest`, `address_full_raw` 等）に優先的に保存する。
+- 既存データの移行は段階的に実施し、移行完了後は `area` / `address` を非推奨とする（ポストMVP）。
 
 #### schedules（MVP 想定）
 | カラム | 型 | 制約/既定値 | 用途 |

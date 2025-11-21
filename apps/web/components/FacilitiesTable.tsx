@@ -1,14 +1,25 @@
 'use client';
 
+import React, { useState, useEffect } from 'react';
 import { addFavorite, readFavoritesCookieClient, updateFavoritesCookieClient } from '../lib/cookies';
 import type { FacilitiesByArea } from '../lib/types';
 
 type FacilitiesTableProps = {
 	areas: string[];
 	facilitiesByArea: FacilitiesByArea;
+	initialFavoriteIds?: string[]; // サーバーサイドで取得したお気に入りID（Hydrationエラー回避）
 };
 
-export function FacilitiesTable({ areas, facilitiesByArea }: FacilitiesTableProps) {
+export function FacilitiesTable({ areas, facilitiesByArea, initialFavoriteIds = [] }: FacilitiesTableProps) {
+	// サーバーサイドの初期値とクライアントサイドの状態を同期
+	const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set(initialFavoriteIds));
+
+	useEffect(() => {
+		// クライアントサイドでマウント後にクッキーから最新の状態を取得
+		const currentFavorites = readFavoritesCookieClient();
+		setFavoriteIds(new Set(currentFavorites.map((f) => f.facilityId)));
+	}, []);
+
 	const handleAddFavorite = (facilityId: string) => {
 		const currentFavorites = readFavoritesCookieClient();
 		const updated = addFavorite(facilityId, currentFavorites);
@@ -24,10 +35,6 @@ export function FacilitiesTable({ areas, facilitiesByArea }: FacilitiesTableProp
 		// 将来的には Route Handler 経由で revalidateTag を呼び出す
 		window.location.reload();
 	};
-
-	// 現在のお気に入りを取得して、既に追加されているかチェック
-	const currentFavorites = readFavoritesCookieClient();
-	const favoriteIds = new Set(currentFavorites.map((f) => f.facilityId));
 
 	return (
 		<section aria-labelledby="facilities-heading" className="max-w-6xl mx-auto">
@@ -55,8 +62,8 @@ export function FacilitiesTable({ areas, facilitiesByArea }: FacilitiesTableProp
 					</thead>
 					<tbody>
 						{areas.map((area) => (
-							<>
-								<tr key={`hdr-${area}`} className="bg-slate-50/70 border-t">
+							<React.Fragment key={area}>
+								<tr className="bg-slate-50/70 border-t">
 									<td colSpan={5} className="px-3 py-2 font-semibold text-slate-700" id={`area-${area}`}>
 										{area}
 									</td>
@@ -75,7 +82,7 @@ export function FacilitiesTable({ areas, facilitiesByArea }: FacilitiesTableProp
 												) : (
 											<button
 														aria-label={`${f.name}をお気に入りに追加`}
-												className="rounded-md border px-2 py-1 text-xs hover:bg-slate-50"
+												className="rounded-md border border-primary-300 px-2 py-1 text-xs text-primary-700 hover:bg-primary-50"
 														onClick={() => handleAddFavorite(f.id)}
 											>
 												＋
@@ -85,7 +92,7 @@ export function FacilitiesTable({ areas, facilitiesByArea }: FacilitiesTableProp
 									</tr>
 									);
 								})}
-							</>
+							</React.Fragment>
 						))}
 					</tbody>
 				</table>
