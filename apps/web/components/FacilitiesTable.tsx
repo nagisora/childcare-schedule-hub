@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { addFavorite, readFavoritesCookieClient, updateFavoritesCookieClient } from '../lib/cookies';
 import { UNKNOWN_WARD_NAME } from '../lib/facilities-utils';
 import type { FacilitiesByWard } from '../lib/types';
+import { reloadAfterCookieUpdate } from '../lib/navigation';
 
 type FacilitiesTableProps = {
 	wards: string[];
@@ -32,9 +33,7 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 		}
 
 		updateFavoritesCookieClient(updated);
-		// クッキー更新後にページを再読み込み（簡易実装）
-		// 将来的には Route Handler 経由で revalidateTag を呼び出す
-		window.location.reload();
+		reloadAfterCookieUpdate();
 	};
 
 	return (
@@ -83,7 +82,7 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 												) : (
 											<button
 														aria-label={`${f.name}をお気に入りに追加`}
-												className="rounded-md border border-primary-300 px-2 py-1 text-xs text-primary-700 hover:bg-primary-50"
+												className="btn-add"
 														onClick={() => handleAddFavorite(f.id)}
 											>
 												＋

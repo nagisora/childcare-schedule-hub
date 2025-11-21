@@ -12,6 +12,7 @@ import {
 	removeFavorite,
 	reorderFavorites,
 } from '../lib/cookies';
+import { reloadAfterCookieUpdate } from '../lib/navigation';
 
 type FavoritesSectionProps = {
 	initialFavorites: FavoriteFacility[];
@@ -34,20 +35,18 @@ export function FavoritesSection({ initialFavorites, allFacilities }: FavoritesS
 
 			if (action.type === 'remove') {
 				const { facilityId } = action.payload;
-				if (!facilityId) {
-					return state;
-				}
+				if (!facilityId) return state;
 				const updated = removeFavorite(facilityId, currentCookieItems);
 				return matchFavoritesWithFacilities(updated, allFacilities);
 			}
+			
 			if (action.type === 'reorder') {
 				const { facilityIds } = action.payload;
-				if (!facilityIds) {
-					return state;
-				}
+				if (!facilityIds) return state;
 				const updated = reorderFavorites(facilityIds, currentCookieItems);
 				return matchFavoritesWithFacilities(updated, allFacilities);
 			}
+			
 			return state;
 		},
 	);
@@ -82,7 +81,7 @@ export function FavoritesSection({ initialFavorites, allFacilities }: FavoritesS
 						</h3>
 						<button
 							aria-label={`お気に入りから${item.facility.name}を削除`}
-							className="rounded-md border-2 border-primary-400 bg-white px-3 py-1.5 text-xs font-medium text-primary-600 hover:bg-primary-50 hover:border-primary-500 active:bg-primary-100"
+							className="btn-remove"
 							onClick={() => handleRemove(item.facility.id)}
 						>
 							解除

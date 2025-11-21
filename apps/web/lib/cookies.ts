@@ -7,16 +7,12 @@ export type FavoriteCookieItem = {
 	sortOrder: number;
 };
 
+import { MAX_FAVORITES } from './constants';
+
 /**
  * お気に入りクッキー名
  */
 const FAVORITES_COOKIE_NAME = 'csh_favorites';
-
-/**
- * お気に入りの最大件数（MVP）
- * [01 要件定義](../docs/01-requirements.md) / [02 設計資料](../docs/02-design.md) 4.1節を参照
- */
-const MAX_FAVORITES = 5;
 
 /**
  * クッキーの有効期限（180日）
