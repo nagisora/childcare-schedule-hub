@@ -2,6 +2,7 @@
 
 import { useOptimistic } from 'react';
 import { matchFavoritesWithFacilities } from '../lib/favorites';
+import { UNKNOWN_WARD_NAME } from '../lib/facilities-utils';
 import type { FavoriteFacility } from '../lib/favorites';
 import type { Facility } from '../lib/types';
 import type { FavoriteCookieItem } from '../lib/cookies';
@@ -15,7 +16,6 @@ import {
 type FavoritesSectionProps = {
 	initialFavorites: FavoriteFacility[];
 	allFacilities: Facility[];
-	limit: number; // 将来の最大件数制限用（現在は未使用）
 };
 
 export function FavoritesSection({ initialFavorites, allFacilities }: FavoritesSectionProps) {
@@ -57,9 +57,7 @@ export function FavoritesSection({ initialFavorites, allFacilities }: FavoritesS
 		const currentCookieItems = readFavoritesCookieClient();
 		const updated = removeFavorite(facilityId, currentCookieItems);
 		updateFavoritesCookieClient(updated);
-		// クッキー更新後にページを再読み込み（簡易実装）
-		// 将来的には Route Handler 経由で revalidateTag を呼び出す
-		window.location.reload();
+		reloadAfterCookieUpdate();
 	};
 
 	if (favorites.length === 0) {
@@ -79,12 +77,12 @@ export function FavoritesSection({ initialFavorites, allFacilities }: FavoritesS
 					<header className="flex items-center justify-between">
 						<h3 className="text-sm font-medium text-slate-900">
 							<a href={`/facilities/${item.facility.id}`} className="hover:text-blue-600 hover:underline">
-								{item.facility.name} — {item.facility.area}
+								{item.facility.name} — {item.facility.ward_name ?? UNKNOWN_WARD_NAME}
 							</a>
 						</h3>
 						<button
 							aria-label={`お気に入りから${item.facility.name}を削除`}
-							className="rounded-md border border-primary-200 px-2 py-1 text-xs text-primary-700 hover:bg-primary-50"
+							className="rounded-md border-2 border-primary-400 bg-white px-3 py-1.5 text-xs font-medium text-primary-600 hover:bg-primary-50 hover:border-primary-500 active:bg-primary-100"
 							onClick={() => handleRemove(item.facility.id)}
 						>
 							解除

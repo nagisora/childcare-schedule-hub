@@ -228,7 +228,7 @@ Supabase CLI を使ったローカル開発環境やマイグレーション管�
     - 指定拠点の基本情報と最新スケジュールを表示し、代表フロー上の「スケジュール表示」を担う。
 - データ取得とキャッシュ
   - トップページでは Supabase REST（もしくは `@supabase/supabase-js`）を用いて `facilities` テーブルを取得する。
-    - 代表的なクエリ: `select id,name,area,address,phone,instagram_url,website_url order by area,name`
+    - 代表的なクエリ: `select id,name,ward_name,address_full_raw,phone,instagram_url,website_url,facility_type,detail_page_url order by ward_name,name`
     - ISR / `revalidateTag('facilities')` の設定は [02 設計資料](./02-design.md) 3.3 節と整合させる。
   - （ポストMVP）拠点詳細ページでは `schedules` テーブルから対象拠点の最新スケジュールを取得する。
 - お気に入り状態管理

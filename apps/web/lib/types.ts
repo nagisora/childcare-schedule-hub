@@ -5,17 +5,19 @@
 export type Facility = {
 	id: string;
 	name: string;
-	area: string;
-	address: string;
+	ward_name: string | null;
+	address_full_raw: string;
 	phone: string | null;
 	instagram_url: string | null;
 	website_url: string | null;
+	facility_type: string | null;
+	detail_page_url: string | null;
 	created_at?: string;
 	updated_at?: string;
 };
 
 /**
- * エリア別にグルーピングされた拠点一覧
+ * 区別にグルーピングされた拠点一覧
  */
-export type FacilitiesByArea = Record<string, Facility[]>;
+export type FacilitiesByWard = Record<string, Facility[]>;
 

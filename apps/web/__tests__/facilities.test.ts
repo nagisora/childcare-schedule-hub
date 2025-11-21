@@ -1,86 +1,102 @@
 import { describe, it, expect } from 'vitest';
-import { groupFacilitiesByArea } from '../lib/facilities-utils';
+import { groupFacilitiesByWard } from '../lib/facilities-utils';
 import type { Facility } from '../lib/types';
 
-describe('groupFacilitiesByArea', () => {
-	// Given: 正常な拠点配列（複数エリア）
-	// When: groupFacilitiesByArea を実行
-	// Then: エリア別にグルーピングされ、エリア名でソートされた配列を返す
-	it('TC-N-01: 正常な拠点配列（複数エリア）をグルーピングできる', () => {
+describe('groupFacilitiesByWard', () => {
+	// Given: 正常な拠点配列（複数区）
+	// When: groupFacilitiesByWard を実行
+	// Then: 区別にグルーピングされ、区名でソートされた配列を返す
+	it('TC-N-01: 正常な拠点配列（複数区）をグルーピングできる', () => {
 		const facilities: Facility[] = [
-			{ id: '1', name: '拠点A', area: '中区', address: '住所1', phone: null, instagram_url: null, website_url: null },
-			{ id: '2', name: '拠点B', area: '西区', address: '住所2', phone: null, instagram_url: null, website_url: null },
-			{ id: '3', name: '拠点C', area: '中区', address: '住所3', phone: null, instagram_url: null, website_url: null },
+			{ id: '1', name: '拠点A', ward_name: '中区', address_full_raw: '住所1', phone: null, instagram_url: null, website_url: null, facility_type: null, detail_page_url: null },
+			{ id: '2', name: '拠点B', ward_name: '西区', address_full_raw: '住所2', phone: null, instagram_url: null, website_url: null, facility_type: null, detail_page_url: null },
+			{ id: '3', name: '拠点C', ward_name: '中区', address_full_raw: '住所3', phone: null, instagram_url: null, website_url: null, facility_type: null, detail_page_url: null },
 		];
 
-		const result = groupFacilitiesByArea(facilities);
+		const result = groupFacilitiesByWard(facilities);
 
-		expect(result.areas).toEqual(['中区', '西区']);
-		expect(result.facilitiesByArea['中区']).toHaveLength(2);
-		expect(result.facilitiesByArea['西区']).toHaveLength(1);
-		expect(result.facilitiesByArea['中区'][0].id).toBe('1');
-		expect(result.facilitiesByArea['中区'][1].id).toBe('3');
+		expect(result.wards).toEqual(['中区', '西区']);
+		expect(result.facilitiesByWard['中区']).toHaveLength(2);
+		expect(result.facilitiesByWard['西区']).toHaveLength(1);
+		expect(result.facilitiesByWard['中区'][0].id).toBe('1');
+		expect(result.facilitiesByWard['中区'][1].id).toBe('3');
 	});
 
 	// Given: 空の拠点配列
-	// When: groupFacilitiesByArea を実行
-	// Then: { areas: [], facilitiesByArea: {} } を返す
+	// When: groupFacilitiesByWard を実行
+	// Then: { wards: [], facilitiesByWard: {} } を返す
 	it('TC-N-02: 空の拠点配列を処理できる', () => {
 		const facilities: Facility[] = [];
 
-		const result = groupFacilitiesByArea(facilities);
+		const result = groupFacilitiesByWard(facilities);
 
-		expect(result.areas).toEqual([]);
-		expect(result.facilitiesByArea).toEqual({});
+		expect(result.wards).toEqual([]);
+		expect(result.facilitiesByWard).toEqual({});
 	});
 
 	// Given: 1件の拠点のみ
-	// When: groupFacilitiesByArea を実行
-	// Then: 1つのエリアに1件の拠点を含むオブジェクトを返す
+	// When: groupFacilitiesByWard を実行
+	// Then: 1つの区に1件の拠点を含むオブジェクトを返す
 	it('TC-N-03: 1件の拠点のみを処理できる', () => {
 		const facilities: Facility[] = [
-			{ id: '1', name: '拠点A', area: '中区', address: '住所1', phone: null, instagram_url: null, website_url: null },
+			{ id: '1', name: '拠点A', ward_name: '中区', address_full_raw: '住所1', phone: null, instagram_url: null, website_url: null, facility_type: null, detail_page_url: null },
 		];
 
-		const result = groupFacilitiesByArea(facilities);
+		const result = groupFacilitiesByWard(facilities);
 
-		expect(result.areas).toEqual(['中区']);
-		expect(result.facilitiesByArea['中区']).toHaveLength(1);
-		expect(result.facilitiesByArea['中区'][0].id).toBe('1');
+		expect(result.wards).toEqual(['中区']);
+		expect(result.facilitiesByWard['中区']).toHaveLength(1);
+		expect(result.facilitiesByWard['中区'][0].id).toBe('1');
 	});
 
-	// Given: 同一エリアに複数拠点
-	// When: groupFacilitiesByArea を実行
-	// Then: 同一エリア内に複数の拠点が含まれる
-	it('TC-N-04: 同一エリアに複数拠点を処理できる', () => {
+	// Given: 同一区に複数拠点
+	// When: groupFacilitiesByWard を実行
+	// Then: 同一区内に複数の拠点が含まれる
+	it('TC-N-04: 同一区に複数拠点を処理できる', () => {
 		const facilities: Facility[] = [
-			{ id: '1', name: '拠点A', area: '中区', address: '住所1', phone: null, instagram_url: null, website_url: null },
-			{ id: '2', name: '拠点B', area: '中区', address: '住所2', phone: null, instagram_url: null, website_url: null },
-			{ id: '3', name: '拠点C', area: '中区', address: '住所3', phone: null, instagram_url: null, website_url: null },
+			{ id: '1', name: '拠点A', ward_name: '中区', address_full_raw: '住所1', phone: null, instagram_url: null, website_url: null, facility_type: null, detail_page_url: null },
+			{ id: '2', name: '拠点B', ward_name: '中区', address_full_raw: '住所2', phone: null, instagram_url: null, website_url: null, facility_type: null, detail_page_url: null },
+			{ id: '3', name: '拠点C', ward_name: '中区', address_full_raw: '住所3', phone: null, instagram_url: null, website_url: null, facility_type: null, detail_page_url: null },
 		];
 
-		const result = groupFacilitiesByArea(facilities);
+		const result = groupFacilitiesByWard(facilities);
 
-		expect(result.areas).toEqual(['中区']);
-		expect(result.facilitiesByArea['中区']).toHaveLength(3);
+		expect(result.wards).toEqual(['中区']);
+		expect(result.facilitiesByWard['中区']).toHaveLength(3);
 	});
 
-	// Given: エリア名が異なる拠点
-	// When: groupFacilitiesByArea を実行
-	// Then: エリア別に正しく分離される
-	it('TC-N-05: エリア名が異なる拠点を正しく分離できる', () => {
+	// Given: 区名が異なる拠点
+	// When: groupFacilitiesByWard を実行
+	// Then: 区別に正しく分離される
+	it('TC-N-05: 区名が異なる拠点を正しく分離できる', () => {
 		const facilities: Facility[] = [
-			{ id: '1', name: '拠点A', area: '中区', address: '住所1', phone: null, instagram_url: null, website_url: null },
-			{ id: '2', name: '拠点B', area: '西区', address: '住所2', phone: null, instagram_url: null, website_url: null },
-			{ id: '3', name: '拠点C', area: '東区', address: '住所3', phone: null, instagram_url: null, website_url: null },
+			{ id: '1', name: '拠点A', ward_name: '中区', address_full_raw: '住所1', phone: null, instagram_url: null, website_url: null, facility_type: null, detail_page_url: null },
+			{ id: '2', name: '拠点B', ward_name: '西区', address_full_raw: '住所2', phone: null, instagram_url: null, website_url: null, facility_type: null, detail_page_url: null },
+			{ id: '3', name: '拠点C', ward_name: '東区', address_full_raw: '住所3', phone: null, instagram_url: null, website_url: null, facility_type: null, detail_page_url: null },
 		];
 
-		const result = groupFacilitiesByArea(facilities);
+		const result = groupFacilitiesByWard(facilities);
 
-		expect(result.areas).toEqual(['中区', '東区', '西区']); // ソート順
-		expect(result.facilitiesByArea['中区']).toHaveLength(1);
-		expect(result.facilitiesByArea['西区']).toHaveLength(1);
-		expect(result.facilitiesByArea['東区']).toHaveLength(1);
+		expect(result.wards).toEqual(['中区', '東区', '西区']); // ソート順
+		expect(result.facilitiesByWard['中区']).toHaveLength(1);
+		expect(result.facilitiesByWard['西区']).toHaveLength(1);
+		expect(result.facilitiesByWard['東区']).toHaveLength(1);
+	});
+
+	// Given: ward_name が null の拠点
+	// When: groupFacilitiesByWard を実行
+	// Then: 「エリア不明」としてグルーピングされる
+	it('TC-N-06: ward_name が null の拠点を「エリア不明」として処理できる', () => {
+		const facilities: Facility[] = [
+			{ id: '1', name: '拠点A', ward_name: null, address_full_raw: '住所1', phone: null, instagram_url: null, website_url: null, facility_type: null, detail_page_url: null },
+			{ id: '2', name: '拠点B', ward_name: '中区', address_full_raw: '住所2', phone: null, instagram_url: null, website_url: null, facility_type: null, detail_page_url: null },
+		];
+
+		const result = groupFacilitiesByWard(facilities);
+
+		expect(result.wards).toEqual(['エリア不明', '中区']);
+		expect(result.facilitiesByWard['エリア不明']).toHaveLength(1);
+		expect(result.facilitiesByWard['エリア不明'][0].id).toBe('1');
 	});
 });
 

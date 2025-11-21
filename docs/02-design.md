@@ -89,12 +89,9 @@ facilities (1) ──< schedules (n)
 | postal_code | text | NULL 可 | 郵便番号 |
 | prefecture_name | text | NULL 可 | 都道府県名（表示用） |
 | city_name | text | NULL 可 | 市区町村名（表示用） |
-| ward_name | text | NULL 可 | 区名（政令指定都市の場合、表示用） |
+| ward_name | text | NULL 可 | 区名（政令指定都市の場合、表示用・グルーピング用） |
 | address_rest | text | NULL 可 | 丁目以降の住所 |
 | address_full_raw | text | NULL 可 | スクレイピングで取得した住所の生文字列（元データ保持用） |
-| **既存カラム（段階的移行予定）** | | | |
-| area | text | NULL 可 | 名古屋市の区などのエリア（後方互換性のため暫定保持、将来的に `ward_name` 等に移行） |
-| address | text | NULL 可 | 郵便番号・住所（後方互換性のため暫定保持、将来的に全国対応カラムに移行） |
 | **連絡先・URL** | | | |
 | phone | text | NULL 可 | 連絡先。フォーマットは [03 API 仕様](./03-api.md) 参照 |
 | instagram_url | text | NULL 可 | 公式 Instagram アカウント |
@@ -107,16 +104,16 @@ facilities (1) ──< schedules (n)
 | updated_at | timestamptz | `now()` | 更新日時 |
 
 推奨インデックスと補足:
-- `CREATE INDEX idx_facilities_area ON facilities (area);`（エリア別検索向け、既存）
 - `CREATE INDEX idx_facilities_facility_type ON facilities (facility_type);`（施設種別検索向け）
 - `CREATE INDEX idx_facilities_prefecture_code ON facilities (prefecture_code);`（都道府県別検索向け）
 - `CREATE INDEX idx_facilities_municipality_code ON facilities (municipality_code);`（市区町村別検索向け）
+- `CREATE INDEX idx_facilities_ward_name ON facilities (ward_name);`（区別検索・グルーピング向け）
 - UUID 生成には `pgcrypto` 拡張を利用するため、Supabase プロジェクトで `CREATE EXTENSION IF NOT EXISTS pgcrypto;` を有効化する。
 
-**既存カラム（`area`, `address`）の移行方針**:
-- MVP 段階では、既存の `area` / `address` カラムも併用可能とする（後方互換性のため）。
-- フェーズ5以降、スクレイピングで取得したデータは全国対応カラム（`prefecture_name`, `city_name`, `ward_name`, `address_rest`, `address_full_raw` 等）に優先的に保存する。
-- 既存データの移行は段階的に実施し、移行完了後は `area` / `address` を非推奨とする（ポストMVP）。
+**エリア・住所の扱い**:
+- UI上の「エリア」表示・グルーピングは `ward_name` を使用する。
+- 住所の表示には `address_full_raw` を使用する（必要に応じて `address_rest` も利用可能）。
+- フェーズ5で `area` / `address` カラムは削除され、`ward_name` / `address_full_raw` ベースに統一された。
 
 #### schedules（MVP 想定）
 | カラム | 型 | 制約/既定値 | 用途 |

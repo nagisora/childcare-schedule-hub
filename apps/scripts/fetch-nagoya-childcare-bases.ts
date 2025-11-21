@@ -42,6 +42,26 @@ const NAGOYA_MUNICIPALITY_CODE = '23100';
 const NAGOYA_PREFECTURE_NAME = '愛知県';
 const NAGOYA_CITY_NAME = '名古屋市';
 
+// 名古屋市の区コードマッピング
+const NAGOYA_WARD_CODE_MAP: Readonly<Record<string, string>> = {
+  '中区': '23101',
+  '北区': '23102',
+  '西区': '23103',
+  '中村区': '23104',
+  '中川区': '23105',
+  '港区': '23106',
+  '南区': '23107',
+  '守山区': '23108',
+  '緑区': '23109',
+  '名東区': '23110',
+  '天白区': '23111',
+  '東区': '23112',
+  '瑞穂区': '23113',
+  '熱田区': '23114',
+  '昭和区': '23115',
+  '千種区': '23116',
+} as const;
+
 // 型定義
 interface FacilityRaw {
   name: string;
@@ -55,8 +75,6 @@ interface FacilityRaw {
   ward_name: string | null;
   address_rest: string | null;
   address_full_raw: string | null;
-  area: string | null; // 後方互換用
-  address: string | null; // 後方互換用
   phone: string | null;
   instagram_url: string | null;
   website_url: string | null;
@@ -90,37 +108,36 @@ function extractPostalCode(address: string): string | null {
 }
 
 /**
+ * 区名以降の住所を抽出する
+ */
+function extractAddressRest(address: string, wardName: string, prefix: string = ''): string {
+  const pattern = prefix ? new RegExp(`${prefix}${wardName}(.+)`) : new RegExp(`^${wardName}(.+)`);
+  const match = address.match(pattern);
+  return match ? match[1].trim() : '';
+}
+
+/**
  * 住所文字列から区名を抽出する（名古屋市の場合）
  */
 function extractWardName(address: string): { wardName: string | null; wardCode: string | null; addressRest: string } {
-  // 名古屋市の区コードマッピング（簡易版、必要に応じて拡張）
-  const wardCodeMap: Record<string, string> = {
-    '中区': '23101',
-    '北区': '23102',
-    '西区': '23103',
-    '中村区': '23104',
-    '中川区': '23105',
-    '港区': '23106',
-    '南区': '23107',
-    '守山区': '23108',
-    '緑区': '23109',
-    '名東区': '23110',
-    '天白区': '23111',
-    '東区': '23112',
-    '瑞穂区': '23113',
-    '熱田区': '23114',
-    '昭和区': '23115',
-  };
-
-  // 「名古屋市XX区」のパターンを探す
-  const match = address.match(/名古屋市([^区]+区)/);
+  // パターン1: 「名古屋市XX区」のパターンを探す
+  let match = address.match(/名古屋市([^区]+区)/);
   if (match) {
     const wardName = match[1];
-    const wardCode = wardCodeMap[wardName] || null;
-    // 区名以降の住所を抽出（簡易版）
-    const addressRestMatch = address.match(/名古屋市[^区]+区(.+)/);
-    const addressRest = addressRestMatch ? addressRestMatch[1].trim() : '';
+    const wardCode = NAGOYA_WARD_CODE_MAP[wardName] || null;
+    const addressRest = extractAddressRest(address, wardName, '名古屋市');
     return { wardName, wardCode, addressRest };
+  }
+
+  // パターン2: 「XX区」で始まるパターン（名古屋市が省略されている場合）
+  match = address.match(/^([^区]+区)/);
+  if (match) {
+    const wardName = match[1];
+    const wardCode = NAGOYA_WARD_CODE_MAP[wardName] || null;
+    if (wardCode) {
+      const addressRest = extractAddressRest(address, wardName);
+      return { wardName, wardCode, addressRest };
+    }
   }
 
   return { wardName: null, wardCode: null, addressRest: address };
@@ -157,24 +174,20 @@ function extractFacilityFromRow(
     : null;
 
   // セルの内容を確認して適切にマッピング
-  // cells[1]とcells[2]のどちらが住所かエリアかを判定
+  // cells[1]とcells[2]のどちらが住所かを判定
   const cell1Text = $(cells[1]).text().trim() || '';
   const cell2Text = $(cells[2]).text().trim() || '';
   
   // 郵便番号（〒）が含まれている方を住所とする
   let addressFull: string | null = null;
-  let area: string | null = null;
   
   if (cell1Text.includes('〒')) {
     addressFull = cell1Text;
-    area = cell2Text || null;
   } else if (cell2Text.includes('〒')) {
     addressFull = cell2Text;
-    area = cell1Text || null;
   } else {
-    // 郵便番号がない場合は、cells[1]を住所、cells[2]をエリアとする
+    // 郵便番号がない場合は、cells[1]を住所とする
     addressFull = cell1Text || null;
-    area = cell2Text || null;
   }
   
   const phone = cells.length > 3 ? $(cells[3]).text().trim() || null : null;
@@ -198,8 +211,6 @@ function extractFacilityFromRow(
     ward_name: wardName,
     address_rest: addressRest,
     address_full_raw: addressFull,
-    area, // 後方互換用
-    address: addressFull, // 後方互換用
     phone,
     instagram_url: null, // 名古屋市ページには含まれない
     website_url: null, // 名古屋市ページには含まれない

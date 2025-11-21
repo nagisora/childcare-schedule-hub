@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import type { Facility } from './types';
-import { groupFacilitiesByArea as groupFacilitiesByAreaUtil } from './facilities-utils';
+import { groupFacilitiesByWard as groupFacilitiesByWardUtil } from './facilities-utils';
 
 /**
  * Supabase から拠点一覧を取得する
@@ -9,8 +9,8 @@ import { groupFacilitiesByArea as groupFacilitiesByAreaUtil } from './facilities
 export async function getFacilities(): Promise<Facility[]> {
 	const { data, error } = await supabase
 		.from('facilities')
-		.select('id,name,area,address,phone,instagram_url,website_url')
-		.order('area', { ascending: true })
+		.select('id,name,ward_name,address_full_raw,phone,instagram_url,website_url,facility_type,detail_page_url')
+		.order('ward_name', { ascending: true, nullsFirst: false })
 		.order('name', { ascending: true });
 
 	if (error) {
@@ -21,9 +21,9 @@ export async function getFacilities(): Promise<Facility[]> {
 }
 
 /**
- * 拠点一覧をエリア別にグルーピングする
+ * 拠点一覧を区別にグルーピングする
  * @param facilities 拠点一覧
- * @returns エリアをキー、拠点配列を値とするオブジェクトと、エリア名の配列
+ * @returns 区名をキー、拠点配列を値とするオブジェクトと、区名の配列
  */
-export { groupFacilitiesByAreaUtil as groupFacilitiesByArea };
+export { groupFacilitiesByWardUtil as groupFacilitiesByWard };
 

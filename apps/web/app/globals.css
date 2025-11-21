@@ -15,9 +15,10 @@
 	--color-primary-900: #14532d;
 }
 
+/* サイト全体にライトグリーンの背景を適用（みらいまる見え政治資金のトーンを参考） */
 :root {
 	--foreground: #111213;
-	--background: #ffffff;
+	--background: #f0fdf4; /* primary-50 を背景色として使用 */
 }
 
 html, body {
@@ -29,11 +30,13 @@ body {
 	font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
 		Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
 	color: var(--foreground);
-	background: var(--background);
+	background: var(--background); /* ライトグリーンの背景 */
 }
 
 main {
 	max-width: 880px;
 	margin: 0 auto;
+	background: white; /* コンテンツエリアは白背景 */
+	border-radius: 1rem; /* 角丸（rounded-2xl相当） */
 }
 
