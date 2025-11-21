@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { matchFavoritesWithFacilities } from '../lib/favorites';
 import type { Facility } from '../lib/types';
 import type { FavoriteCookieItem } from '../lib/cookies';
+import { createTestFacility } from './test-helpers';
 
 describe('matchFavoritesWithFacilities', () => {
 	// Given: 正常なお気に入りクッキーアイテムと拠点一覧（すべてマッチ）
@@ -9,9 +10,9 @@ describe('matchFavoritesWithFacilities', () => {
 	// Then: すべてのお気に入りが Facility データと結合され、sortOrder 順にソートされる
 	it('TC-N-01: 正常なお気に入りクッキーアイテムと拠点一覧（すべてマッチ）を結合できる', () => {
 		const facilities: Facility[] = [
-			{ id: '1', name: '拠点A', ward_name: '中区', address_full_raw: '住所1', phone: null, instagram_url: null, website_url: null, facility_type: null, detail_page_url: null },
-			{ id: '2', name: '拠点B', ward_name: '西区', address_full_raw: '住所2', phone: null, instagram_url: null, website_url: null, facility_type: null, detail_page_url: null },
-			{ id: '3', name: '拠点C', ward_name: '中区', address_full_raw: '住所3', phone: null, instagram_url: null, website_url: null, facility_type: null, detail_page_url: null },
+			createTestFacility({ id: '1', name: '拠点A', ward_name: '中区', address_full_raw: '住所1' }),
+			createTestFacility({ id: '2', name: '拠点B', ward_name: '西区', address_full_raw: '住所2' }),
+			createTestFacility({ id: '3', name: '拠点C', ward_name: '中区', address_full_raw: '住所3' }),
 		];
 		const favoriteItems: FavoriteCookieItem[] = [
 			{ facilityId: '2', sortOrder: 1 },
@@ -32,8 +33,8 @@ describe('matchFavoritesWithFacilities', () => {
 	// Then: 該当するお気に入りは除外され、存在するもののみ返される
 	it('TC-FV-04: お気に入りに登録されている facilityId が拠点一覧に存在しない場合は除外される', () => {
 		const facilities: Facility[] = [
-			{ id: '1', name: '拠点A', ward_name: '中区', address_full_raw: '住所1', phone: null, instagram_url: null, website_url: null, facility_type: null, detail_page_url: null },
-			{ id: '2', name: '拠点B', ward_name: '西区', address_full_raw: '住所2', phone: null, instagram_url: null, website_url: null, facility_type: null, detail_page_url: null },
+			createTestFacility({ id: '1', name: '拠点A', ward_name: '中区', address_full_raw: '住所1' }),
+			createTestFacility({ id: '2', name: '拠点B', ward_name: '西区', address_full_raw: '住所2' }),
 		];
 		const favoriteItems: FavoriteCookieItem[] = [
 			{ facilityId: '1', sortOrder: 1 },
@@ -55,7 +56,7 @@ describe('matchFavoritesWithFacilities', () => {
 	// Then: 空配列を返す
 	it('TC-N-02: 空のお気に入り配列を処理できる', () => {
 		const facilities: Facility[] = [
-			{ id: '1', name: '拠点A', ward_name: '中区', address_full_raw: '住所1', phone: null, instagram_url: null, website_url: null, facility_type: null, detail_page_url: null },
+			createTestFacility({ id: '1', name: '拠点A', ward_name: '中区', address_full_raw: '住所1' }),
 		];
 		const favoriteItems: FavoriteCookieItem[] = [];
 
@@ -83,9 +84,9 @@ describe('matchFavoritesWithFacilities', () => {
 	// Then: sortOrder 順にソートされた結果を返す
 	it('TC-FV-05: お気に入りが sortOrder 順にソートされる', () => {
 		const facilities: Facility[] = [
-			{ id: '1', name: '拠点A', ward_name: '中区', address_full_raw: '住所1', phone: null, instagram_url: null, website_url: null, facility_type: null, detail_page_url: null },
-			{ id: '2', name: '拠点B', ward_name: '西区', address_full_raw: '住所2', phone: null, instagram_url: null, website_url: null, facility_type: null, detail_page_url: null },
-			{ id: '3', name: '拠点C', ward_name: '東区', address_full_raw: '住所3', phone: null, instagram_url: null, website_url: null, facility_type: null, detail_page_url: null },
+			createTestFacility({ id: '1', name: '拠点A', ward_name: '中区', address_full_raw: '住所1' }),
+			createTestFacility({ id: '2', name: '拠点B', ward_name: '西区', address_full_raw: '住所2' }),
+			createTestFacility({ id: '3', name: '拠点C', ward_name: '東区', address_full_raw: '住所3' }),
 		];
 		const favoriteItems: FavoriteCookieItem[] = [
 			{ facilityId: '3', sortOrder: 3 },
@@ -109,7 +110,7 @@ describe('matchFavoritesWithFacilities', () => {
 	// Then: 空配列を返す
 	it('TC-A-01: すべてのお気に入りIDが拠点一覧に存在しない場合は空配列を返す', () => {
 		const facilities: Facility[] = [
-			{ id: '1', name: '拠点A', ward_name: '中区', address_full_raw: '住所1', phone: null, instagram_url: null, website_url: null, facility_type: null, detail_page_url: null },
+			createTestFacility({ id: '1', name: '拠点A', ward_name: '中区', address_full_raw: '住所1' }),
 		];
 		const favoriteItems: FavoriteCookieItem[] = [
 			{ facilityId: '999', sortOrder: 1 },

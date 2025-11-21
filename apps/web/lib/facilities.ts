@@ -1,6 +1,5 @@
 import { supabase } from './supabase';
 import type { Facility } from './types';
-import { groupFacilitiesByWard as groupFacilitiesByWardUtil } from './facilities-utils';
 
 /**
  * Supabase から拠点一覧を取得する
@@ -21,9 +20,25 @@ export async function getFacilities(): Promise<Facility[]> {
 }
 
 /**
- * 拠点一覧を区別にグルーピングする
- * @param facilities 拠点一覧
- * @returns 区名をキー、拠点配列を値とするオブジェクトと、区名の配列
+ * IDで拠点を1件取得する
+ * @param id 拠点ID
+ * @returns 拠点データ（見つからない場合は null）
  */
-export { groupFacilitiesByWardUtil as groupFacilitiesByWard };
+export async function getFacilityById(id: string): Promise<Facility | null> {
+	const { data, error } = await supabase
+		.from('facilities')
+		.select('id,name,ward_name,address_full_raw,phone,instagram_url,website_url,facility_type,detail_page_url')
+		.eq('id', id)
+		.single();
+
+	if (error) {
+		if (error.code === 'PGRST116') {
+			// レコードが見つからない場合
+			return null;
+		}
+		throw new Error(`Failed to fetch facility: ${error.message}`);
+	}
+
+	return data;
+}
 

@@ -6,6 +6,15 @@ import type { Facility, FacilitiesByWard } from './types';
 export const UNKNOWN_WARD_NAME = 'エリア不明';
 
 /**
+ * 区名を取得する（null の場合はデフォルト値を返す）
+ * @param wardName 区名（null の可能性あり）
+ * @returns 区名（null の場合は UNKNOWN_WARD_NAME）
+ */
+export function getWardName(wardName: string | null): string {
+	return wardName ?? UNKNOWN_WARD_NAME;
+}
+
+/**
  * 拠点一覧を区別にグルーピングする（ユーティリティ関数）
  * Supabase に依存しない純粋な関数として分離
  * @param facilities 拠点一覧
@@ -16,7 +25,7 @@ export function groupFacilitiesByWard(facilities: Facility[]): {
 	facilitiesByWard: FacilitiesByWard;
 } {
 	const facilitiesByWard = facilities.reduce<FacilitiesByWard>((acc, facility) => {
-		const ward = facility.ward_name ?? UNKNOWN_WARD_NAME;
+		const ward = getWardName(facility.ward_name);
 		if (!acc[ward]) {
 			acc[ward] = [];
 		}

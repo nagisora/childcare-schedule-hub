@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { addFavorite, readFavoritesCookieClient, updateFavoritesCookieClient } from '../lib/cookies';
-import { UNKNOWN_WARD_NAME } from '../lib/facilities-utils';
+import { getWardName } from '../lib/facilities-utils';
 import type { FacilitiesByWard } from '../lib/types';
 import { reloadAfterCookieUpdate } from '../lib/navigation';
 
@@ -68,12 +68,12 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 										{ward}
 									</td>
 								</tr>
-								{(facilitiesByWard[ward] || []).map((f) => {
+								{facilitiesByWard[ward].map((f) => {
 									const isFavorite = favoriteIds.has(f.id);
 									return (
 										<tr key={f.id} className="border-t">
 										<td className="px-3 py-2 font-medium text-slate-900">{f.name}</td>
-										<td className="px-3 py-2 text-slate-700 whitespace-nowrap">{f.ward_name ?? UNKNOWN_WARD_NAME}</td>
+										<td className="px-3 py-2 text-slate-700 whitespace-nowrap">{getWardName(f.ward_name)}</td>
 										<td className="px-3 py-2 text-slate-700">{f.address_full_raw}</td>
 											<td className="px-3 py-2 text-slate-700 whitespace-nowrap">{f.phone || '-'}</td>
 										<td className="px-3 py-2">

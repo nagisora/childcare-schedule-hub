@@ -1,7 +1,8 @@
 import { HeroSection } from '../components/HeroSection';
 import { FavoritesSection } from '../components/FavoritesSection';
 import { FacilitiesTable } from '../components/FacilitiesTable';
-import { getFacilities, groupFacilitiesByWard } from '../lib/facilities';
+import { getFacilities } from '../lib/facilities';
+import { groupFacilitiesByWard } from '../lib/facilities-utils';
 import { readFavoritesCookie } from '../lib/cookies-server';
 import { matchFavoritesWithFacilities } from '../lib/favorites';
 import { MAX_FAVORITES } from '../lib/constants';

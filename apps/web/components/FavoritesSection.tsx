@@ -2,7 +2,7 @@
 
 import { useOptimistic } from 'react';
 import { matchFavoritesWithFacilities } from '../lib/favorites';
-import { UNKNOWN_WARD_NAME } from '../lib/facilities-utils';
+import { getWardName } from '../lib/facilities-utils';
 import type { FavoriteFacility } from '../lib/favorites';
 import type { Facility } from '../lib/types';
 import type { FavoriteCookieItem } from '../lib/cookies';
@@ -76,7 +76,7 @@ export function FavoritesSection({ initialFavorites, allFacilities }: FavoritesS
 					<header className="flex items-center justify-between">
 						<h3 className="text-sm font-medium text-slate-900">
 							<a href={`/facilities/${item.facility.id}`} className="hover:text-blue-600 hover:underline">
-								{item.facility.name} — {item.facility.ward_name ?? UNKNOWN_WARD_NAME}
+								{item.facility.name} — {getWardName(item.facility.ward_name)}
 							</a>
 						</h3>
 						<button
