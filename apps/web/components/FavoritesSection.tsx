@@ -1,18 +1,18 @@
 'use client';
 
-import { useOptimistic, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { matchFavoritesWithFacilities } from '../lib/favorites';
 import { getWardName } from '../lib/facilities-utils';
 import type { FavoriteFacility } from '../lib/favorites';
 import type { Facility } from '../lib/types';
-import type { FavoriteCookieItem } from '../lib/cookies';
+import type { FavoriteCookieItem } from '../lib/storage';
 import {
-	readFavoritesCookieClient,
-	updateFavoritesCookieClient,
+	readFavoritesFromStorage,
+	updateFavoritesInStorage,
 	addFavorite,
 	removeFavorite,
 	reorderFavorites,
-} from '../lib/cookies';
+} from '../lib/storage';
 
 type FavoritesSectionProps = {
 	initialFavorites: FavoriteFacility[];
@@ -20,6 +20,9 @@ type FavoritesSectionProps = {
 };
 
 export function FavoritesSection({ initialFavorites, allFacilities }: FavoritesSectionProps) {
+	// 初回マウント時にlocalStorageからお気に入りを読み込む
+	const [initialState, setInitialState] = useState<FavoriteFacility[]>(initialFavorites);
+
 	// FavoriteFacility[] から FavoriteCookieItem[] への変換ヘルパー
 	const convertToCookieItems = (favorites: FavoriteFacility[]): FavoriteCookieItem[] =>
 		favorites.map((f) => ({
@@ -27,39 +30,11 @@ export function FavoritesSection({ initialFavorites, allFacilities }: FavoritesS
 			sortOrder: f.sortOrder,
 		}));
 
-	// お気に入りをクライアント側の状態として管理（useOptimistic で即時反映）
-	const [favorites, setFavorites] = useOptimistic(
-		initialFavorites,
-		(state, action: { type: 'add' | 'remove' | 'reorder'; payload: { facilityId?: string; facilityIds?: string[] } }) => {
-			const currentCookieItems = convertToCookieItems(state);
+	// お気に入りをクライアント側の状態として管理
+	const [favorites, setFavorites] = useState<FavoriteFacility[]>(initialState);
 
-			if (action.type === 'add') {
-				const { facilityId } = action.payload;
-				if (!facilityId) return state;
-				const updated = addFavorite(facilityId, currentCookieItems);
-				return matchFavoritesWithFacilities(updated, allFacilities);
-			}
-
-			if (action.type === 'remove') {
-				const { facilityId } = action.payload;
-				if (!facilityId) return state;
-				const updated = removeFavorite(facilityId, currentCookieItems);
-				return matchFavoritesWithFacilities(updated, allFacilities);
-			}
-			
-			if (action.type === 'reorder') {
-				const { facilityIds } = action.payload;
-				if (!facilityIds) return state;
-				const updated = reorderFavorites(facilityIds, currentCookieItems);
-				return matchFavoritesWithFacilities(updated, allFacilities);
-			}
-			
-			return state;
-		},
-	);
-
-	// クッキーの変更を監視して状態を同期（FacilitiesTableからの変更を検知）
-	const lastCookieRef = useRef<string>('');
+	// localStorageの変更を監視して状態を同期（FacilitiesTableからの変更を検知）
+	const lastStorageRef = useRef<string>('');
 	const favoritesRef = useRef(favorites);
 	
 	// favoritesの最新値を常に保持
@@ -68,40 +43,73 @@ export function FavoritesSection({ initialFavorites, allFacilities }: FavoritesS
 	}, [favorites]);
 
 	useEffect(() => {
-		const checkCookieChanges = () => {
-			const currentCookieItems = readFavoritesCookieClient();
-			const currentIds = currentCookieItems.map((f) => f.facilityId).sort().join(',');
+		const checkStorageChanges = () => {
+			const currentStorageItems = readFavoritesFromStorage();
+			const currentIds = currentStorageItems.map((f) => f.facilityId).sort().join(',');
 			
-			// 前回のクッキー値と比較して変更があった場合のみ更新
-			if (currentIds !== lastCookieRef.current) {
-				lastCookieRef.current = currentIds;
+			// 前回のlocalStorage値と比較して変更があった場合のみ更新
+			if (currentIds !== lastStorageRef.current) {
+				lastStorageRef.current = currentIds;
 				const stateIds = favoritesRef.current.map((f) => f.facility.id).sort().join(',');
 				
-				// クッキーと状態が一致しない場合は更新
+				// localStorageと状態が一致しない場合は更新
 				if (currentIds !== stateIds) {
-					// reorderアクションを使って状態を更新（facilityIdsの順序に基づいてsortOrderを再割り当て）
-					setFavorites({ type: 'reorder', payload: { facilityIds: currentCookieItems.map((f) => f.facilityId) } });
+					// localStorageから読み込んだデータで状態を更新
+					const updatedFavorites = matchFavoritesWithFacilities(currentStorageItems, allFacilities);
+					setFavorites(updatedFavorites);
 				}
 			}
 		};
 
-		// 初回チェック
-		const initialCookieItems = readFavoritesCookieClient();
-		lastCookieRef.current = initialCookieItems.map((f) => f.facilityId).sort().join(',');
+		// 初回チェックと状態の初期化
+		const initialStorageItems = readFavoritesFromStorage();
+		lastStorageRef.current = initialStorageItems.map((f) => f.facilityId).sort().join(',');
+		
+		// 初回読み込み時に状態を更新
+		if (initialStorageItems.length > 0) {
+			const loadedFavorites = matchFavoritesWithFacilities(initialStorageItems, allFacilities);
+			setInitialState(loadedFavorites);
+			setFavorites(loadedFavorites);
+		} else {
+			// localStorageが空の場合は初期状態をクリア
+			setInitialState([]);
+			setFavorites([]);
+		}
 
-		// 定期的にチェック（FacilitiesTableからの変更を検知）
-		const interval = setInterval(checkCookieChanges, 300);
-		return () => clearInterval(interval);
+		// storageイベントで他のタブからの変更を検知
+		const handleStorageEvent = (e: StorageEvent) => {
+			if (e.key === 'csh_favorites') {
+				checkStorageChanges();
+			}
+		};
+		window.addEventListener('storage', handleStorageEvent);
+
+		// カスタムイベントで同一タブ内の変更を検知（FacilitiesTableからの通知）
+		const handleFavoritesUpdated = () => {
+			checkStorageChanges();
+		};
+		window.addEventListener('favoritesUpdated', handleFavoritesUpdated);
+
+		// 定期的にチェック（フォールバック）
+		const interval = setInterval(checkStorageChanges, 500);
+		
+		return () => {
+			clearInterval(interval);
+			window.removeEventListener('storage', handleStorageEvent);
+			window.removeEventListener('favoritesUpdated', handleFavoritesUpdated);
+		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []); // 初回のみ実行
+	}, [allFacilities]); // allFacilitiesが変更されたら再初期化
 
 	const handleRemove = (facilityId: string) => {
-		setFavorites({ type: 'remove', payload: { facilityId } });
-		const currentCookieItems = readFavoritesCookieClient();
-		const updated = removeFavorite(facilityId, currentCookieItems);
-		updateFavoritesCookieClient(updated);
-		// ページリロードは削除（クライアント側の状態のみで管理）
-		// 拠点一覧テーブルの更新は、次回ページ読み込み時に反映される
+		const currentStorageItems = readFavoritesFromStorage();
+		const updated = removeFavorite(facilityId, currentStorageItems);
+		updateFavoritesInStorage(updated);
+		// 状態を即座に更新
+		const updatedFavorites = matchFavoritesWithFacilities(updated, allFacilities);
+		setFavorites(updatedFavorites);
+		// カスタムイベントを発火してFacilitiesTableに通知
+		window.dispatchEvent(new CustomEvent('favoritesUpdated'));
 	};
 
 	if (favorites.length === 0) {

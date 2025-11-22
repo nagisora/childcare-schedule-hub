@@ -1,5 +1,5 @@
 import type { Facility } from './types';
-import type { FavoriteCookieItem } from './cookies';
+import type { FavoriteCookieItem } from './storage';
 
 /**
  * お気に入りクッキーアイテムと Facility を結合した型

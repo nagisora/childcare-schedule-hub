@@ -80,7 +80,7 @@ mise exec -- pnpm --filter web dev
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 必須 | クライアント / サーバー | なし | Supabase Anon キー。公開可能だが、無料枠保護のためローテーションポリシーを準備。 |
 | `SUPABASE_SERVICE_ROLE_KEY` | 必須 | サーバーのみ | なし | Edge Function や ISR 再生成で使用。クライアントへ送信禁止。 |
 | `INSTAGRAM_OEMBED_TOKEN` | 任意 | サーバーのみ | なし | Instagram oEmbed を高頻度で呼ぶ場合に必須。未設定時はレート制限に注意。 |
-| `CSH_COOKIE_SIGNING_SECRET` | 任意 | サーバーのみ | ランダム文字列 | お気に入りクッキーへ署名を付与する場合に利用。32 文字以上を推奨。 |
+| `CSH_STORAGE_VERSION` | 任意 | クライアント | 文字列 | お気に入りlocalStorageのバージョン管理に利用。デフォルトは `1`。 |
 
 ### 3.2 `.env.local` テンプレート（ローカル用）
 
@@ -232,10 +232,10 @@ Supabase CLI を使ったローカル開発環境やマイグレーション管�
     - ISR / `revalidateTag('facilities')` の設定は [02 設計資料](./02-design.md) 3.3 節と整合させる。
   - （ポストMVP）拠点詳細ページでは `schedules` テーブルから対象拠点の最新スケジュールを取得する。
 - お気に入り状態管理
-  - サーバー側: `cookies()` API から `csh_favorites` を読み取り、初期状態をサーバーコンポーネントで組み立てる。
+  - サーバー側: 初期状態は空配列とし、クライアント側でlocalStorageから `csh_favorites` を読み取って初期状態を組み立てる。
   - クライアント側:
     - 「よく使う拠点」セクションをクライアントコンポーネントとして分離し、`useOptimistic` などで並び替え操作を即時に反映する。
-    - お気に入り追加/削除・並び替えのたびにクッキーを書き換えるヘルパー関数（例: `updateFavoritesCookie`）を `apps/web/lib/cookies.ts` に定義する。
+    - お気に入り追加/削除・並び替えのたびにlocalStorageを書き換えるヘルパー関数（例: `updateFavoritesInStorage`）を `apps/web/lib/storage.ts` に定義する。
   - 制約:
     - 最大 5 件までをお気に入りとして扱う（[01 要件定義](./01-requirements.md) の MVP 要件に準拠）。
     - MVP では DB への書き込みは行わず、ポストMVPで `favorites` テーブルと同期する。
@@ -264,7 +264,7 @@ Supabase CLI を使ったローカル開発環境やマイグレーション管�
 | --- | --- |
 | Instagram 埋め込みが表示されない | 投稿 URL と oEmbed レスポンスを確認し、[03 API 仕様](./03-api.md) の手順通りに再取得。連続失敗は Edge Function の通知・`instagram_errors` ログを確認。 |
 | Supabase REST が 401/403 を返す | RLS ポリシーと `apikey` ヘッダー、Service Role 利用箇所を確認。匿名アクセスが許可されているか `auth.uid()` をログ出力して検証。 |
-| お気に入りが保存されない | クッキー属性（`SameSite`, `Secure`）とドメイン設定を確認。ローカルでは `Secure` を無効化して `http://localhost` で動作確認。 |
+| お気に入りが保存されない | localStorageが使用可能か確認（プライベートモードなどで無効化されている場合がある）。ブラウザの開発者ツールでlocalStorageを確認。 |
 | Edge Function が 403 | Service Role キーがヘッダーに含まれているか、`verifyJWT` を通過しているか確認。環境変数を再設定する。 |
 | Supabase Migration が失敗する | `supabase db reset` でローカル DB を再生成。競合がある場合は `supabase migration repair` を実行し、`<timestamp>_rollback.sql` を追加。 |
 | Playwright テストが失敗する | `pnpm e2e --filter web --headed --debug` でデバッグし、`page.waitForLoadState('networkidle')` を活用。CI ではトレース保存を有効化。 |

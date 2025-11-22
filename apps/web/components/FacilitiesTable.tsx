@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { addFavorite, readFavoritesCookieClient, updateFavoritesCookieClient } from '../lib/cookies';
+import { addFavorite, readFavoritesFromStorage, updateFavoritesInStorage } from '../lib/storage';
 import { getWardName } from '../lib/facilities-utils';
 import type { FacilitiesByWard } from '../lib/types';
 
@@ -16,13 +16,28 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 	const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set(initialFavoriteIds));
 
 	useEffect(() => {
-		// クライアントサイドでマウント後にクッキーから最新の状態を取得
-		const currentFavorites = readFavoritesCookieClient();
-		setFavoriteIds(new Set(currentFavorites.map((f) => f.facilityId)));
+		// クライアントサイドでマウント後にlocalStorageから最新の状態を取得
+		const updateFavoriteIds = () => {
+			const currentFavorites = readFavoritesFromStorage();
+			setFavoriteIds(new Set(currentFavorites.map((f) => f.facilityId)));
+		};
+		
+		// 初回読み込み
+		updateFavoriteIds();
+		
+		// カスタムイベントでお気に入りの変更を検知
+		const handleFavoritesUpdated = () => {
+			updateFavoriteIds();
+		};
+		window.addEventListener('favoritesUpdated', handleFavoritesUpdated);
+		
+		return () => {
+			window.removeEventListener('favoritesUpdated', handleFavoritesUpdated);
+		};
 	}, []);
 
 	const handleAddFavorite = (facilityId: string) => {
-		const currentFavorites = readFavoritesCookieClient();
+		const currentFavorites = readFavoritesFromStorage();
 		const updated = addFavorite(facilityId, currentFavorites);
 		
 		// 最大件数に達している場合は追加できない
@@ -31,11 +46,11 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 			return;
 		}
 
-		updateFavoritesCookieClient(updated);
+		updateFavoritesInStorage(updated);
 		// クライアント側の状態も即時更新して「追加済み」を反映
 		setFavoriteIds(new Set(updated.map((f) => f.facilityId)));
-		// ページリロードは削除（クライアント側の状態のみで管理）
-		// お気に入りセクションの更新は、次回ページ読み込み時に反映される
+		// カスタムイベントを発火してFavoritesSectionに通知
+		window.dispatchEvent(new CustomEvent('favoritesUpdated'));
 	};
 
 	return (

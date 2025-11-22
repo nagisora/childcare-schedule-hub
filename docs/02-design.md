@@ -48,7 +48,7 @@ MVP およびポストMVPを通じて中核となるドメインは次の通り�
 
 - ユーザー（User）
   - 主に「保護者」「運用者/管理者」を想定。
-  - MVP ではログイン機能を持たず、ユーザー識別はブラウザクッキー（`csh_favorites` など）による匿名IDで代替する。
+  - MVP ではログイン機能を持たず、ユーザー識別はブラウザlocalStorage（`csh_favorites` など）による匿名IDで代替する。
   - ポストMVP で Supabase Auth を利用した `users` テーブルを導入し、`favorites` と紐付ける。
 - 拠点（Facility）
   - 全国展開を前提とした子育て応援拠点・地域子育て支援拠点を表す中核エンティティ（MVP では名古屋市のデータを扱う）。
@@ -57,8 +57,8 @@ MVP およびポストMVPを通じて中核となるドメインは次の通り�
   - 各拠点ごとの月次スケジュールを表す。Supabase Storage への画像 URL や Instagram 投稿 URL / 埋め込み HTML を紐付ける。
   - 「どの拠点の」「どの月の」スケジュールかを識別できればよい前提で、MVP では月単位の粒度とする。
 - お気に入り（Favorite）
-  - ユーザー（またはクッキーID）と拠点の多対多関係を表す。
-  - MVP ではクライアント側クッキーのみで管理し、ポストMVP で `favorites` テーブルによる永続化・同期を行う。
+  - ユーザー（またはlocalStorage識別子）と拠点の多対多関係を表す。
+  - MVP ではクライアント側localStorageのみで管理し、ポストMVP で `favorites` テーブルによる永続化・同期を行う。
 - カレンダーソース / 外部連携（将来候補）
   - Instagram や将来の外部カレンダーソースを抽象化するエンティティ。
   - 現段階ではテーブル化せず、設計上のメモとして留める。
@@ -140,7 +140,7 @@ facilities (1) ──< schedules (n)
 | --- | --- | --- | --- |
 | id | uuid | PK, `gen_random_uuid()` | お気に入り識別子 |
 | facility_id | uuid | FK → facilities.id | 拠点 ID |
-| cookie_id | text | NULL 可 | MVP: クッキー識別子を保持 |
+| cookie_id | text | NULL 可 | MVP: localStorage識別子を保持（互換性のためカラム名は維持） |
 | user_id | uuid | NULL 可 | ポストMVP: Supabase Auth ユーザー |
 | sort_order | integer | `0` | 表示順序。クライアント側並び順を保持 |
 | created_at | timestamptz | `now()` | 作成日時 |
@@ -218,9 +218,9 @@ CREATE POLICY "favorites_owner_write"
 ```
 
 ### 3.5 状態管理方針
-- App Router のサーバーコンポーネントで初期データを取得し、`cookies()` API からお気に入りクッキーを読み込んで初期状態を整形する。
-- クライアント側のお気に入り操作はクライアントコンポーネントで管理し、`useOptimistic` 等を用いて UI を即時更新後にクッキーを書き換える。
-- クッキー更新は `app/api/favorites` の Route Handler（将来追加）経由で行い、必要に応じて `revalidateTag('facilities')` を呼び出す。
+- App Router のサーバーコンポーネントでは初期データを取得し、クライアント側でlocalStorageからお気に入りを読み込んで初期状態を整形する。
+- クライアント側のお気に入り操作はクライアントコンポーネントで管理し、`useOptimistic` 等を用いて UI を即時更新後にlocalStorageを書き換える。
+- localStorage更新は `app/api/favorites` の Route Handler（将来追加）経由で行い、必要に応じて `revalidateTag('facilities')` を呼び出す。
 
 ### 3.6 セキュリティ対策（CSP 例）
 - 推奨 Content Security Policy:
@@ -242,14 +242,14 @@ MVP では、トップページを起点に「拠点一覧 → よく使う拠�
 
 - 代表フローのステップ:
   1. ユーザーがトップページ `/` にアクセスし、上部の「よく使う拠点」エリアと下部の「拠点一覧（テキスト表）」を閲覧する。
-  2. 拠点一覧から最大 5 件までお気に入りに追加し、トップに固定された「よく使う拠点」エリアに表示させる（並び順はクッキー `csh_favorites` の `sortOrder` で管理）。
+  2. 拠点一覧から最大 5 件までお気に入りに追加し、トップに固定された「よく使う拠点」エリアに表示させる（並び順はlocalStorage `csh_favorites` の `sortOrder` で管理）。
   3. 「よく使う拠点」から各拠点のスケジュール（画像/埋め込み、もしくはそのプレースホルダー）にアクセスし、必要に応じて将来の拠点詳細ページ（ポストMVP）へ遷移する。
 
 ### 4.2 画面構成（MVP）
 1. **トップページ `/`**
    - 表示情報:
      - ヒーローセクション: サービス説明、将来の検索フォームプレースホルダー。
-     - よく使う拠点（最大5件）: クッキー保存された拠点をカード/リストで表示。将来的にこのエリアでのみスケジュール画像/埋め込みを表示（MVP ではプレースホルダー可）。
+     - よく使う拠点（最大5件）: localStorage保存された拠点をカード/リストで表示。将来的にこのエリアでのみスケジュール画像/埋め込みを表示（MVP ではプレースホルダー可）。
      - 拠点一覧（テキスト表）: 拠点名 / エリア / 住所 / 電話 / 「+」ボタン（お気に入りに追加）。モバイルでは縦積み表示に崩す。スケジュール画像/埋め込みは一覧では表示しない。
    - 主要アクション:
      - 「+」ボタンで拠点をお気に入りに追加（最大 5 件まで）。
@@ -258,10 +258,10 @@ MVP では、トップページを起点に「拠点一覧 → よく使う拠�
    - データ入出力:
      - 入力（読み取り）:
        - Supabase `facilities` テーブルから `id`, `name`, `area`, `address`, `phone`, `instagram_url`, `website_url` を取得（一覧表示用）。住所は `area` + `address` の 2 フィールド構成とし、将来の多都市展開時にエリアだけでフィルタしやすくする。
-       - ブラウザクッキー `csh_favorites` から `facilityId` と `sortOrder` の配列を取得し、「よく使う拠点」エリアの表示順序と内容を決定。
+       - ブラウザlocalStorage `csh_favorites` から `facilityId` と `sortOrder` の配列を取得し、「よく使う拠点」エリアの表示順序と内容を決定。
      - 出力（書き込み）:
-       - お気に入り追加/削除・並び替え時にクッキー `csh_favorites` を更新する（MVP では DB 書き込みは行わない）。
-       - 将来拡張で `favorites` テーブルと同期する場合は、クッキー更新に加えて Edge Function 経由で DB を更新する（[03 API 仕様](./03-api.md) 参照）。
+       - お気に入り追加/削除・並び替え時にlocalStorage `csh_favorites` を更新する（MVP では DB 書き込みは行わない）。
+       - 将来拡張で `favorites` テーブルと同期する場合は、localStorage更新に加えて Edge Function 経由で DB を更新する（[03 API 仕様](./03-api.md) 参照）。
 2. **拠点詳細ページ（ポストMVP） `/facilities/[id]`**
    - 表示情報:
      - 拠点の基本情報（`facilities`）と、月ごとのスケジュール画像/Instagram 埋め込み（`schedules`）をまとめて表示。
@@ -304,7 +304,7 @@ apps/
       InstagramEmbed.tsx
     lib/
       supabase.ts
-      cookies.ts
+      storage.ts
 packages/
   ui/                       # 共有 UI コンポーネント
   shared/                   # 型・ユーティリティ

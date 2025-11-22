@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { matchFavoritesWithFacilities } from '../lib/favorites';
 import type { Facility } from '../lib/types';
-import type { FavoriteCookieItem } from '../lib/cookies';
+import type { FavoriteCookieItem } from '../lib/storage';
 import { createTestFacility } from './test-helpers';
 
 describe('matchFavoritesWithFacilities', () => {
