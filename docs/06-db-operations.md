@@ -473,6 +473,8 @@ ON CONFLICT DO NOTHING;
 
 フェーズ5（施設情報データ取得・投入フロー）では、`facilities` テーブルを全国対応スキーマに拡張するマイグレーションを適用しました。
 
+**注意**: 4.3 節に記載している `facilities` テーブル作成手順は、フェーズ3初期スキーマ（`area` / `address` カラムのみ）を前提としています。**フェーズ5以降は `add_facilities_national_schema.sql` により全国対応カラムが追加され、UI/API は `ward_name` / `address_full_raw` を主に利用します**（`area` / `address` は後方互換性のため残置されています）。
+
 **マイグレーション内容**:
 - `facility_type`（施設種別）、`detail_page_url`（詳細ページURL）の追加
 - 全国対応の住所カラム追加（`prefecture_code`, `municipality_code`, `ward_code`, `postal_code`, `prefecture_name`, `city_name`, `ward_name`, `address_rest`, `address_full_raw`）

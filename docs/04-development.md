@@ -300,8 +300,8 @@ Supabase CLI を使ったローカル開発環境やマイグレーション管�
 - その他、テーブルに含まれる補足情報（あれば）
 
 **エラーハンドリング**:
-- ネットワークエラー時は再試行（最大3回、指数バックオフ）。
-- HTML構造変更時は警告ログを出力し、取得できたデータのみを処理する。
+- ネットワークエラー時は再試行（最大3回、指数バックオフ: 500ms → 1s → 2s）。HTTPステータスエラー・ネットワーク例外のどちらも再試行対象とする。
+- HTML構造変更時は警告ログ（`[WARN]`）を出力し、取得できたデータのみを処理する。抽出件数が0件の場合は警告を発する。
 - データ欠損（電話番号なし等）は NULL として扱い、エラーとはしない。
 
 ### 9.5.2 手動入力フロー（CSVインポート）
@@ -337,14 +337,30 @@ Supabase CLI を使ったローカル開発環境やマイグレーション管�
 **通常モード（Supabase に直接書き込み）**:
 ```bash
 cd apps/scripts
+pnpm fetch-nagoya
+```
+
+または:
+
+```bash
+cd apps/scripts
 pnpm tsx fetch-nagoya-childcare-bases.ts
 ```
 
 **dry-run モード（JSON出力のみ）**:
 ```bash
 cd apps/scripts
+pnpm fetch-nagoya -- --dry-run > output.json
+```
+
+または:
+
+```bash
+cd apps/scripts
 pnpm tsx fetch-nagoya-childcare-bases.ts --dry-run > output.json
 ```
+
+**推奨**: `pnpm fetch-nagoya` スクリプトを使用することを推奨します（`package.json` に定義済み）。
 
 **実行後の確認**:
 - Supabase Studio の Table Editor で `facilities` テーブルを確認し、投入件数が期待値と一致するか確認する。
@@ -367,7 +383,9 @@ pnpm tsx fetch-nagoya-childcare-bases.ts --dry-run > output.json
   - 対象URL（応援拠点 / 支援拠点）
   - 取得件数
   - エラー件数（あれば）
-- ログは `apps/scripts/logs/` ディレクトリに保存するか、Supabase の `facilities` テーブルに `last_fetched_at` カラム（将来追加予定）を記録する。
+- ログは `apps/scripts/logs/` ディレクトリに自動的に保存される。ログファイル名は `fetch-nagoya-YYYY-MM-DDTHH-MM-SS.log` 形式（例: `fetch-nagoya-2025-01-15T14-30-45.log`）。
+- ログファイルには実行日時・対象URL・取得件数・エラー情報が含まれる。ログディレクトリが存在しない場合は自動的に作成される。
+- 将来的には、Supabase の `facilities` テーブルに `last_fetched_at` カラム（将来追加予定）を記録することも検討する。
 
 ### 9.5.5 CSVテンプレート
 

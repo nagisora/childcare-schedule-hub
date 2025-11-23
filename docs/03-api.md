@@ -36,8 +36,8 @@ Supabase は PostgreSQL に対して自動生成された REST エンドポイ�
    - エンドポイント: `GET /rest/v1/facilities`
    - 認証: 匿名（`anon` ロール）
    - 主なクエリ例:
-     - `select=id,name,area,address,phone,instagram_url,website_url`
-     - `order=area.asc,name.asc`
+     - `select=id,name,ward_name,address_full_raw,phone,instagram_url,website_url,facility_type,detail_page_url`
+     - `order=ward_name.asc,name.asc`
      - `limit=50`（ページネーション時は `offset` と組み合わせ）
    - 利用箇所:
      - トップページの「拠点一覧（テキスト表）」および「よく使う拠点」エリアの表示に利用する（[02 設計資料](./02-design.md) の 4.2 節）。
@@ -62,7 +62,7 @@ Supabase は PostgreSQL に対して自動生成された REST エンドポイ�
      - 代表フローで「拠点 + 最新スケジュール」をまとめて取得する場合:
        ```text
        /rest/v1/facilities
-         ?select=id,name,area,address,phone,instagram_url,website_url,
+         ?select=id,name,ward_name,address_full_raw,phone,instagram_url,website_url,facility_type,detail_page_url,
                  schedules(id,published_month,image_url,instagram_post_url,embed_html)
          &schedules.order=published_month.desc
          &schedules.limit=1
@@ -79,11 +79,13 @@ Supabase は PostgreSQL に対して自動生成された REST エンドポイ�
   {
     "id": "d8c1bcb9-5f84-4a8a-8d86-3b5b0874d1c0",
     "name": "〇〇子育て応援拠点",
-    "area": "中区",
-    "address": "名古屋市中区1-1-1",
+    "ward_name": "中区",
+    "address_full_raw": "〒460-0001 名古屋市中区1-1-1",
     "phone": "052-000-0000",
     "instagram_url": "https://www.instagram.com/example",
     "website_url": "https://example.jp",
+    "facility_type": "childcare_ouen_base",
+    "detail_page_url": "https://www.kosodate.city.nagoya.jp/play/...",
     "created_at": "2025-10-01T12:00:00+09:00",
     "updated_at": "2025-10-15T09:00:00+09:00"
   }
@@ -108,11 +110,15 @@ Supabase は PostgreSQL に対して自動生成された REST エンドポイ�
 | --- | --- | --- | --- |
 | id | string (UUID) | ✔ | 拠点 ID |
 | name | string | ✔ | 拠点名 |
-| area | string | ✔ | エリア（区名） |
-| address | string | ✔ | 住所 |
+| ward_name | string | ✖ | 区名（政令指定都市の場合）。エリア表示・グルーピング用。 |
+| address_full_raw | string | ✖ | 住所の生文字列（スクレイピングで取得した元データ）。住所表示用。 |
 | phone | string | ✖ | 電話番号。存在する場合はハイフン含む |
 | instagram_url | string | ✖ | Instagram プロフィール URL |
 | website_url | string | ✖ | 公式サイト |
+| facility_type | string | ✖ | 施設種別（例: `childcare_ouen_base`, `childcare_support_base`） |
+| detail_page_url | string | ✖ | 自治体サイト上の拠点詳細ページURL |
+
+**注意**: `area` / `address` カラムは後方互換性のためテーブルに残置されていますが、新規クライアントは `ward_name` / `address_full_raw` の利用を推奨します。詳細は [02 設計資料](./02-design.md) 3.3 節を参照してください。
 
 #### ScheduleSummary（GET `/schedules`）
 | フィールド | 型 | 必須 | 説明 |
@@ -129,7 +135,7 @@ Supabase は PostgreSQL に対して自動生成された REST エンドポイ�
 #### API 利用ガイド
 - 拠点一覧と最新スケジュールを同時取得する場合は、以下の JOIN クエリを推奨する。
   ```
-  /rest/v1/facilities?select=*,schedules(id,published_month,image_url,instagram_post_url,embed_html)&schedules.order=published_month.desc&schedules.limit=1
+  /rest/v1/facilities?select=id,name,ward_name,address_full_raw,phone,instagram_url,website_url,facility_type,detail_page_url,schedules(id,published_month,image_url,instagram_post_url,embed_html)&schedules.order=published_month.desc&schedules.limit=1
   ```
 - `limit`, `offset`, `order`, `select` の利用規約:
   - `limit`: 1〜50 を許容し、未指定時は 20。
@@ -138,7 +144,7 @@ Supabase は PostgreSQL に対して自動生成された REST エンドポイ�
   - `select`: 返却フィールドを制御し、不要な列の送信を避ける。
 
 補足（MVP UI での利用範囲）:
-- トップページの「拠点一覧」はテキスト表のみのため、`/rest/v1/facilities` の基本フィールド（`id/name/area/address/phone` など）に限定して利用する。
+- トップページの「拠点一覧」はテキスト表のみのため、`/rest/v1/facilities` の基本フィールド（`id/name/ward_name/address_full_raw/phone` など）に限定して利用する。
 - スケジュール取得（`/rest/v1/schedules`）は「よく使う拠点」エリア（最大5件）および将来の拠点詳細ページでのみ使用し、一覧テーブルでは呼び出さない。
 
 #### FavoriteRecord（ポストMVP）

@@ -14,6 +14,7 @@ import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { mkdirSync, writeFileSync } from 'fs';
 
 // 環境変数の読み込み（.env.local から）
 const __filename = fileURLToPath(import.meta.url);
@@ -82,21 +83,37 @@ interface FacilityRaw {
 }
 
 /**
- * HTMLページを取得してパースする
+ * HTMLページを取得してパースする（リトライ付き）
+ * ネットワークエラーやHTTPステータスエラー時に最大3回まで再試行（指数バックオフ）
+ * [04 開発ガイド](../docs/04-development.md) 9.5.1 節のスクレイピングガイドラインに準拠
  */
-async function fetchAndParse(url: string): Promise<cheerio.CheerioAPI> {
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent': 'ChildcareScheduleHub/1.0 (+https://childcare-schedule-hub.example.com)',
-    },
-  });
+async function fetchAndParse(url: string, retryCount: number = 0): Promise<cheerio.CheerioAPI> {
+  const maxRetries = 3;
+  const backoffDelays = [500, 1000, 2000]; // 指数バックオフ: 500ms → 1s → 2s
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'ChildcareScheduleHub/1.0 (+https://childcare-schedule-hub.example.com)',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} ${response.statusText}`);
+    }
+
+    const html = await response.text();
+    return cheerio.load(html);
+  } catch (error) {
+    if (retryCount < maxRetries) {
+      const delay = backoffDelays[retryCount] || 2000;
+      console.log(`[INFO] Retrying fetch ${url} (attempt ${retryCount + 1}/${maxRetries}) after ${delay}ms...`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      return fetchAndParse(url, retryCount + 1);
+    }
+    // 最終失敗時は既存と同様に Error を投げる
+    throw new Error(`Failed to fetch ${url} after ${maxRetries} retries: ${error instanceof Error ? error.message : String(error)}`);
   }
-
-  const html = await response.text();
-  return cheerio.load(html);
 }
 
 /**
@@ -239,7 +256,14 @@ async function fetchOuenFacilities(): Promise<FacilityRaw[]> {
     }
   }
 
-  console.log(`[INFO] Extracted ${facilities.length} facilities from 子育て応援拠点 page`);
+  const count = facilities.length;
+  console.log(`[INFO] Extracted ${count} facilities from 子育て応援拠点 page`);
+
+  // HTML構造変更の可能性を警告（抽出件数が0件の場合）
+  if (count === 0) {
+    console.warn(`[WARN] Extracted 0 facilities from ${TARGET_URLS.OUEN}. HTML structure may have changed.`);
+  }
+
   return facilities;
 }
 
@@ -264,7 +288,14 @@ async function fetchShienFacilities(): Promise<FacilityRaw[]> {
     }
   }
 
-  console.log(`[INFO] Extracted ${facilities.length} facilities from 地域子育て支援拠点 page`);
+  const count = facilities.length;
+  console.log(`[INFO] Extracted ${count} facilities from 地域子育て支援拠点 page`);
+
+  // HTML構造変更の可能性を警告（抽出件数が0件の場合）
+  if (count === 0) {
+    console.warn(`[WARN] Extracted 0 facilities from ${TARGET_URLS.SHIEN}. HTML structure may have changed.`);
+  }
+
   return facilities;
 }
 
@@ -304,34 +335,93 @@ async function upsertFacilities(facilities: FacilityRaw[]): Promise<void> {
 }
 
 /**
+ * ログをファイルに出力する
+ * [04 開発ガイド](../docs/04-development.md) 9.5.4 節のログ保存方針に準拠
+ */
+function writeLogFile(logLines: string[]): void {
+  const logsDir = join(__dirname, 'logs');
+  try {
+    mkdirSync(logsDir, { recursive: true });
+  } catch (error) {
+    // ディレクトリが既に存在する場合は無視
+    if (error && typeof error === 'object' && 'code' in error && error.code !== 'EEXIST') {
+      console.warn(`[WARN] Failed to create logs directory: ${error}`);
+      return;
+    }
+  }
+
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '-').slice(0, -5);
+  const logFilename = join(logsDir, `fetch-nagoya-${timestamp}.log`);
+  const logContent = logLines.join('\n') + '\n';
+
+  try {
+    writeFileSync(logFilename, logContent, 'utf-8');
+    console.log(`[INFO] Log file written: ${logFilename}`);
+  } catch (error) {
+    console.warn(`[WARN] Failed to write log file: ${error}`);
+  }
+}
+
+/**
  * メイン処理
  */
 async function main() {
+  const logLines: string[] = [];
+  const log = (message: string) => {
+    const timestamp = new Date().toISOString();
+    const logMessage = `[${timestamp}] ${message}`;
+    console.log(message);
+    logLines.push(logMessage);
+  };
+  const logError = (message: string, error?: unknown) => {
+    const timestamp = new Date().toISOString();
+    const errorMessage = error instanceof Error ? `${message}: ${error.message}` : `${message}: ${String(error)}`;
+    const logMessage = `[${timestamp}] [ERROR] ${errorMessage}`;
+    console.error(`[ERROR] ${errorMessage}`);
+    logLines.push(logMessage);
+  };
+  const logWarn = (message: string) => {
+    const timestamp = new Date().toISOString();
+    const logMessage = `[${timestamp}] [WARN] ${message}`;
+    console.warn(`[WARN] ${message}`);
+    logLines.push(logMessage);
+  };
+
   try {
-    console.log('[INFO] Starting facility data fetch...');
+    log('[INFO] Starting facility data fetch...');
+    log(`[INFO] Target URLs: ${TARGET_URLS.OUEN}, ${TARGET_URLS.SHIEN}`);
     if (isDryRun) {
-      console.log('[INFO] Running in dry-run mode (JSON output only)');
+      log('[INFO] Running in dry-run mode (JSON output only)');
     }
 
-    // リクエスト間に間隔を設ける（サーバー負荷軽減）
+    // リクエスト間に間隔を設ける（サーバー負荷軽減・最低1秒間隔）
+    // [04 開発ガイド](../docs/04-development.md) 9.5.1 節のアクセス頻度制限要件を満たす
+    log('[INFO] Fetching 応援拠点 page...');
     const ouenFacilities = await fetchOuenFacilities();
+    log(`[INFO] Waiting 1 second before next request (access frequency limit)...`);
     await new Promise((resolve) => setTimeout(resolve, 1000)); // 1秒待機
+    log('[INFO] Fetching 支援拠点 page...');
     const shienFacilities = await fetchShienFacilities();
 
     const allFacilities = [...ouenFacilities, ...shienFacilities];
-    console.log(`[INFO] Total facilities extracted: ${allFacilities.length}`);
+    log(`[INFO] Total facilities extracted: ${allFacilities.length}`);
+    log(`[INFO] Breakdown: 応援拠点 ${ouenFacilities.length}件, 支援拠点 ${shienFacilities.length}件`);
 
     if (isDryRun) {
       // dry-run モード: JSON を stdout に出力
       console.log(JSON.stringify(allFacilities, null, 2));
+      log('[INFO] JSON output completed (dry-run mode)');
     } else {
       // 通常モード: Supabase に投入
       await upsertFacilities(allFacilities);
+      log(`[INFO] Successfully upserted ${allFacilities.length} facilities to Supabase`);
     }
 
-    console.log('[INFO] Completed successfully');
+    log('[INFO] Completed successfully');
+    writeLogFile(logLines);
   } catch (error) {
-    console.error('[ERROR] Failed to fetch facilities:', error);
+    logError('Failed to fetch facilities', error);
+    writeLogFile(logLines);
     process.exit(1);
   }
 }
