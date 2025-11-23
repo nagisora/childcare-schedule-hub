@@ -5,13 +5,10 @@ import { matchFavoritesWithFacilities } from '../lib/favorites';
 import { getWardName } from '../lib/facilities-utils';
 import type { FavoriteFacility } from '../lib/favorites';
 import type { Facility } from '../lib/types';
-import type { FavoriteCookieItem } from '../lib/storage';
 import {
 	readFavoritesFromStorage,
 	updateFavoritesInStorage,
-	addFavorite,
 	removeFavorite,
-	reorderFavorites,
 } from '../lib/storage';
 
 type FavoritesSectionProps = {
@@ -23,12 +20,7 @@ export function FavoritesSection({ initialFavorites, allFacilities }: FavoritesS
 	// 初回マウント時にlocalStorageからお気に入りを読み込む
 	const [initialState, setInitialState] = useState<FavoriteFacility[]>(initialFavorites);
 
-	// FavoriteFacility[] から FavoriteCookieItem[] への変換ヘルパー
-	const convertToCookieItems = (favorites: FavoriteFacility[]): FavoriteCookieItem[] =>
-		favorites.map((f) => ({
-			facilityId: f.facility.id,
-			sortOrder: f.sortOrder,
-		}));
+
 
 	// お気に入りをクライアント側の状態として管理
 	const [favorites, setFavorites] = useState<FavoriteFacility[]>(initialState);
@@ -36,7 +28,7 @@ export function FavoritesSection({ initialFavorites, allFacilities }: FavoritesS
 	// localStorageの変更を監視して状態を同期（FacilitiesTableからの変更を検知）
 	const lastStorageRef = useRef<string>('');
 	const favoritesRef = useRef(favorites);
-	
+
 	// favoritesの最新値を常に保持
 	useEffect(() => {
 		favoritesRef.current = favorites;
@@ -46,12 +38,12 @@ export function FavoritesSection({ initialFavorites, allFacilities }: FavoritesS
 		const checkStorageChanges = () => {
 			const currentStorageItems = readFavoritesFromStorage();
 			const currentIds = currentStorageItems.map((f) => f.facilityId).sort().join(',');
-			
+
 			// 前回のlocalStorage値と比較して変更があった場合のみ更新
 			if (currentIds !== lastStorageRef.current) {
 				lastStorageRef.current = currentIds;
 				const stateIds = favoritesRef.current.map((f) => f.facility.id).sort().join(',');
-				
+
 				// localStorageと状態が一致しない場合は更新
 				if (currentIds !== stateIds) {
 					// localStorageから読み込んだデータで状態を更新
@@ -64,7 +56,7 @@ export function FavoritesSection({ initialFavorites, allFacilities }: FavoritesS
 		// 初回チェックと状態の初期化
 		const initialStorageItems = readFavoritesFromStorage();
 		lastStorageRef.current = initialStorageItems.map((f) => f.facilityId).sort().join(',');
-		
+
 		// 初回読み込み時に状態を更新
 		if (initialStorageItems.length > 0) {
 			const loadedFavorites = matchFavoritesWithFacilities(initialStorageItems, allFacilities);
@@ -92,7 +84,7 @@ export function FavoritesSection({ initialFavorites, allFacilities }: FavoritesS
 
 		// 定期的にチェック（フォールバック）
 		const interval = setInterval(checkStorageChanges, 500);
-		
+
 		return () => {
 			clearInterval(interval);
 			window.removeEventListener('storage', handleStorageEvent);
