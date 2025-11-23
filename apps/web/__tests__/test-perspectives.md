@@ -14,7 +14,7 @@
 | TC-A-01 | null を渡す | Boundary – NULL | エラーが発生する（型エラー） | TypeScript で防止 |
 | TC-A-02 | 不正な形式の配列要素 | Equivalence – abnormal | 不正な要素は無視され、有効な要素のみ処理される | 型チェック前提 |
 
-### 1.2 `lib/cookies.ts` - `addFavorite` 関数
+### 1.2 `lib/storage.ts` - `addFavorite` 関数
 
 | Case ID | Input / Precondition | Perspective (Equivalence / Boundary) | Expected Result | Notes |
 |---------|---------------------|--------------------------------------|-----------------|-------|
@@ -25,7 +25,9 @@
 | TC-A-03 | 最大件数を超える（6件目を追加しようとする） | Boundary – 最大値+1 | 追加されず、元の配列を返す | - |
 | TC-A-04 | 無効な facilityId（空文字列） | Equivalence – abnormal | 空文字列も有効なIDとして扱い、追加される | 業務ルールにより許容 |
 
-### 1.3 `lib/cookies.ts` - `removeFavorite` 関数
+**注:** 実装は `lib/storage.ts` に集約されている（以前は `lib/cookies.ts` として設計されていたが、localStorage ベースの実装に変更された）。
+
+### 1.3 `lib/storage.ts` - `removeFavorite` 関数
 
 | Case ID | Input / Precondition | Perspective (Equivalence / Boundary) | Expected Result | Notes |
 |---------|---------------------|--------------------------------------|-----------------|-------|
@@ -34,7 +36,9 @@
 | TC-A-01 | 存在しない facilityId | Equivalence – abnormal | 変更されず、元の配列を返す | - |
 | TC-A-02 | 空配列から削除 | Boundary – 空 | 空配列を返す | - |
 
-### 1.4 `lib/cookies.ts` - `reorderFavorites` 関数
+**注:** 実装は `lib/storage.ts` に集約されている。
+
+### 1.4 `lib/storage.ts` - `reorderFavorites` 関数
 
 | Case ID | Input / Precondition | Perspective (Equivalence / Boundary) | Expected Result | Notes |
 |---------|---------------------|--------------------------------------|-----------------|-------|
@@ -43,15 +47,19 @@
 | TC-A-01 | 存在しない facilityId を含む配列 | Equivalence – abnormal | 存在しないIDは無視され、存在するもののみ処理される | - |
 | TC-A-02 | 空の facilityIds 配列 | Boundary – 空 | 空配列を返す | - |
 
-### 1.5 `lib/cookies.ts` - `readFavoritesCookieClient` / `updateFavoritesCookieClient` 関数
+**注:** 実装は `lib/storage.ts` に集約されている。
+
+### 1.5 `lib/storage.ts` - `readFavoritesFromStorage` / `updateFavoritesInStorage` 関数
 
 | Case ID | Input / Precondition | Perspective (Equivalence / Boundary) | Expected Result | Notes |
 |---------|---------------------|--------------------------------------|-----------------|-------|
-| TC-N-01 | 正常なクッキー値（JSON配列） | Equivalence – normal | パースされたお気に入り配列を返す | - |
-| TC-N-02 | クッキーが存在しない | Boundary – 空 | 空配列を返す | - |
-| TC-A-01 | 不正なJSON形式のクッキー | Equivalence – abnormal | 空配列を返す（エラーハンドリング） | - |
+| TC-N-01 | 正常なlocalStorage値（JSON配列） | Equivalence – normal | パースされたお気に入り配列を返す | - |
+| TC-N-02 | localStorageが存在しない | Boundary – 空 | 空配列を返す | - |
+| TC-A-01 | 不正なJSON形式のlocalStorage値 | Equivalence – abnormal | 空配列を返す（エラーハンドリング） | - |
 | TC-A-02 | 不正な構造のオブジェクト | Equivalence – abnormal | 不正な要素はフィルタリングされ、有効なもののみ返す | - |
-| TC-A-03 | 最大件数（5件）を超えるクッキー | Boundary – 最大値+1 | 最大5件までに制限される | - |
+| TC-A-03 | 最大件数（5件）を超えるlocalStorage値 | Boundary – 最大値+1 | 最大5件までに制限される | - |
+
+**注:** 実装は `lib/storage.ts` に集約されている。以前は `lib/cookies.ts` の `readFavoritesCookieClient` / `updateFavoritesCookieClient` として設計されていたが、localStorage ベースの実装に変更された。
 
 ## 2. E2E テスト観点（代表フロー）
 

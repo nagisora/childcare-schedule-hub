@@ -16,6 +16,12 @@ import { MAX_FAVORITES } from './constants';
 const STORAGE_KEY = 'csh_favorites';
 
 /**
+ * お気に入り更新を通知するカスタムイベント名
+ * ペイロードを持たない合図用イベント（将来的なペイロード拡張の余地を残す）
+ */
+export const FAVORITES_UPDATED_EVENT = 'favoritesUpdated';
+
+/**
  * 有効期限（180日、ミリ秒）
  * [03 API 仕様](../docs/03-api.md) 4.1節を参照
  */

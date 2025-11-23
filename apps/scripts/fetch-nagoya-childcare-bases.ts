@@ -63,6 +63,10 @@ const NAGOYA_WARD_CODE_MAP: Readonly<Record<string, string>> = {
   '千種区': '23116',
 } as const;
 
+// リトライ設定値（[04 開発ガイド](../docs/04-development.md) 9.5.1 節のスクレイピングガイドラインに準拠）
+const MAX_RETRIES = 3;
+const BACKOFF_DELAYS_MS = [500, 1000, 2000]; // 指数バックオフ: 500ms → 1s → 2s
+
 // 型定義
 interface FacilityRaw {
   name: string;
@@ -88,9 +92,6 @@ interface FacilityRaw {
  * [04 開発ガイド](../docs/04-development.md) 9.5.1 節のスクレイピングガイドラインに準拠
  */
 async function fetchAndParse(url: string, retryCount: number = 0): Promise<cheerio.CheerioAPI> {
-  const maxRetries = 3;
-  const backoffDelays = [500, 1000, 2000]; // 指数バックオフ: 500ms → 1s → 2s
-
   try {
     const response = await fetch(url, {
       headers: {
@@ -105,14 +106,14 @@ async function fetchAndParse(url: string, retryCount: number = 0): Promise<cheer
     const html = await response.text();
     return cheerio.load(html);
   } catch (error) {
-    if (retryCount < maxRetries) {
-      const delay = backoffDelays[retryCount] || 2000;
-      console.log(`[INFO] Retrying fetch ${url} (attempt ${retryCount + 1}/${maxRetries}) after ${delay}ms...`);
+    if (retryCount < MAX_RETRIES) {
+      const delay = BACKOFF_DELAYS_MS[retryCount] || 2000;
+      console.log(`[INFO] Retrying fetch ${url} (attempt ${retryCount + 1}/${MAX_RETRIES}) after ${delay}ms...`);
       await new Promise((resolve) => setTimeout(resolve, delay));
       return fetchAndParse(url, retryCount + 1);
     }
     // 最終失敗時は既存と同様に Error を投げる
-    throw new Error(`Failed to fetch ${url} after ${maxRetries} retries: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(`Failed to fetch ${url} after ${MAX_RETRIES} retries: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -236,11 +237,21 @@ function extractFacilityFromRow(
 }
 
 /**
- * 応援拠点ページから施設情報を取得する
+ * 指定されたページから施設情報を取得する（共通処理）
+ * @param url 取得対象のURL
+ * @param facilityType 施設種別
+ * @param pageLabel ページのラベル（ログ出力用）
+ * @param logger Logger インスタンス
+ * @returns 抽出された施設情報の配列
  */
-async function fetchOuenFacilities(): Promise<FacilityRaw[]> {
-  console.log(`[INFO] Fetching 子育て応援拠点 from ${TARGET_URLS.OUEN}...`);
-  const $ = await fetchAndParse(TARGET_URLS.OUEN);
+async function fetchFacilitiesFromPage(
+  url: string,
+  facilityType: typeof FACILITY_TYPES.OUEN | typeof FACILITY_TYPES.SHIEN,
+  pageLabel: string,
+  logger: Logger
+): Promise<FacilityRaw[]> {
+  logger.info(`Fetching ${pageLabel} from ${url}...`);
+  const $ = await fetchAndParse(url);
 
   // テーブルを探す（実際のページ構造に合わせて調整が必要）
   const facilities: FacilityRaw[] = [];
@@ -249,7 +260,7 @@ async function fetchOuenFacilities(): Promise<FacilityRaw[]> {
   for (const table of tables) {
     const rows = $(table).find('tbody tr, tr').toArray();
     for (const row of rows) {
-      const facility = extractFacilityFromRow($, $(row), FACILITY_TYPES.OUEN);
+      const facility = extractFacilityFromRow($, $(row), facilityType);
       if (facility) {
         facilities.push(facility);
       }
@@ -257,52 +268,34 @@ async function fetchOuenFacilities(): Promise<FacilityRaw[]> {
   }
 
   const count = facilities.length;
-  console.log(`[INFO] Extracted ${count} facilities from 子育て応援拠点 page`);
+  logger.info(`Extracted ${count} facilities from ${pageLabel} page`);
 
   // HTML構造変更の可能性を警告（抽出件数が0件の場合）
   if (count === 0) {
-    console.warn(`[WARN] Extracted 0 facilities from ${TARGET_URLS.OUEN}. HTML structure may have changed.`);
+    logger.warn(`Extracted 0 facilities from ${url}. HTML structure may have changed.`);
   }
 
   return facilities;
+}
+
+/**
+ * 応援拠点ページから施設情報を取得する
+ */
+async function fetchOuenFacilities(logger: Logger): Promise<FacilityRaw[]> {
+  return fetchFacilitiesFromPage(TARGET_URLS.OUEN, FACILITY_TYPES.OUEN, '子育て応援拠点', logger);
 }
 
 /**
  * 支援拠点ページから施設情報を取得する
  */
-async function fetchShienFacilities(): Promise<FacilityRaw[]> {
-  console.log(`[INFO] Fetching 地域子育て支援拠点 from ${TARGET_URLS.SHIEN}...`);
-  const $ = await fetchAndParse(TARGET_URLS.SHIEN);
-
-  // テーブルを探す（実際のページ構造に合わせて調整が必要）
-  const facilities: FacilityRaw[] = [];
-  const tables = $('table').toArray();
-
-  for (const table of tables) {
-    const rows = $(table).find('tbody tr, tr').toArray();
-    for (const row of rows) {
-      const facility = extractFacilityFromRow($, $(row), FACILITY_TYPES.SHIEN);
-      if (facility) {
-        facilities.push(facility);
-      }
-    }
-  }
-
-  const count = facilities.length;
-  console.log(`[INFO] Extracted ${count} facilities from 地域子育て支援拠点 page`);
-
-  // HTML構造変更の可能性を警告（抽出件数が0件の場合）
-  if (count === 0) {
-    console.warn(`[WARN] Extracted 0 facilities from ${TARGET_URLS.SHIEN}. HTML structure may have changed.`);
-  }
-
-  return facilities;
+async function fetchShienFacilities(logger: Logger): Promise<FacilityRaw[]> {
+  return fetchFacilitiesFromPage(TARGET_URLS.SHIEN, FACILITY_TYPES.SHIEN, '地域子育て支援拠点', logger);
 }
 
 /**
  * Supabase に施設情報を投入する
  */
-async function upsertFacilities(facilities: FacilityRaw[]): Promise<void> {
+async function upsertFacilities(facilities: FacilityRaw[], logger: Logger): Promise<void> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -312,7 +305,7 @@ async function upsertFacilities(facilities: FacilityRaw[]): Promise<void> {
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-  console.log(`[INFO] Upserting ${facilities.length} facilities to Supabase...`);
+  logger.info(`Upserting ${facilities.length} facilities to Supabase...`);
 
   // バッチ処理（Supabase の制限に合わせて分割）
   const batchSize = 100;
@@ -324,14 +317,14 @@ async function upsertFacilities(facilities: FacilityRaw[]): Promise<void> {
     });
 
     if (error) {
-      console.error(`[ERROR] Failed to upsert batch ${i / batchSize + 1}:`, error);
+      logger.error(`Failed to upsert batch ${i / batchSize + 1}`, error);
       throw error;
     }
 
-    console.log(`[INFO] Upserted batch ${i / batchSize + 1} (${batch.length} facilities)`);
+    logger.info(`Upserted batch ${i / batchSize + 1} (${batch.length} facilities)`);
   }
 
-  console.log(`[INFO] Successfully upserted ${facilities.length} facilities to Supabase`);
+  logger.info(`Successfully upserted ${facilities.length} facilities to Supabase`);
 }
 
 /**
@@ -363,65 +356,100 @@ function writeLogFile(logLines: string[]): void {
 }
 
 /**
- * メイン処理
+ * 簡易 Logger（ログ出力の一元管理）
+ * コンソール出力とファイル出力用のログ配列を同時に管理する
  */
-async function main() {
-  const logLines: string[] = [];
-  const log = (message: string) => {
+class Logger {
+  private logLines: string[] = [];
+
+  /**
+   * INFO レベルのログを出力
+   */
+  info(message: string): void {
     const timestamp = new Date().toISOString();
-    const logMessage = `[${timestamp}] ${message}`;
-    console.log(message);
-    logLines.push(logMessage);
-  };
-  const logError = (message: string, error?: unknown) => {
+    const logMessage = `[${timestamp}] [INFO] ${message}`;
+    console.log(`[INFO] ${message}`);
+    this.logLines.push(logMessage);
+  }
+
+  /**
+   * WARN レベルのログを出力
+   */
+  warn(message: string): void {
+    const timestamp = new Date().toISOString();
+    const logMessage = `[${timestamp}] [WARN] ${message}`;
+    console.warn(`[WARN] ${message}`);
+    this.logLines.push(logMessage);
+  }
+
+  /**
+   * ERROR レベルのログを出力
+   */
+  error(message: string, error?: unknown): void {
     const timestamp = new Date().toISOString();
     const errorMessage = error instanceof Error ? `${message}: ${error.message}` : `${message}: ${String(error)}`;
     const logMessage = `[${timestamp}] [ERROR] ${errorMessage}`;
     console.error(`[ERROR] ${errorMessage}`);
-    logLines.push(logMessage);
-  };
-  const logWarn = (message: string) => {
-    const timestamp = new Date().toISOString();
-    const logMessage = `[${timestamp}] [WARN] ${message}`;
-    console.warn(`[WARN] ${message}`);
-    logLines.push(logMessage);
-  };
+    this.logLines.push(logMessage);
+  }
+
+  /**
+   * ログファイルに出力してクリア
+   */
+  flush(): void {
+    writeLogFile(this.logLines);
+    this.logLines = [];
+  }
+
+  /**
+   * 現在のログ行を取得（デバッグ用）
+   */
+  getLogLines(): readonly string[] {
+    return this.logLines;
+  }
+}
+
+/**
+ * メイン処理
+ */
+async function main() {
+  const logger = new Logger();
 
   try {
-    log('[INFO] Starting facility data fetch...');
-    log(`[INFO] Target URLs: ${TARGET_URLS.OUEN}, ${TARGET_URLS.SHIEN}`);
+    logger.info('Starting facility data fetch...');
+    logger.info(`Target URLs: ${TARGET_URLS.OUEN}, ${TARGET_URLS.SHIEN}`);
     if (isDryRun) {
-      log('[INFO] Running in dry-run mode (JSON output only)');
+      logger.info('Running in dry-run mode (JSON output only)');
     }
 
     // リクエスト間に間隔を設ける（サーバー負荷軽減・最低1秒間隔）
     // [04 開発ガイド](../docs/04-development.md) 9.5.1 節のアクセス頻度制限要件を満たす
-    log('[INFO] Fetching 応援拠点 page...');
-    const ouenFacilities = await fetchOuenFacilities();
-    log(`[INFO] Waiting 1 second before next request (access frequency limit)...`);
+    logger.info('Fetching 応援拠点 page...');
+    const ouenFacilities = await fetchOuenFacilities(logger);
+    logger.info('Waiting 1 second before next request (access frequency limit)...');
     await new Promise((resolve) => setTimeout(resolve, 1000)); // 1秒待機
-    log('[INFO] Fetching 支援拠点 page...');
-    const shienFacilities = await fetchShienFacilities();
+    logger.info('Fetching 支援拠点 page...');
+    const shienFacilities = await fetchShienFacilities(logger);
 
     const allFacilities = [...ouenFacilities, ...shienFacilities];
-    log(`[INFO] Total facilities extracted: ${allFacilities.length}`);
-    log(`[INFO] Breakdown: 応援拠点 ${ouenFacilities.length}件, 支援拠点 ${shienFacilities.length}件`);
+    logger.info(`Total facilities extracted: ${allFacilities.length}`);
+    logger.info(`Breakdown: 応援拠点 ${ouenFacilities.length}件, 支援拠点 ${shienFacilities.length}件`);
 
     if (isDryRun) {
       // dry-run モード: JSON を stdout に出力
       console.log(JSON.stringify(allFacilities, null, 2));
-      log('[INFO] JSON output completed (dry-run mode)');
+      logger.info('JSON output completed (dry-run mode)');
     } else {
       // 通常モード: Supabase に投入
-      await upsertFacilities(allFacilities);
-      log(`[INFO] Successfully upserted ${allFacilities.length} facilities to Supabase`);
+      await upsertFacilities(allFacilities, logger);
+      logger.info(`Successfully upserted ${allFacilities.length} facilities to Supabase`);
     }
 
-    log('[INFO] Completed successfully');
-    writeLogFile(logLines);
+    logger.info('Completed successfully');
+    logger.flush();
   } catch (error) {
-    logError('Failed to fetch facilities', error);
-    writeLogFile(logLines);
+    logger.error('Failed to fetch facilities', error);
+    logger.flush();
     process.exit(1);
   }
 }

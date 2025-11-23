@@ -9,6 +9,7 @@ import {
 	readFavoritesFromStorage,
 	updateFavoritesInStorage,
 	removeFavorite,
+	FAVORITES_UPDATED_EVENT,
 } from '../lib/storage';
 
 type FavoritesSectionProps = {
@@ -16,57 +17,69 @@ type FavoritesSectionProps = {
 	allFacilities: Facility[];
 };
 
+/**
+ * localStorage からお気に入りを読み込み、Facility データとマッチングする
+ * @param lastSnapshot 前回のスナップショット（ID文字列のカンマ区切り）
+ * @param allFacilities 全拠点一覧
+ * @returns マッチングされたお気に入り配列と新しいスナップショット
+ */
+function getFavoritesFromStorageSnapshot(
+	lastSnapshot: string,
+	allFacilities: Facility[]
+): { favorites: FavoriteFacility[]; snapshot: string } {
+	const currentStorageItems = readFavoritesFromStorage();
+	const currentIds = currentStorageItems.map((f) => f.facilityId).sort().join(',');
+
+	// 前回のlocalStorage値と比較して変更があった場合のみ更新
+	if (currentIds !== lastSnapshot) {
+		const updatedFavorites = matchFavoritesWithFacilities(currentStorageItems, allFacilities);
+		return { favorites: updatedFavorites, snapshot: currentIds };
+	}
+
+	// 変更がない場合は既存の状態を返す（呼び出し側で判定）
+	return { favorites: [], snapshot: lastSnapshot };
+}
+
 export function FavoritesSection({ initialFavorites, allFacilities }: FavoritesSectionProps) {
-	// 初回マウント時にlocalStorageからお気に入りを読み込む
-	const [initialState, setInitialState] = useState<FavoriteFacility[]>(initialFavorites);
-
-
-
-	// お気に入りをクライアント側の状態として管理
-	const [favorites, setFavorites] = useState<FavoriteFacility[]>(initialState);
+	// お気に入りをクライアント側の状態として管理（単一のソース・オブ・トゥルース）
+	const [favorites, setFavorites] = useState<FavoriteFacility[]>(initialFavorites);
 
 	// localStorageの変更を監視して状態を同期（FacilitiesTableからの変更を検知）
 	const lastStorageRef = useRef<string>('');
-	const favoritesRef = useRef(favorites);
-
-	// favoritesの最新値を常に保持
-	useEffect(() => {
-		favoritesRef.current = favorites;
-	}, [favorites]);
 
 	useEffect(() => {
+		// 初期同期: localStorageから読み込んで状態を初期化
+		const initialStorageItems = readFavoritesFromStorage();
+		const initialIds = initialStorageItems.map((f) => f.facilityId).sort().join(',');
+		lastStorageRef.current = initialIds;
+
+		if (initialStorageItems.length > 0) {
+			const loadedFavorites = matchFavoritesWithFacilities(initialStorageItems, allFacilities);
+			setFavorites(loadedFavorites);
+		} else {
+			setFavorites([]);
+		}
+
+		// 変更検知ロジック: localStorageの変更を検知して状態を更新
 		const checkStorageChanges = () => {
-			const currentStorageItems = readFavoritesFromStorage();
-			const currentIds = currentStorageItems.map((f) => f.facilityId).sort().join(',');
+			const { favorites: updatedFavorites, snapshot: newSnapshot } = getFavoritesFromStorageSnapshot(
+				lastStorageRef.current,
+				allFacilities
+			);
 
-			// 前回のlocalStorage値と比較して変更があった場合のみ更新
-			if (currentIds !== lastStorageRef.current) {
-				lastStorageRef.current = currentIds;
-				const stateIds = favoritesRef.current.map((f) => f.facility.id).sort().join(',');
-
-				// localStorageと状態が一致しない場合は更新
-				if (currentIds !== stateIds) {
-					// localStorageから読み込んだデータで状態を更新
-					const updatedFavorites = matchFavoritesWithFacilities(currentStorageItems, allFacilities);
+			// localStorageのスナップショットが変わった場合は状態を更新
+			if (newSnapshot !== lastStorageRef.current) {
+				lastStorageRef.current = newSnapshot;
+				// マッチング結果が空の場合は再計算（allFacilities が更新された可能性）
+				if (updatedFavorites.length === 0 && newSnapshot !== '') {
+					const currentStorageItems = readFavoritesFromStorage();
+					const recalculated = matchFavoritesWithFacilities(currentStorageItems, allFacilities);
+					setFavorites(recalculated);
+				} else {
 					setFavorites(updatedFavorites);
 				}
 			}
 		};
-
-		// 初回チェックと状態の初期化
-		const initialStorageItems = readFavoritesFromStorage();
-		lastStorageRef.current = initialStorageItems.map((f) => f.facilityId).sort().join(',');
-
-		// 初回読み込み時に状態を更新
-		if (initialStorageItems.length > 0) {
-			const loadedFavorites = matchFavoritesWithFacilities(initialStorageItems, allFacilities);
-			setInitialState(loadedFavorites);
-			setFavorites(loadedFavorites);
-		} else {
-			// localStorageが空の場合は初期状態をクリア
-			setInitialState([]);
-			setFavorites([]);
-		}
 
 		// storageイベントで他のタブからの変更を検知
 		const handleStorageEvent = (e: StorageEvent) => {
@@ -80,7 +93,7 @@ export function FavoritesSection({ initialFavorites, allFacilities }: FavoritesS
 		const handleFavoritesUpdated = () => {
 			checkStorageChanges();
 		};
-		window.addEventListener('favoritesUpdated', handleFavoritesUpdated);
+		window.addEventListener(FAVORITES_UPDATED_EVENT, handleFavoritesUpdated);
 
 		// 定期的にチェック（フォールバック）
 		const interval = setInterval(checkStorageChanges, 500);
@@ -88,7 +101,7 @@ export function FavoritesSection({ initialFavorites, allFacilities }: FavoritesS
 		return () => {
 			clearInterval(interval);
 			window.removeEventListener('storage', handleStorageEvent);
-			window.removeEventListener('favoritesUpdated', handleFavoritesUpdated);
+			window.removeEventListener(FAVORITES_UPDATED_EVENT, handleFavoritesUpdated);
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [allFacilities]); // allFacilitiesが変更されたら再初期化
@@ -101,7 +114,7 @@ export function FavoritesSection({ initialFavorites, allFacilities }: FavoritesS
 		const updatedFavorites = matchFavoritesWithFacilities(updated, allFacilities);
 		setFavorites(updatedFavorites);
 		// カスタムイベントを発火してFacilitiesTableに通知
-		window.dispatchEvent(new CustomEvent('favoritesUpdated'));
+		window.dispatchEvent(new CustomEvent(FAVORITES_UPDATED_EVENT));
 	};
 
 	if (favorites.length === 0) {

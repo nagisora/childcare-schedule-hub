@@ -1,14 +1,18 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { addFavorite, readFavoritesFromStorage, updateFavoritesInStorage } from '../lib/storage';
+import { addFavorite, readFavoritesFromStorage, updateFavoritesInStorage, FAVORITES_UPDATED_EVENT } from '../lib/storage';
 import { getWardName } from '../lib/facilities-utils';
 import type { FacilitiesByWard } from '../lib/types';
 
 type FacilitiesTableProps = {
 	wards: string[];
 	facilitiesByWard: FacilitiesByWard;
-	initialFavoriteIds?: string[]; // サーバーサイドで取得したお気に入りID（Hydrationエラー回避）
+	/**
+	 * サーバーサイドで取得したお気に入りID（Hydrationエラー回避用）
+	 * SSR とクライアントサイドの初期状態を一致させるために使用
+	 */
+	initialFavoriteIds?: string[];
 };
 
 export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = [] }: FacilitiesTableProps) {
@@ -29,10 +33,10 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 		const handleFavoritesUpdated = () => {
 			updateFavoriteIds();
 		};
-		window.addEventListener('favoritesUpdated', handleFavoritesUpdated);
+		window.addEventListener(FAVORITES_UPDATED_EVENT, handleFavoritesUpdated);
 		
 		return () => {
-			window.removeEventListener('favoritesUpdated', handleFavoritesUpdated);
+			window.removeEventListener(FAVORITES_UPDATED_EVENT, handleFavoritesUpdated);
 		};
 	}, []);
 
@@ -50,7 +54,7 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 		// クライアント側の状態も即時更新して「追加済み」を反映
 		setFavoriteIds(new Set(updated.map((f) => f.facilityId)));
 		// カスタムイベントを発火してFavoritesSectionに通知
-		window.dispatchEvent(new CustomEvent('favoritesUpdated'));
+		window.dispatchEvent(new CustomEvent(FAVORITES_UPDATED_EVENT));
 	};
 
 	return (
