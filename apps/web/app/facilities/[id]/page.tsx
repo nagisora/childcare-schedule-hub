@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getFacilities } from '../../../lib/facilities';
+import { getFacilityById } from '../../../lib/facilities';
+import { getWardName } from '../../../lib/facilities-utils';
 
 /**
  * 拠点詳細ページ（ポストMVP想定）
@@ -9,8 +10,7 @@ import { getFacilities } from '../../../lib/facilities';
  */
 export default async function FacilityDetailPage({ params }: { params: Promise<{ id: string }> }) {
 	const { id } = await params;
-	const facilities = await getFacilities();
-	const facility = facilities.find((f) => f.id === id);
+	const facility = await getFacilityById(id);
 
 	if (!facility) {
 		notFound();
@@ -27,7 +27,7 @@ export default async function FacilityDetailPage({ params }: { params: Promise<{
 			<header>
 				<h1 className="text-2xl font-bold text-slate-900">{facility.name}</h1>
 				<p className="mt-2 text-sm text-slate-600">
-					{facility.area} — {facility.address}
+					{getWardName(facility.ward_name)} — {facility.address_full_raw}
 				</p>
 				{facility.phone && <p className="mt-1 text-sm text-slate-600">電話: {facility.phone}</p>}
 			</header>

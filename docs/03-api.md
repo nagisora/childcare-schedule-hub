@@ -30,14 +30,14 @@ Supabase は PostgreSQL に対して自動生成された REST エンドポイ�
 
 ### 2.2.1 MVP 代表フローで利用するエンドポイント
 
-「拠点一覧 → スケジュール表示 → お気に入り」の代表フローでは、主に次のエンドポイントを利用する。MVP では読み取り専用とし、お気に入りの保存はクライアント側クッキーで行う。
+「拠点一覧 → スケジュール表示 → お気に入り」の代表フローでは、主に次のエンドポイントを利用する。MVP では読み取り専用とし、お気に入りの保存はクライアント側localStorageで行う。
 
 1. トップページの拠点一覧表示
    - エンドポイント: `GET /rest/v1/facilities`
    - 認証: 匿名（`anon` ロール）
    - 主なクエリ例:
-     - `select=id,name,area,address,phone,instagram_url,website_url`
-     - `order=area.asc,name.asc`
+     - `select=id,name,ward_name,address_full_raw,phone,instagram_url,website_url,facility_type,detail_page_url`
+     - `order=ward_name.asc,name.asc`
      - `limit=50`（ページネーション時は `offset` と組み合わせ）
    - 利用箇所:
      - トップページの「拠点一覧（テキスト表）」および「よく使う拠点」エリアの表示に利用する（[02 設計資料](./02-design.md) の 4.2 節）。
@@ -62,7 +62,7 @@ Supabase は PostgreSQL に対して自動生成された REST エンドポイ�
      - 代表フローで「拠点 + 最新スケジュール」をまとめて取得する場合:
        ```text
        /rest/v1/facilities
-         ?select=id,name,area,address,phone,instagram_url,website_url,
+         ?select=id,name,ward_name,address_full_raw,phone,instagram_url,website_url,facility_type,detail_page_url,
                  schedules(id,published_month,image_url,instagram_post_url,embed_html)
          &schedules.order=published_month.desc
          &schedules.limit=1
@@ -71,7 +71,7 @@ Supabase は PostgreSQL に対して自動生成された REST エンドポイ�
      - 拠点詳細ページで「拠点情報 + 最新スケジュール」を 1 回の API で取得する場合に利用する。
 
 補足:
-- MVP ではお気に入りの登録・並び替えは REST API を介さずクッキー `csh_favorites` で完結させる。`favorites` エンドポイントはポストMVPで DB 同期を導入する際に利用する（[04 クッキー仕様](./03-api.md#4-クッキー仕様mvp) と整合）。
+- MVP ではお気に入りの登録・並び替えは REST API を介さずlocalStorage `csh_favorites` で完結させる。`favorites` エンドポイントはポストMVPで DB 同期を導入する際に利用する（[04 localStorage仕様](./03-api.md#4-localstorage仕様mvp) と整合）。
 
 #### レスポンス例: facilities GET
 ```json
@@ -79,11 +79,13 @@ Supabase は PostgreSQL に対して自動生成された REST エンドポイ�
   {
     "id": "d8c1bcb9-5f84-4a8a-8d86-3b5b0874d1c0",
     "name": "〇〇子育て応援拠点",
-    "area": "中区",
-    "address": "名古屋市中区1-1-1",
+    "ward_name": "中区",
+    "address_full_raw": "〒460-0001 名古屋市中区1-1-1",
     "phone": "052-000-0000",
     "instagram_url": "https://www.instagram.com/example",
     "website_url": "https://example.jp",
+    "facility_type": "childcare_ouen_base",
+    "detail_page_url": "https://www.kosodate.city.nagoya.jp/play/...",
     "created_at": "2025-10-01T12:00:00+09:00",
     "updated_at": "2025-10-15T09:00:00+09:00"
   }
@@ -108,11 +110,15 @@ Supabase は PostgreSQL に対して自動生成された REST エンドポイ�
 | --- | --- | --- | --- |
 | id | string (UUID) | ✔ | 拠点 ID |
 | name | string | ✔ | 拠点名 |
-| area | string | ✔ | エリア（区名） |
-| address | string | ✔ | 住所 |
+| ward_name | string | ✖ | 区名（政令指定都市の場合）。エリア表示・グルーピング用。 |
+| address_full_raw | string | ✖ | 住所の生文字列（スクレイピングで取得した元データ）。住所表示用。 |
 | phone | string | ✖ | 電話番号。存在する場合はハイフン含む |
 | instagram_url | string | ✖ | Instagram プロフィール URL |
 | website_url | string | ✖ | 公式サイト |
+| facility_type | string | ✖ | 施設種別（例: `childcare_ouen_base`, `childcare_support_base`） |
+| detail_page_url | string | ✖ | 自治体サイト上の拠点詳細ページURL |
+
+**注意**: `area` / `address` カラムは後方互換性のためテーブルに残置されていますが、新規クライアントは `ward_name` / `address_full_raw` の利用を推奨します。詳細は [02 設計資料](./02-design.md) 3.3 節を参照してください。
 
 #### ScheduleSummary（GET `/schedules`）
 | フィールド | 型 | 必須 | 説明 |
@@ -129,7 +135,7 @@ Supabase は PostgreSQL に対して自動生成された REST エンドポイ�
 #### API 利用ガイド
 - 拠点一覧と最新スケジュールを同時取得する場合は、以下の JOIN クエリを推奨する。
   ```
-  /rest/v1/facilities?select=*,schedules(id,published_month,image_url,instagram_post_url,embed_html)&schedules.order=published_month.desc&schedules.limit=1
+  /rest/v1/facilities?select=id,name,ward_name,address_full_raw,phone,instagram_url,website_url,facility_type,detail_page_url,schedules(id,published_month,image_url,instagram_post_url,embed_html)&schedules.order=published_month.desc&schedules.limit=1
   ```
 - `limit`, `offset`, `order`, `select` の利用規約:
   - `limit`: 1〜50 を許容し、未指定時は 20。
@@ -138,7 +144,7 @@ Supabase は PostgreSQL に対して自動生成された REST エンドポイ�
   - `select`: 返却フィールドを制御し、不要な列の送信を避ける。
 
 補足（MVP UI での利用範囲）:
-- トップページの「拠点一覧」はテキスト表のみのため、`/rest/v1/facilities` の基本フィールド（`id/name/area/address/phone` など）に限定して利用する。
+- トップページの「拠点一覧」はテキスト表のみのため、`/rest/v1/facilities` の基本フィールド（`id/name/ward_name/address_full_raw/phone` など）に限定して利用する。
 - スケジュール取得（`/rest/v1/schedules`）は「よく使う拠点」エリア（最大5件）および将来の拠点詳細ページでのみ使用し、一覧テーブルでは呼び出さない。
 
 #### FavoriteRecord（ポストMVP）
@@ -152,7 +158,7 @@ Supabase は PostgreSQL に対して自動生成された REST エンドポイ�
 
 ### 2.4 Edge Functions（計画）
 - `sync-instagram`（ポストMVP）: Instagram 投稿 URL を検証し、画像 URL と oEmbed HTML をキャッシュ。失敗時は監視アラートを送信し、`embed_html` を更新する際は DOMPurify 等でサニタイズする。
-- `update-favorites`: 認証済ユーザーの並び順をバッチ更新し、クッキー同期との整合を [01 要件定義](./01-requirements.md) のリスク対応に従って実装。必要に応じて `revalidateTag('facilities')` / `revalidateTag('schedules')` を呼び出す。
+- `update-favorites`: 認証済ユーザーの並び順をバッチ更新し、localStorage同期との整合を [01 要件定義](./01-requirements.md) のリスク対応に従って実装。必要に応じて `revalidateTag('facilities')` / `revalidateTag('schedules')` を呼び出す。
 
 ### 2.5 JSON Schema / Zod スキーマ
 - `packages/shared/schemas/facility.ts`（予定）に Zod スキーマ `Facility`, `FacilityCreate` を定義。
@@ -206,25 +212,25 @@ Instagram 埋め込みは oEmbed を利用してサーバー側で安全に処�
 - フォールバックが発生した場合は Supabase のログテーブル（例: `instagram_errors`）に保存し、Slack/Email で通知する。
 - 連続エラー発生時は Edge Function 側でリトライポリシーを制御し、必要に応じてキャッシュを無効化する。
 
-## 4. クッキー仕様（MVP）
+## 4. localStorage仕様（MVP）
 
 ### 4.1 名称と属性
 | 項目 | 値 |
 | --- | --- |
-| クッキー名 | `csh_favorites` |
-| 値の形式 | JSON 文字列（例: `[{"facilityId":"<uuid>","sortOrder":1}]`） |
-| 有効期限 | 180 日（`Max-Age=15552000`） |
-| 属性 | `SameSite=Lax; Secure; Path=/`（開発環境では `Secure` を除外） |
+| localStorageキー名 | `csh_favorites` |
+| 値の形式 | JSON 文字列（例: `{"version":"1","favorites":[{"facilityId":"<uuid>","sortOrder":1}],"savedAt":<timestamp>}`） |
+| 有効期限 | 180 日（タイムスタンプで管理） |
+| 属性 | 同一オリジン内で共有、クライアント側のみでアクセス可能 |
 
 ### 4.2 読み書きフロー
-1. 初回アクセス時にクッキーが存在しない場合は匿名 ID を生成し、空の JSON 配列を保存する。
-2. お気に入り登録時に `facilityId` と `sortOrder` を追加し、配列サイズは最大 30 件までとする。
-3. 並び替え操作で `sortOrder` を更新し、クッキーを書き換える。将来的に Edge Function と同期する際は `update-favorites` を利用する。
-4. ポストMVP では認証ユーザーの `favorites` テーブルと同期を取り、クッキーは一時キャッシュとして扱う。
+1. 初回アクセス時にlocalStorageが存在しない場合は空の JSON 配列を保存する。
+2. お気に入り登録時に `facilityId` と `sortOrder` を追加し、配列サイズは最大 5 件までとする。
+3. 並び替え操作で `sortOrder` を更新し、localStorageを書き換える。将来的に Edge Function と同期する際は `update-favorites` を利用する。
+4. ポストMVP では認証ユーザーの `favorites` テーブルと同期を取り、localStorageは一時キャッシュとして扱う。
 
 ### 4.3 セキュリティ注意
-- クッキーには個人情報を含めない。
-- 将来的に JWT を利用して DB と同期する際は、`HttpOnly` + `Secure` クッキーを導入し、CSRF 対策を合わせて実装する。
+- localStorageには個人情報を含めない。
+- 将来的に JWT を利用して DB と同期する際は、認証済みユーザーのみがアクセス可能なエンドポイントを利用する。
 
 ## 5. 将来拡張
 - GraphQL / RPC: 複数テーブルをまとめて返す用途に備え、Supabase RPC でカスタムビューを提供する。

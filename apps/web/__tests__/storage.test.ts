@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
 	addFavorite,
 	removeFavorite,
 	reorderFavorites,
 	type FavoriteCookieItem,
-} from '../lib/cookies';
+} from '../lib/storage';
 
 describe('addFavorite', () => {
 	// Given: 空のお気に入り配列

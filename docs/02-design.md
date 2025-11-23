@@ -48,17 +48,17 @@ MVP およびポストMVPを通じて中核となるドメインは次の通り�
 
 - ユーザー（User）
   - 主に「保護者」「運用者/管理者」を想定。
-  - MVP ではログイン機能を持たず、ユーザー識別はブラウザクッキー（`csh_favorites` など）による匿名IDで代替する。
+  - MVP ではログイン機能を持たず、ユーザー識別はブラウザlocalStorage（`csh_favorites` など）による匿名IDで代替する。
   - ポストMVP で Supabase Auth を利用した `users` テーブルを導入し、`favorites` と紐付ける。
 - 拠点（Facility）
-  - 名古屋市の子育て応援拠点・地域子育て支援拠点を表す中核エンティティ。
-  - 名前・エリア・住所・電話・Instagram/公式サイト URL を保持し、一覧表示や検索の起点となる。
+  - 全国展開を前提とした子育て応援拠点・地域子育て支援拠点を表す中核エンティティ（MVP では名古屋市のデータを扱う）。
+  - 名前・施設種別（`facility_type`）・全国対応の住所情報（都道府県コード・市区町村コード・区コード等）・電話・Instagram/公式サイト URL・詳細ページURL を保持し、一覧表示や検索の起点となる。
 - スケジュール（Schedule）
   - 各拠点ごとの月次スケジュールを表す。Supabase Storage への画像 URL や Instagram 投稿 URL / 埋め込み HTML を紐付ける。
   - 「どの拠点の」「どの月の」スケジュールかを識別できればよい前提で、MVP では月単位の粒度とする。
 - お気に入り（Favorite）
-  - ユーザー（またはクッキーID）と拠点の多対多関係を表す。
-  - MVP ではクライアント側クッキーのみで管理し、ポストMVP で `favorites` テーブルによる永続化・同期を行う。
+  - ユーザー（またはlocalStorage識別子）と拠点の多対多関係を表す。
+  - MVP ではクライアント側localStorageのみで管理し、ポストMVP で `favorites` テーブルによる永続化・同期を行う。
 - カレンダーソース / 外部連携（将来候補）
   - Instagram や将来の外部カレンダーソースを抽象化するエンティティ。
   - 現段階ではテーブル化せず、設計上のメモとして留める。
@@ -73,23 +73,47 @@ facilities (1) ──< schedules (n)
 ```
 
 ### 3.3 テーブル定義（MVP とポストMVP）
-#### facilities（MVP 想定）
+#### facilities（全国対応版・MVP 想定）
+
+**重要**: 本テーブルは全国展開を前提としたスキーマです。MVP では名古屋市のデータのみを扱いますが、将来的に他自治体のデータも同じスキーマで管理できるように設計されています。
+
 | カラム | 型 | 制約/既定値 | 用途 |
 | --- | --- | --- | --- |
 | id | uuid | PK, `gen_random_uuid()` | 拠点識別子（API では `facility_id`） |
 | name | text | NOT NULL | 拠点名 |
-| area | text | NOT NULL | 名古屋市の区などのエリア |
-| address | text | NOT NULL | 郵便番号・住所 |
+| facility_type | text | NOT NULL | 施設種別（例: `childcare_ouen_base`, `childcare_support_base`） |
+| **住所関連（全国対応）** | | | |
+| prefecture_code | text | NULL 可 | 都道府県コード（JIS X 0401 等） |
+| municipality_code | text | NULL 可 | 市区町村コード（JIS X 0402 等） |
+| ward_code | text | NULL 可 | 政令指定都市の区コード（あれば） |
+| postal_code | text | NULL 可 | 郵便番号 |
+| prefecture_name | text | NULL 可 | 都道府県名（表示用） |
+| city_name | text | NULL 可 | 市区町村名（表示用） |
+| ward_name | text | NULL 可 | 区名（政令指定都市の場合、表示用・グルーピング用） |
+| address_rest | text | NULL 可 | 丁目以降の住所 |
+| address_full_raw | text | NULL 可 | スクレイピングで取得した住所の生文字列（元データ保持用） |
+| **連絡先・URL** | | | |
 | phone | text | NULL 可 | 連絡先。フォーマットは [03 API 仕様](./03-api.md) 参照 |
 | instagram_url | text | NULL 可 | 公式 Instagram アカウント |
 | website_url | text | NULL 可 | 公式サイト URL |
+| detail_page_url | text | NULL 可 | 自治体サイト上の拠点詳細ページURL（スクレイピング元のリンク先） |
+| **位置情報** | | | |
 | latitude / longitude | numeric | NULL 可 | 地図表示用（将来拡張） |
+| **メタデータ** | | | |
 | created_at | timestamptz | `now()` | 作成日時 |
 | updated_at | timestamptz | `now()` | 更新日時 |
 
 推奨インデックスと補足:
-- `CREATE INDEX idx_facilities_area ON facilities (area);`（エリア別検索向け）
+- `CREATE INDEX idx_facilities_facility_type ON facilities (facility_type);`（施設種別検索向け）
+- `CREATE INDEX idx_facilities_prefecture_code ON facilities (prefecture_code);`（都道府県別検索向け）
+- `CREATE INDEX idx_facilities_municipality_code ON facilities (municipality_code);`（市区町村別検索向け）
+- `CREATE INDEX idx_facilities_ward_name ON facilities (ward_name);`（区別検索・グルーピング向け）
 - UUID 生成には `pgcrypto` 拡張を利用するため、Supabase プロジェクトで `CREATE EXTENSION IF NOT EXISTS pgcrypto;` を有効化する。
+
+**エリア・住所の扱い**:
+- UI上の「エリア」表示・グルーピングは `ward_name` を使用する。
+- 住所の表示には `address_full_raw` を使用する（必要に応じて `address_rest` も利用可能）。
+- フェーズ5で `facilities` テーブルは全国対応スキーマに拡張され、UI や新規 API では `ward_name` / `address_full_raw` ベースに統一する。一方、既存データや移行期間中の後方互換性のため、`area` / `address` カラムは当面のあいだ残置している（新規開発では `ward_name` / `address_full_raw` を優先して利用すること）。
 
 #### schedules（MVP 想定）
 | カラム | 型 | 制約/既定値 | 用途 |
@@ -116,7 +140,7 @@ facilities (1) ──< schedules (n)
 | --- | --- | --- | --- |
 | id | uuid | PK, `gen_random_uuid()` | お気に入り識別子 |
 | facility_id | uuid | FK → facilities.id | 拠点 ID |
-| cookie_id | text | NULL 可 | MVP: クッキー識別子を保持 |
+| cookie_id | text | NULL 可 | MVP: localStorage識別子を保持（互換性のためカラム名は維持） |
 | user_id | uuid | NULL 可 | ポストMVP: Supabase Auth ユーザー |
 | sort_order | integer | `0` | 表示順序。クライアント側並び順を保持 |
 | created_at | timestamptz | `now()` | 作成日時 |
@@ -194,9 +218,9 @@ CREATE POLICY "favorites_owner_write"
 ```
 
 ### 3.5 状態管理方針
-- App Router のサーバーコンポーネントで初期データを取得し、`cookies()` API からお気に入りクッキーを読み込んで初期状態を整形する。
-- クライアント側のお気に入り操作はクライアントコンポーネントで管理し、`useOptimistic` 等を用いて UI を即時更新後にクッキーを書き換える。
-- クッキー更新は `app/api/favorites` の Route Handler（将来追加）経由で行い、必要に応じて `revalidateTag('facilities')` を呼び出す。
+- App Router のサーバーコンポーネントでは初期データを取得し、クライアント側でlocalStorageからお気に入りを読み込んで初期状態を整形する。
+- クライアント側のお気に入り操作はクライアントコンポーネントで管理し、`useOptimistic` 等を用いて UI を即時更新後にlocalStorageを書き換える。
+- localStorage更新は `app/api/favorites` の Route Handler（将来追加）経由で行い、必要に応じて `revalidateTag('facilities')` を呼び出す。
 
 ### 3.6 セキュリティ対策（CSP 例）
 - 推奨 Content Security Policy:
@@ -218,14 +242,14 @@ MVP では、トップページを起点に「拠点一覧 → よく使う拠�
 
 - 代表フローのステップ:
   1. ユーザーがトップページ `/` にアクセスし、上部の「よく使う拠点」エリアと下部の「拠点一覧（テキスト表）」を閲覧する。
-  2. 拠点一覧から最大 5 件までお気に入りに追加し、トップに固定された「よく使う拠点」エリアに表示させる（並び順はクッキー `csh_favorites` の `sortOrder` で管理）。
+  2. 拠点一覧から最大 5 件までお気に入りに追加し、トップに固定された「よく使う拠点」エリアに表示させる（並び順はlocalStorage `csh_favorites` の `sortOrder` で管理）。
   3. 「よく使う拠点」から各拠点のスケジュール（画像/埋め込み、もしくはそのプレースホルダー）にアクセスし、必要に応じて将来の拠点詳細ページ（ポストMVP）へ遷移する。
 
 ### 4.2 画面構成（MVP）
 1. **トップページ `/`**
    - 表示情報:
      - ヒーローセクション: サービス説明、将来の検索フォームプレースホルダー。
-     - よく使う拠点（最大5件）: クッキー保存された拠点をカード/リストで表示。将来的にこのエリアでのみスケジュール画像/埋め込みを表示（MVP ではプレースホルダー可）。
+     - よく使う拠点（最大5件）: localStorage保存された拠点をカード/リストで表示。将来的にこのエリアでのみスケジュール画像/埋め込みを表示（MVP ではプレースホルダー可）。
      - 拠点一覧（テキスト表）: 拠点名 / エリア / 住所 / 電話 / 「+」ボタン（お気に入りに追加）。モバイルでは縦積み表示に崩す。スケジュール画像/埋め込みは一覧では表示しない。
    - 主要アクション:
      - 「+」ボタンで拠点をお気に入りに追加（最大 5 件まで）。
@@ -233,11 +257,11 @@ MVP では、トップページを起点に「拠点一覧 → よく使う拠�
      - （将来）お気に入りカードから拠点詳細ページへ遷移。
    - データ入出力:
      - 入力（読み取り）:
-       - Supabase `facilities` テーブルから `id`, `name`, `area`, `address`, `phone`, `instagram_url`, `website_url` を取得（一覧表示用）。住所は `area` + `address` の 2 フィールド構成とし、将来の多都市展開時にエリアだけでフィルタしやすくする。
-       - ブラウザクッキー `csh_favorites` から `facilityId` と `sortOrder` の配列を取得し、「よく使う拠点」エリアの表示順序と内容を決定。
+       - Supabase `facilities` テーブルから `id`, `name`, `ward_name`, `address_full_raw`, `phone`, `instagram_url`, `website_url`, `facility_type`, `detail_page_url` を取得（一覧表示用）。エリアは `ward_name` を使用し、住所は `address_full_raw` を使用する。将来の多都市展開時に区名（`ward_name`）や都道府県コード（`prefecture_code`）でフィルタしやすくする。
+       - ブラウザlocalStorage `csh_favorites` から `facilityId` と `sortOrder` の配列を取得し、「よく使う拠点」エリアの表示順序と内容を決定。
      - 出力（書き込み）:
-       - お気に入り追加/削除・並び替え時にクッキー `csh_favorites` を更新する（MVP では DB 書き込みは行わない）。
-       - 将来拡張で `favorites` テーブルと同期する場合は、クッキー更新に加えて Edge Function 経由で DB を更新する（[03 API 仕様](./03-api.md) 参照）。
+       - お気に入り追加/削除・並び替え時にlocalStorage `csh_favorites` を更新する（MVP では DB 書き込みは行わない）。
+       - 将来拡張で `favorites` テーブルと同期する場合は、localStorage更新に加えて Edge Function 経由で DB を更新する（[03 API 仕様](./03-api.md) 参照）。
 2. **拠点詳細ページ（ポストMVP） `/facilities/[id]`**
    - 表示情報:
      - 拠点の基本情報（`facilities`）と、月ごとのスケジュール画像/Instagram 埋め込み（`schedules`）をまとめて表示。
@@ -247,7 +271,7 @@ MVP では、トップページを起点に「拠点一覧 → よく使う拠�
      - スケジュール画像をタップして拡大、Instagram 投稿へ遷移など。
    - データ入出力:
      - 入力（読み取り）:
-       - `facilities` から `id`, `name`, `area`, `address`, `phone`, `instagram_url`, `website_url` を取得。
+       - `facilities` から `id`, `name`, `ward_name`, `address_full_raw`, `phone`, `instagram_url`, `website_url`, `facility_type`, `detail_page_url` を取得。
        - `schedules` から `facility_id`, `image_url`, `instagram_post_url`, `embed_html`, `published_month`, `status` を取得し、対象月のスケジュールを表示。
      - 出力（書き込み）:
        - MVP / ポストMVP 初期では UI からの書き込みは行わず、運用者が Supabase Studio で登録する想定。
@@ -280,7 +304,7 @@ apps/
       InstagramEmbed.tsx
     lib/
       supabase.ts
-      cookies.ts
+      storage.ts
 packages/
   ui/                       # 共有 UI コンポーネント
   shared/                   # 型・ユーティリティ

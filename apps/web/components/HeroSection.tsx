@@ -2,7 +2,7 @@ export function HeroSection() {
 	return (
 		<section
 			aria-labelledby="hero-heading"
-			className="relative max-w-4xl mx-auto rounded-2xl bg-gradient-to-b from-slate-50 to-transparent px-6 py-10"
+			className="relative max-w-4xl mx-auto rounded-2xl bg-white px-6 py-10 border border-primary-100 shadow-sm"
 		>
 			<h1 id="hero-heading" className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900">
 				子育て拠点スケジュールハブ

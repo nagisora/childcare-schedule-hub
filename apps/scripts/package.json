@@ -1,0 +1,21 @@
+{
+  "name": "scripts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fetch-nagoya": "tsx fetch-nagoya-childcare-bases.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.83.0",
+    "cheerio": "^1.0.0",
+    "dotenv": "^16.4.5",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "20.11.30",
+    "tsx": "^4.7.0",
+    "typescript": "5.6.3"
+  }
+}
+

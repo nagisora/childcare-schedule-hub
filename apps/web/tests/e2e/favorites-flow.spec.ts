@@ -39,7 +39,7 @@ test.describe('代表フロー: お気に入り追加', () => {
 		await firstAddButton.click();
 
 		// ページが再読み込みされるのを待つ
-		await page.waitForLoadState('networkidle');
+		await page.waitForLoadState('domcontentloaded');
 
 		// お気に入りエリアに追加された拠点が表示されることを確認
 		await expect(page.getByRole('heading', { name: 'お気に入り拠点' })).toBeVisible();
@@ -68,7 +68,7 @@ test.describe('代表フロー: お気に入り追加', () => {
 		for (let i = 0; i < addCount; i++) {
 			const button = addButtons.nth(i);
 			await button.click();
-			await page.waitForLoadState('networkidle');
+			await page.waitForLoadState('domcontentloaded');
 		}
 
 		// 5件すべてがお気に入りエリアに表示されることを確認
@@ -96,7 +96,7 @@ test.describe('代表フロー: お気に入り追加', () => {
 		for (let i = 0; i < addCount; i++) {
 			const button = addButtons.nth(i);
 			await button.click();
-			await page.waitForLoadState('networkidle');
+			await page.waitForLoadState('domcontentloaded');
 		}
 
 		// 6件目の追加を試みる
@@ -131,15 +131,15 @@ test.describe('代表フロー: お気に入り追加', () => {
 		
 		await firstAddButton.click();
 
-		// ページが再読み込みされるのを待つ
-		await page.waitForLoadState('networkidle');
+		// ページが再読み込みされるのを待つ（DOMContentLoaded で十分）
+		await page.waitForLoadState('domcontentloaded');
 
 		// お気に入りエリアに追加された拠点が表示されることを確認
 		await expect(page.getByRole('heading', { name: 'お気に入り拠点' })).toBeVisible();
 		
 		// ページを再読み込みして、クッキーの状態を反映させる
 		await page.reload();
-		await page.waitForLoadState('networkidle');
+		await page.waitForLoadState('domcontentloaded');
 
 		// 既に追加済みの拠点を探す
 		if (facilityName) {
@@ -171,7 +171,7 @@ test.describe('代表フロー: お気に入り追加', () => {
 		// 1件お気に入りを追加
 		const firstAddButton = page.getByRole('button', { name: /をお気に入りに追加/ }).first();
 		await firstAddButton.click();
-		await page.waitForLoadState('networkidle');
+		await page.waitForLoadState('domcontentloaded');
 
 		// 拠点名を取得
 		const favoriteArticle = page.getByRole('article').first();
@@ -182,8 +182,8 @@ test.describe('代表フロー: お気に入り追加', () => {
 		const removeButton = favoriteArticle.getByRole('button', { name: /解除/ });
 		await removeButton.click();
 
-		// ページが再読み込みされるのを待つ
-		await page.waitForLoadState('networkidle');
+		// ページが再読み込みされるのを待つ（DOMContentLoaded で十分）
+		await page.waitForLoadState('domcontentloaded');
 
 		// お気に入りエリアが空（エンプティステート）になることを確認
 		const emptyState = page.getByText(/お気に入り登録がまだありません/);
@@ -209,7 +209,7 @@ test.describe('代表フロー: お気に入り追加', () => {
 		// 1件お気に入りを追加
 		const firstAddButton = page.getByRole('button', { name: /をお気に入りに追加/ }).first();
 		await firstAddButton.click();
-		await page.waitForLoadState('networkidle');
+		await page.waitForLoadState('domcontentloaded');
 
 		// お気に入りカードのリンクをクリック
 		const favoriteArticle = page.getByRole('article').first();

@@ -80,7 +80,7 @@ mise exec -- pnpm --filter web dev
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 必須 | クライアント / サーバー | なし | Supabase Anon キー。公開可能だが、無料枠保護のためローテーションポリシーを準備。 |
 | `SUPABASE_SERVICE_ROLE_KEY` | 必須 | サーバーのみ | なし | Edge Function や ISR 再生成で使用。クライアントへ送信禁止。 |
 | `INSTAGRAM_OEMBED_TOKEN` | 任意 | サーバーのみ | なし | Instagram oEmbed を高頻度で呼ぶ場合に必須。未設定時はレート制限に注意。 |
-| `CSH_COOKIE_SIGNING_SECRET` | 任意 | サーバーのみ | ランダム文字列 | お気に入りクッキーへ署名を付与する場合に利用。32 文字以上を推奨。 |
+| `CSH_STORAGE_VERSION` | 任意 | クライアント | 文字列 | お気に入りlocalStorageのバージョン管理に利用。デフォルトは `1`。 |
 
 ### 3.2 `.env.local` テンプレート（ローカル用）
 
@@ -214,6 +214,7 @@ Supabase CLI を使ったローカル開発環境やマイグレーション管�
 - **アクセシビリティ検証**: Storybook 上で `@axe-core/react` を利用し、週次で Lighthouse CI を実行。
 - **カバレッジ目標**: 単体 70% / 重要ユースケース 100% を目標に `pnpm test --filter web --coverage` を実行。閾値を下回った場合はビルドを失敗させる。
 - **CI 実行順序**: `lint` → `typecheck` → `test` → `e2e` の順で GitHub Actions を設定し、Playwright の結果はアーティファクトとして保存する。
+- **テスト観点表**: 代表フロー（拠点一覧 → スケジュール表示 → お気に入り）のテスト観点表（等価分割・境界値）は [`docs/tests/representative-flow.md`](./tests/representative-flow.md) を参照。各テストケースは観点表の Case ID と対応づけられている。
 
 ### 5.7 MVP 代表フロー実装方針（apps/web）
 
@@ -227,14 +228,14 @@ Supabase CLI を使ったローカル開発環境やマイグレーション管�
     - 指定拠点の基本情報と最新スケジュールを表示し、代表フロー上の「スケジュール表示」を担う。
 - データ取得とキャッシュ
   - トップページでは Supabase REST（もしくは `@supabase/supabase-js`）を用いて `facilities` テーブルを取得する。
-    - 代表的なクエリ: `select id,name,area,address,phone,instagram_url,website_url order by area,name`
+    - 代表的なクエリ: `select id,name,ward_name,address_full_raw,phone,instagram_url,website_url,facility_type,detail_page_url order by ward_name,name`
     - ISR / `revalidateTag('facilities')` の設定は [02 設計資料](./02-design.md) 3.3 節と整合させる。
   - （ポストMVP）拠点詳細ページでは `schedules` テーブルから対象拠点の最新スケジュールを取得する。
 - お気に入り状態管理
-  - サーバー側: `cookies()` API から `csh_favorites` を読み取り、初期状態をサーバーコンポーネントで組み立てる。
+  - サーバー側: 初期状態は空配列とし、クライアント側でlocalStorageから `csh_favorites` を読み取って初期状態を組み立てる。
   - クライアント側:
     - 「よく使う拠点」セクションをクライアントコンポーネントとして分離し、`useOptimistic` などで並び替え操作を即時に反映する。
-    - お気に入り追加/削除・並び替えのたびにクッキーを書き換えるヘルパー関数（例: `updateFavoritesCookie`）を `apps/web/lib/cookies.ts` に定義する。
+    - お気に入り追加/削除・並び替えのたびにlocalStorageを書き換えるヘルパー関数（例: `updateFavoritesInStorage`）を `apps/web/lib/storage.ts` に定義する。
   - 制約:
     - 最大 5 件までをお気に入りとして扱う（[01 要件定義](./01-requirements.md) の MVP 要件に準拠）。
     - MVP では DB への書き込みは行わず、ポストMVPで `favorites` テーブルと同期する。
@@ -263,7 +264,7 @@ Supabase CLI を使ったローカル開発環境やマイグレーション管�
 | --- | --- |
 | Instagram 埋め込みが表示されない | 投稿 URL と oEmbed レスポンスを確認し、[03 API 仕様](./03-api.md) の手順通りに再取得。連続失敗は Edge Function の通知・`instagram_errors` ログを確認。 |
 | Supabase REST が 401/403 を返す | RLS ポリシーと `apikey` ヘッダー、Service Role 利用箇所を確認。匿名アクセスが許可されているか `auth.uid()` をログ出力して検証。 |
-| お気に入りが保存されない | クッキー属性（`SameSite`, `Secure`）とドメイン設定を確認。ローカルでは `Secure` を無効化して `http://localhost` で動作確認。 |
+| お気に入りが保存されない | localStorageが使用可能か確認（プライベートモードなどで無効化されている場合がある）。ブラウザの開発者ツールでlocalStorageを確認。 |
 | Edge Function が 403 | Service Role キーがヘッダーに含まれているか、`verifyJWT` を通過しているか確認。環境変数を再設定する。 |
 | Supabase Migration が失敗する | `supabase db reset` でローカル DB を再生成。競合がある場合は `supabase migration repair` を実行し、`<timestamp>_rollback.sql` を追加。 |
 | Playwright テストが失敗する | `pnpm e2e --filter web --headed --debug` でデバッグし、`page.waitForLoadState('networkidle')` を活用。CI ではトレース保存を有効化。 |
@@ -275,6 +276,146 @@ Supabase CLI を使ったローカル開発環境やマイグレーション管�
 - **ログ確認**: Supabase Studio の Logs タブでエラー/関数ログを確認し、Instagram 埋め込み失敗ログは 24 時間以内にレビュー。
 - **ロールバック**: 重大障害時は Vercel の Deploy ログから直前成功ビルドにロールバックし、Supabase `supabase db restore` で最新バックアップを適用。
 - **連絡体制**: 管理者メール `ops@childcare-hub.example` と Slack `#childcare-hub-ops` に通知。SLO 逸脱時は 30 分以内に一次報告。
+
+## 9.5 施設情報データ取得・投入フロー（フェーズ5）
+
+### 9.5.1 スクレイピングガイドライン
+
+**対象サイト**:
+- 名古屋市子育て応援拠点一覧: `https://www.kosodate.city.nagoya.jp/play/ouenkyoten.html`
+- 名古屋市地域子育て支援拠点一覧: `https://www.kosodate.city.nagoya.jp/play/supportbases.html`
+
+**アクセスマナー**:
+- **実行頻度**: 手動実行のみ（自動スケジュール実行は行わない）。名古屋市のデータ更新タイミングに合わせて月1回程度を目安とする。
+- **User-Agent**: サービス名を含む識別可能な文字列を設定（例: `ChildcareScheduleHub/1.0 (+https://childcare-schedule-hub.example.com)`）。
+- **アクセス間隔**: リクエスト間に最低1秒以上の間隔を設ける（サーバー負荷軽減のため）。
+- **取得範囲**: 上記2ページのHTMLテーブル行のみを対象とし、他のページへの自動アクセスは行わない。
+- **robots.txt**: 名古屋市サイトには `robots.txt` が公開されていないが、上記のマナーを遵守する。
+
+**データ取得項目**:
+- 拠点名（`<a>` タグのテキストと `href` 属性）
+- エリア（区名）
+- 住所（郵便番号含む）
+- 電話番号
+- その他、テーブルに含まれる補足情報（あれば）
+
+**エラーハンドリング**:
+- ネットワークエラー時は再試行（最大3回、指数バックオフ: 500ms → 1s → 2s）。HTTPステータスエラー・ネットワーク例外のどちらも再試行対象とする。
+- HTML構造変更時は警告ログ（`[WARN]`）を出力し、取得できたデータのみを処理する。抽出件数が0件の場合は警告を発する。
+- データ欠損（電話番号なし等）は NULL として扱い、エラーとはしない。
+
+### 9.5.2 手動入力フロー（CSVインポート）
+
+**前提条件**:
+- Supabase プロジェクトが作成済みで、`facilities` テーブルが全国対応スキーマに更新されていること（[02 設計資料](./02-design.md) 3.3 節参照）。
+
+**手順**:
+1. 名古屋市の2ページ（応援拠点・支援拠点）をブラウザで開き、テーブル内容を目視確認する。
+2. GoogleスプレッドシートまたはローカルのCSVファイルに、以下の列を含むテンプレートを作成する（[CSVテンプレート](#955-csvテンプレート) 参照）。
+3. テーブル行を1件ずつ転記し、必須項目（`name`, `facility_type`, `prefecture_name`, `city_name` 等）を埋める。
+4. CSVファイルを保存し、Supabase Studio の Table Editor からインポートするか、SQLで `COPY` コマンドを実行する。
+
+**CSVインポート手順（Supabase Studio）**:
+1. Supabase プロジェクトのダッシュボードにアクセス（https://app.supabase.com）
+2. Table Editor > `facilities` テーブルを開く
+3. **Insert** > **Import data via CSV** をクリック
+4. CSVファイルをアップロードし、列マッピングを確認
+5. インポート実行後、データ件数とエラー有無を確認
+
+**重複キー・上書きルール**:
+- `facilities` テーブルには一意制約がないため、重複データが投入される可能性がある。
+- 手動インポート時は、事前に `name` + `facility_type` + `address_full_raw` の組み合わせで重複チェックを行うことを推奨。
+- 将来的には、`name` + `facility_type` + `municipality_code` の組み合わせで一意制約を追加することを検討（ポストMVP）。
+
+### 9.5.3 スクレイピングスクリプト実行フロー
+
+**前提条件**:
+- Node.js 20.x 以上がインストールされていること
+- `apps/scripts` ディレクトリにスクレイピングスクリプトが配置されていること
+- Supabase 環境変数（`NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`）が設定されていること
+
+**通常モード（Supabase に直接書き込み）**:
+```bash
+cd apps/scripts
+pnpm fetch-nagoya
+```
+
+または:
+
+```bash
+cd apps/scripts
+pnpm tsx fetch-nagoya-childcare-bases.ts
+```
+
+**dry-run モード（JSON出力のみ）**:
+```bash
+cd apps/scripts
+pnpm fetch-nagoya -- --dry-run > output.json
+```
+
+または:
+
+```bash
+cd apps/scripts
+pnpm tsx fetch-nagoya-childcare-bases.ts --dry-run > output.json
+```
+
+**推奨**: `pnpm fetch-nagoya` スクリプトを使用することを推奨します（`package.json` に定義済み）。
+
+**実行後の確認**:
+- Supabase Studio の Table Editor で `facilities` テーブルを確認し、投入件数が期待値と一致するか確認する。
+- `facility_type` が正しく設定されているか（`childcare_ouen_base` / `childcare_support_base`）確認する。
+- `detail_page_url` が正しく設定されているか確認する。
+
+### 9.5.4 自動取得 vs 手動入力の運用ルール
+
+**データ衝突時の優先順位**:
+- 手動更新 > 自動取得（スクレイピング）
+- 手動で更新したレコードは、次回のスクレイピング実行時に上書きされないよう、`source_type` カラム（将来追加予定）で識別する。
+
+**自動取得の更新頻度**:
+- 名古屋市のデータ更新タイミングに合わせて、手動でスクレイピングスクリプトを実行する（月1回程度を目安）。
+- 自動スケジュール実行は行わない（サーバー負荷・利用規約遵守のため）。
+
+**ログ保存方針**:
+- スクレイピング実行時は、以下の情報をログに記録する:
+  - 実行日時
+  - 対象URL（応援拠点 / 支援拠点）
+  - 取得件数
+  - エラー件数（あれば）
+- ログは `apps/scripts/logs/` ディレクトリに自動的に保存される。ログファイル名は `fetch-nagoya-YYYY-MM-DDTHH-MM-SS.log` 形式（例: `fetch-nagoya-2025-01-15T14-30-45.log`）。
+- ログファイルには実行日時・対象URL・取得件数・エラー情報が含まれる。ログディレクトリが存在しない場合は自動的に作成される。
+- 将来的には、Supabase の `facilities` テーブルに `last_fetched_at` カラム（将来追加予定）を記録することも検討する。
+
+### 9.5.5 CSVテンプレート
+
+`facilities` テーブルへの手動インポート用CSVテンプレート（必須項目は `*` で明示）:
+
+| カラム名 | 必須 | 説明 | 例 |
+| --- | --- | --- | --- |
+| name* | 必須 | 拠点名 | `中区子育て支援センター` |
+| facility_type* | 必須 | 施設種別 | `childcare_ouen_base` または `childcare_support_base` |
+| prefecture_code | 任意 | 都道府県コード | `23`（愛知県） |
+| municipality_code | 任意 | 市区町村コード | `23100`（名古屋市） |
+| ward_code | 任意 | 区コード | `23101`（中区） |
+| postal_code | 任意 | 郵便番号 | `460-0001` |
+| prefecture_name* | 必須 | 都道府県名 | `愛知県` |
+| city_name* | 必須 | 市区町村名 | `名古屋市` |
+| ward_name | 任意 | 区名 | `中区` |
+| address_rest | 任意 | 丁目以降 | `三の丸1-1-1` |
+| address_full_raw | 任意 | 住所の生文字列 | `〒460-0001 名古屋市中区三の丸1-1-1` |
+| area | 任意 | エリア（後方互換用） | `中区` |
+| address | 任意 | 住所（後方互換用） | `〒460-0001 名古屋市中区三の丸1-1-1` |
+| phone | 任意 | 電話番号 | `052-123-4567` |
+| instagram_url | 任意 | Instagram URL | `https://www.instagram.com/...` |
+| website_url | 任意 | 公式サイトURL | `https://example.com` |
+| detail_page_url | 任意 | 詳細ページURL | `https://www.kosodate.city.nagoya.jp/play/...` |
+
+**サンプル行（CSV形式）**:
+```csv
+name,facility_type,prefecture_code,municipality_code,ward_code,postal_code,prefecture_name,city_name,ward_name,address_rest,address_full_raw,area,address,phone,instagram_url,website_url,detail_page_url
+中区子育て支援センター,childcare_ouen_base,23,23100,23101,460-0001,愛知県,名古屋市,中区,三の丸1-1-1,〒460-0001 名古屋市中区三の丸1-1-1,中区,〒460-0001 名古屋市中区三の丸1-1-1,052-123-4567,,,https://www.kosodate.city.nagoya.jp/play/...
+```
 
 ## 10. 参考文献
 - <a id="ref3"></a>[3] Jun Ito, 『みらい まる見え政治資金』を支える技術, https://note.com/jujunjun110/n/nee305ca004ac

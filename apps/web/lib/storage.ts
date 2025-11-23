@@ -1,5 +1,6 @@
 /**
- * お気に入りクッキーの型定義
+ * お気に入り保存用の型定義
+ * 互換性のため FavoriteCookieItem という名前を維持（将来的に FavoriteItem への変更は別タスク）
  * [03 API 仕様](../docs/03-api.md) 4章を参照
  */
 export type FavoriteCookieItem = {
@@ -7,81 +8,95 @@ export type FavoriteCookieItem = {
 	sortOrder: number;
 };
 
-/**
- * お気に入りクッキー名
- */
-const FAVORITES_COOKIE_NAME = 'csh_favorites';
+import { MAX_FAVORITES } from './constants';
 
 /**
- * お気に入りの最大件数（MVP）
- * [01 要件定義](../docs/01-requirements.md) / [02 設計資料](../docs/02-design.md) 4.1節を参照
+ * localStorage のキー名
  */
-const MAX_FAVORITES = 5;
+const STORAGE_KEY = 'csh_favorites';
 
 /**
- * クッキーの有効期限（180日）
+ * お気に入り更新を通知するカスタムイベント名
+ * ペイロードを持たない合図用イベント（将来的なペイロード拡張の余地を残す）
+ */
+export const FAVORITES_UPDATED_EVENT = 'favoritesUpdated';
+
+/**
+ * 有効期限（180日、ミリ秒）
  * [03 API 仕様](../docs/03-api.md) 4.1節を参照
  */
-const COOKIE_MAX_AGE = 15552000; // 180日（秒）
+const STORAGE_MAX_AGE = 180 * 24 * 60 * 60 * 1000; // 180日（ミリ秒）
 
 /**
- * クライアントサイドでお気に入りクッキーを更新する
+ * localStorage に保存するデータ構造
+ */
+type StorageData = {
+	version: string;
+	favorites: FavoriteCookieItem[];
+	savedAt: number; // タイムスタンプ（ミリ秒）
+};
+
+/**
+ * クライアントサイドでお気に入りをlocalStorageに保存する
  * この関数はクライアント側で使用されることを想定している
  * @param favorites 新しいお気に入り配列
  */
-export function updateFavoritesCookieClient(favorites: FavoriteCookieItem[]): void {
-	if (typeof document === 'undefined') {
-		throw new Error('updateFavoritesCookieClient can only be called on the client side');
+export function updateFavoritesInStorage(favorites: FavoriteCookieItem[]): void {
+	if (typeof window === 'undefined') {
+		throw new Error('updateFavoritesInStorage can only be called on the client side');
 	}
 
 	// 最大件数を超えないように制限
 	const limitedFavorites = favorites.slice(0, MAX_FAVORITES);
 
-	const cookieValue = JSON.stringify(limitedFavorites);
-	const isSecure = process.env.NODE_ENV === 'production';
+	const data: StorageData = {
+		version: '1',
+		favorites: limitedFavorites,
+		savedAt: Date.now(),
+	};
 
-	// クッキーを設定
-	// 開発環境では Secure を除外（[03 API 仕様](../docs/03-api.md) 4.1節参照）
-	const cookieAttributes = [
-		`SameSite=Lax`,
-		`Path=/`,
-		`Max-Age=${COOKIE_MAX_AGE}`,
-	];
-	if (isSecure) {
-		cookieAttributes.push('Secure');
+	try {
+		localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+	} catch (error) {
+		// localStorage が使用できない場合（プライベートモードなど）はエラーを無視
+		console.warn('Failed to save favorites to localStorage:', error);
 	}
-
-	document.cookie = `${FAVORITES_COOKIE_NAME}=${encodeURIComponent(cookieValue)}; ${cookieAttributes.join('; ')}`;
 }
 
 /**
- * クライアントサイドでお気に入りクッキーを読み取る
+ * クライアントサイドでお気に入りをlocalStorageから読み取る
  * @returns お気に入り配列（最大5件、sortOrder でソート済み）
  */
-export function readFavoritesCookieClient(): FavoriteCookieItem[] {
-	if (typeof document === 'undefined') {
-		return [];
-	}
-
-	const cookies = document.cookie.split(';');
-	const favoritesCookie = cookies.find((c) => c.trim().startsWith(`${FAVORITES_COOKIE_NAME}=`));
-
-	if (!favoritesCookie) {
-		return [];
-	}
-
-	const cookieValue = favoritesCookie.split('=')[1];
-	if (!cookieValue) {
+export function readFavoritesFromStorage(): FavoriteCookieItem[] {
+	if (typeof window === 'undefined') {
 		return [];
 	}
 
 	try {
-		const decoded = decodeURIComponent(cookieValue);
-		const parsed = JSON.parse(decoded) as FavoriteCookieItem[];
-		if (!Array.isArray(parsed)) {
+		const stored = localStorage.getItem(STORAGE_KEY);
+		if (!stored) {
 			return [];
 		}
-		return parsed
+
+		const data = JSON.parse(stored) as StorageData;
+
+		// 有効期限チェック（180日経過している場合は削除）
+		if (data.savedAt && Date.now() - data.savedAt > STORAGE_MAX_AGE) {
+			localStorage.removeItem(STORAGE_KEY);
+			return [];
+		}
+
+		// バージョンチェック（将来のスキーマ変更に対応）
+		if (data.version !== '1') {
+			// 未知のバージョンの場合は空配列を返す
+			return [];
+		}
+
+		if (!Array.isArray(data.favorites)) {
+			return [];
+		}
+
+		return data.favorites
 			.filter((item): item is FavoriteCookieItem => {
 				return (
 					typeof item === 'object' &&
@@ -93,6 +108,7 @@ export function readFavoritesCookieClient(): FavoriteCookieItem[] {
 			.sort((a, b) => a.sortOrder - b.sortOrder)
 			.slice(0, MAX_FAVORITES);
 	} catch {
+		// JSON パースエラー時は空配列を返す
 		return [];
 	}
 }
