@@ -417,6 +417,237 @@ name,facility_type,prefecture_code,municipality_code,ward_code,postal_code,prefe
 中区子育て支援センター,childcare_ouen_base,23,23100,23101,460-0001,愛知県,名古屋市,中区,三の丸1-1-1,〒460-0001 名古屋市中区三の丸1-1-1,中区,〒460-0001 名古屋市中区三の丸1-1-1,052-123-4567,,,https://www.kosodate.city.nagoya.jp/play/...
 ```
 
+## 9.6 Instagram連携によるスケジュールURL取得・更新フロー（フェーズ6）
+
+本節は、Instagram連携によるスケジュールURL取得・更新の運用手順をまとめる。詳細な調査・設計資料は [`docs/instagram-integration/`](./instagram-integration/README.md) を参照。
+
+### 9.6.1 概要
+
+**目的**: 各施設のInstagramアカウントから月間スケジュールのURL（または関連情報）を取得し、`schedules` テーブルに登録・更新する。
+
+**前提条件**:
+- Supabase プロジェクトが作成済み
+- `facilities` テーブルに施設データが登録済み
+- `schedules` テーブルが作成済み（[02 設計資料](./02-design.md) 3.3節参照）
+
+**調査結果**（2025-01-22）:
+- 名古屋市サイト（一覧ページ・詳細ページ）にはInstagramリンクが含まれていない
+- 手動でWeb検索・Instagram検索によりアカウントを特定する必要がある
+- 投稿形式は施設ごとに異なる可能性が高く、自動化が困難
+
+### 9.6.2 手動入力フロー
+
+#### 1. InstagramアカウントURLの確認
+
+**方法: 手動でWeb検索・Instagram検索を実施**（推奨）
+
+1. 施設名を確認（`facilities` テーブルから取得、または名古屋市サイトから確認）
+2. 検索エンジンで以下のキーワードで検索:
+   - `"施設名" Instagram`
+   - `"施設名" 子育て Instagram`
+   - `"施設名" 名古屋 Instagram`
+3. InstagramアプリまたはWebで、施設名を直接検索
+4. 見つかったアカウントが該当施設のものか確認（プロフィールの説明・投稿内容を確認）
+5. アカウントURLを控える（例: `https://www.instagram.com/account_name/`）
+6. `facilities.instagram_url` に登録（Supabase Studio または SQL）
+
+**注意**: 名古屋市サイト（一覧ページ・詳細ページ）にはInstagramリンクが含まれていないため、手動調査が必須。
+
+#### 2. スケジュールURLの確認
+
+1. Instagramアカウントにアクセス（`facilities.instagram_url` に登録されたURL、または手動で検索）
+2. 月間スケジュールの投稿を探す:
+   - 最新の投稿を確認（通常、月初めに投稿されることが多い）
+   - 固定投稿（ピン留め）を確認
+   - ハッシュタグ（例: `#月間スケジュール`, `#スケジュール`）で検索
+3. スケジュールURLを特定:
+   - **パターン1: キャプション内にURL**
+     - 投稿のキャプションに、Googleドライブや自治体サイトのURLが記載されている
+     - 例: 「今月のスケジュールはこちら: https://drive.google.com/...」
+   - **パターン2: プロフィールリンク**
+     - プロフィールの「リンク」欄に、月間スケジュールへのリンク（linktree等）が設定されている
+   - **パターン3: 画像そのもの**
+     - スケジュールが画像として投稿されている（PDFや画像ファイル）
+     - この場合、投稿URL自体を `instagram_post_url` に登録し、oEmbedで埋め込み表示
+   - **パターン4: 固定投稿（ピン留め）**
+     - 月間スケジュールの投稿がピン留めされている
+     - 投稿URLを `instagram_post_url` に登録
+4. スケジュールURLを控える:
+   - Instagram投稿URL: `https://www.instagram.com/p/...`
+   - 外部サイトURL（Googleドライブ等）: `https://drive.google.com/...` など
+
+#### 3. schedulesテーブルへの登録
+
+**Supabase Studio での操作**:
+
+1. Supabase プロジェクトのダッシュボードにアクセス
+2. Table Editor > `schedules` テーブルを開く
+3. **Insert** > **Insert row** をクリック
+4. 以下の項目を入力:
+   - `facility_id`: 対象施設のUUID（`facilities` テーブルから取得）
+   - `instagram_post_url`: Instagram投稿URL（例: `https://www.instagram.com/p/...`）
+     - 外部サイトURL（Googleドライブ等）の場合は、`image_url` に登録することを検討（将来拡張）
+   - `published_month`: 対象月の1日（例: `2025-01-01`）
+     - 注意: 月の1日で統一する（例: 1月なら `2025-01-01`、2月なら `2025-02-01`）
+   - `status`: `published`
+5. **Save** をクリック
+
+**SQLでの操作**:
+
+```sql
+-- 新規登録
+INSERT INTO schedules (facility_id, instagram_post_url, published_month, status)
+VALUES (
+  'facility-uuid-here',  -- facilities テーブルから取得したUUID
+  'https://www.instagram.com/p/...',  -- Instagram投稿URL
+  '2025-01-01',  -- 対象月の1日
+  'published'
+);
+
+-- 既存レコードの更新（同じ facility_id, published_month の組み合わせが既に存在する場合）
+UPDATE schedules
+SET instagram_post_url = 'https://www.instagram.com/p/...',
+    status = 'published'
+WHERE facility_id = 'facility-uuid-here'
+  AND published_month = '2025-01-01';
+```
+
+**エラー対応**:
+- `UNIQUE constraint` エラー: 既に同じ `(facility_id, published_month)` の組み合わせが存在する
+  - 既存レコードを更新するか、別の月として登録する
+- バリデーションエラー: `published_month` が月の1日でない可能性がある
+
+### 9.6.3 定期更新
+
+**更新頻度**: 月1回程度を目安とする
+- 各施設の月間スケジュールが更新されるタイミングに合わせて更新
+- すべての施設で同時に更新する必要はなく、更新された施設のみ更新すればOK
+- 月初め（1日〜5日頃）に確認・更新することを推奨
+
+**更新手順**:
+
+1. 対象月のスケジュールが更新されているか確認:
+   - 各施設のInstagramアカウントを確認
+   - 新しい月間スケジュールの投稿を探す
+2. 新しいスケジュールURLを特定（上記「2. スケジュールURLの確認」を参照）
+3. `schedules` テーブルを更新:
+   - 既存レコードがある場合: `UPDATE` で `instagram_post_url` を更新
+   - 既存レコードがない場合: `INSERT` で新規登録
+4. 更新日時を記録（将来的に `last_updated_at` カラムを追加予定）
+
+### 9.6.4 エラー対応
+
+**埋め込み表示が失敗する場合**:
+
+1. **oEmbed APIのエラーを確認**:
+   - Instagram投稿URLが正しいか確認（`https://www.instagram.com/p/...` 形式）
+   - 投稿が削除されていないか確認（Instagramアプリで直接確認）
+   - 投稿が非公開になっていないか確認
+2. **レート制限の可能性**:
+   - `INSTAGRAM_OEMBED_TOKEN` が設定されているか確認
+   - レート制限に達している場合は、時間を置いてから再試行
+3. **フォールバック表示**:
+   - `schedules.image_url` に代替画像URLが登録されている場合、そちらを表示
+   - または、Instagram投稿URLを直接リンクとして表示
+
+**投稿URLが無効になった場合**:
+
+1. **原因の確認**:
+   - 投稿が削除された
+   - アカウントが非公開になった
+   - URLが変更された
+2. **対処方法**:
+   - Instagramアカウントを確認し、新しい投稿URLを取得
+   - `schedules` テーブルを更新（`UPDATE` で `instagram_post_url` を更新）
+   - 新しい投稿が見つからない場合は、`status` を `archived` に変更（将来拡張）
+
+### 9.6.5 確認・検証
+
+**データ整合性チェック**:
+
+1. **Supabase Studio での確認**:
+   - Table Editor > `schedules` テーブルを開く
+   - 登録されたレコードを確認:
+     - `facility_id` が正しいか（`facilities` テーブルと照合）
+     - `instagram_post_url` が有効なURLか
+     - `published_month` が月の1日か（例: `2025-01-01`）
+     - `status` が `published` か
+2. **SQLでの確認**:
+   ```sql
+   -- 特定の施設のスケジュールを確認
+   SELECT s.*, f.name as facility_name
+   FROM schedules s
+   JOIN facilities f ON s.facility_id = f.id
+   WHERE f.id = 'facility-uuid-here'
+   ORDER BY s.published_month DESC;
+
+   -- 重複チェック
+   SELECT facility_id, published_month, COUNT(*) as count
+   FROM schedules
+   GROUP BY facility_id, published_month
+   HAVING COUNT(*) > 1;
+   ```
+
+**表示確認**:
+
+1. ローカル開発サーバーを起動: `mise exec -- pnpm --filter web dev`
+2. 対象施設の詳細ページにアクセス
+3. スケジュールセクションを確認:
+   - Instagram投稿が埋め込み表示されているか
+   - 投稿URLが正しく表示されているか
+   - エラーメッセージが表示されていないか
+4. エラーが表示される場合:
+   - ブラウザの開発者ツール（F12）でコンソールエラーを確認
+   - ネットワークタブでoEmbed APIのリクエストを確認
+   - 上記「エラー対応」を参照
+
+### 9.6.6 トラブルシューティング
+
+| 問題 | 原因 | 対処方法 |
+|------|------|----------|
+| `UNIQUE constraint` エラーが発生する | 既に同じ `(facility_id, published_month)` の組み合わせが存在する | 既存レコードを `UPDATE` で更新するか、別の月として登録する |
+| `published_month` のバリデーションエラー | 月の1日でない日付が入力されている | 月の1日に修正（例: `2025-01-15` → `2025-01-01`） |
+| Instagram投稿が埋め込み表示されない | oEmbed APIのエラー、レート制限、投稿が削除された | 上記「エラー対応」を参照 |
+| 施設のInstagramアカウントが見つからない | 名古屋市サイトにInstagramリンクが含まれていない | 手動でWeb検索・Instagram検索を実施（上記「1. InstagramアカウントURLの確認」を参照） |
+| スケジュールURLが特定できない | 投稿形式が想定と異なる（画像のみ、プロフィールリンク等） | 投稿形式に応じて対応（上記「2. スケジュールURLの確認」を参照） |
+
+### 9.6.7 将来の拡張
+
+**半自動化の検討**:
+
+- **キャプションからURLを抽出するスクリプト（PoC）**:
+  - **目的**: 人間がコピーしたInstagram投稿のキャプションテキストから、スケジュールURLを抽出する補助ツール
+  - **入力**: テキストファイル（人間がコピーしたキャプション全文やメモ）または事前に保存したHTML片
+  - **処理**: 
+    - 正規表現でURLを抽出し、`https://` から始まるURLを一覧に整形
+    - Googleドライブ、自治体サイト等のURLパターンを認識して分類（`typeGuess`）
+  - **出力**: JSON形式（例: `[{ url: string, typeGuess: string }]`）
+    - `url`: 抽出されたURL
+    - `typeGuess`: URLの種類の推測（`"google_drive"`, `"city_site"`, `"instagram_post"`, `"other"` など）
+  - **位置づけ**: 
+    - **本番運用には組み込まず、「ローカルで人が使う補助ツール」扱い**とする
+    - 抽出したURLは、人間が確認・検証してから `schedules` テーブルに登録する
+    - 実装場所: `apps/scripts/instagram-caption-url-extractor.ts`（仮名）
+  - **限界**:
+    - キャプション内にURLが含まれていない場合は抽出不可
+    - URLの種類の推測は簡易的なもので、100%正確ではない
+    - 複数のURLが含まれている場合、どれがスケジュールURLかは人間が判断する必要がある
+  - **実装方針**: 詳細は [`docs/instagram-integration/03-design-decisions.md`](./instagram-integration/03-design-decisions.md) を参照
+
+**自動化の範囲**:
+
+- **自動化可能**: 
+  - キャプション内URLの抽出（投稿形式が統一されている場合）→ **PoCとして検討**
+- **人手が必要**（確定）:
+  - InstagramアカウントURLの特定（名古屋市サイトにリンクがないため）
+  - スケジュールURLの確認・検証（自動抽出したURLが正しいか確認）
+  - 投稿形式がバラバラな場合の対応
+
+**参考資料**:
+- [Instagram連携調査・設計資料](./instagram-integration/README.md)
+- [02 設計資料](./02-design.md) - schedulesテーブル定義
+- [03 API 仕様](./03-api.md) - Instagram Embed API仕様
+
 ## 10. 参考文献
 - <a id="ref3"></a>[3] Jun Ito, 『みらい まる見え政治資金』を支える技術, https://note.com/jujunjun110/n/nee305ca004ac
 - <a id="ref4"></a>[4] Jun Ito, どのようにして95%以上のコードをLLMに書かせることができたのか, https://note.com/jujunjun110/n/na653d4120d7e

@@ -27,7 +27,7 @@
 - [04-runbook.md](./04-runbook.md) - 運用手順書
   - 手動入力フロー
   - データ投入手順
-  - （確定後に `docs/04-development.md` 9.6節へ転記予定）
+  - **統合済み**: `docs/04-development.md` 9.6節として統合完了（2025-01-22）
 
 ## 検討の進め方
 
@@ -35,6 +35,12 @@
 2. 技術選択肢を比較検討し、`02-technical-options.md` に記録する
 3. 決定事項を `03-design-decisions.md` にまとめる
 4. 最終的に `04-runbook.md` を完成させ、`docs/04-development.md` に統合する
+
+**進捗状況**（2025-01-22更新）:
+- ✅ 01-investigation.md: 調査結果を具体化（詳細ページの確認結果を追加）
+- ✅ 02-technical-options.md: 調査結果を反映して更新
+- ✅ 03-design-decisions.md: MVP方針を確定、PoC実装方針を明確化
+- ✅ 04-runbook.md: 運用手順を具体化、`docs/04-development.md` 9.6節として統合完了
 
 ## 関連ドキュメント
 
