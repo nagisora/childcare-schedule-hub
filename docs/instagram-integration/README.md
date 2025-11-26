@@ -29,6 +29,12 @@
   - データ投入手順
   - **統合済み**: `docs/04-development.md` 9.6節として統合完了（2025-01-22）
 
+- [05-instagram-account-search.md](./05-instagram-account-search.md) - InstagramアカウントURL検索指示書
+  - AI向けの検索手順と判断基準
+  - ブラウザで直接Google検索を開く方法
+  - DB更新手順とRunbookへの記録ルール
+  - AIへの依頼テンプレート
+
 ## 検討の進め方
 
 1. 各AIが調査・分析を行い、該当ドキュメントに追記する
@@ -51,11 +57,12 @@
     - フォロワー数などの補足情報
     を簡潔にメモし、後続のAI／人間が同じ手順を再利用できるようにする
 
-**進捗状況**（2025-01-22更新）:
+**進捗状況**（2025-11-26更新）:
 - ✅ 01-investigation.md: 調査結果を具体化（詳細ページの確認結果を追加）
 - ✅ 02-technical-options.md: 調査結果を反映して更新
 - ✅ 03-design-decisions.md: MVP方針を確定、PoC実装方針を明確化
 - ✅ 04-runbook.md: 運用手順を具体化、`docs/04-development.md` 9.6節として統合完了
+- ✅ 05-instagram-account-search.md: AI向け検索指示書を作成（ブラウザで直接Google検索する方法を確立）
 
 ## 関連ドキュメント
 
