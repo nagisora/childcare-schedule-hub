@@ -21,5 +21,17 @@ mise install
 mise exec -- pnpm install
 ```
 
+## 開発サーバーの起動
+
+開発サーバーを起動するには、以下のコマンドを実行してください：
+
+```bash
+mise exec -- pnpm --filter web dev
+```
+
+開発サーバーは `http://localhost:3000` で起動します。
+
+その他のコマンド（ビルド、テスト、型チェックなど）については、`apps/web/package.json` の `scripts` セクションを参照してください。
+
 ## 開発資料
 `docs/` ディレクトリに要件定義や設計資料を格納しています。
