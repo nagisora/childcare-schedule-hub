@@ -255,6 +255,7 @@ WHERE facility_id = 'facility-uuid-here'
 | 施設名 | InstagramアカウントURL | 投稿形式 | スケジュールURL | 登録日 | 備考 |
 |--------|----------------------|---------|----------------|--------|------|
 | おやこっこなか | https://www.instagram.com/oyakokko_naka/ | 未確認 | 未確認 | 2025-11-26 | Google検索「おやこっこなか instagram」で即座に見つかった。アカウント名: @oyakokko_naka、フォロワー1150人以上 |
+| ゆるまる | https://www.instagram.com/yurumaru_nakagawa/ | 未確認 | 未確認 | 2025-11-26 | Google検索「ゆるまる instagram」で検索結果の最初に表示された。アカウント名: @yurumaru_nakagawa、フォロワー1400人以上 |
 
 **気づき・注意点**（実際に登録した際の気づきを記録）:
 - **検索実施内容**:
@@ -273,4 +274,13 @@ WHERE facility_id = 'facility-uuid-here'
   - 説明: 「名古屋市中区子育て応援拠点です。(錦3丁目2-32 錦アクシスビル2F TEL0522288464) 月火水金土(祝日休み) の9~15時に0~3歳の未就園児の親子&プレママプレパパを対象に子育て...」
   - 投稿数: 332投稿
   - フォロー中: 76アカウント
+
+- **ゆるまる（中川区）の検索結果**:
+  - 検索クエリ: `ゆるまる instagram`
+  - 検索方法: ブラウザでGoogle検索ページを開き、検索欄に直接キーワードを入力
+  - 検索結果: 最初の検索結果に「名古屋市中川区子育て応援拠点ゆるまる ... Instagram · yurumaru_nakagawa 1400 人以上のフォロワー」が表示された
+  - アカウント名: `@yurumaru_nakagawa`
+  - URL: `https://www.instagram.com/yurumaru_nakagawa/`
+  - フォロワー: 1400人以上
+  - **教訓**: ブラウザで直接Google検索を開き、検索欄にキーワードを入力する方法が最も確実だった
 
