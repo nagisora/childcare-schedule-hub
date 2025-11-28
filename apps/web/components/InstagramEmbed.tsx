@@ -75,7 +75,6 @@ export function InstagramEmbed({ postUrl, className = '' }: InstagramEmbedProps)
 			<div ref={containerRef} className={className}>
 				<blockquote
 					className="instagram-media"
-					data-instgrm-captioned
 					data-instgrm-permalink={postUrl}
 					data-instgrm-version="14"
 				>
