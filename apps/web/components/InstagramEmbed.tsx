@@ -72,7 +72,10 @@ export function InstagramEmbed({ postUrl, className = '' }: InstagramEmbedProps)
 				strategy="lazyOnload"
 				async
 			/>
-			<div ref={containerRef} className={className}>
+			<div 
+				ref={containerRef} 
+				className={`w-full instagram-embed-container ${className}`}
+			>
 				<blockquote
 					className="instagram-media"
 					data-instgrm-permalink={postUrl}

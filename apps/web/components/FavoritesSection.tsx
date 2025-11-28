@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { matchFavoritesWithFacilities } from '../lib/favorites';
 import { getWardName } from '../lib/facilities-utils';
 import { getLatestSchedulesByFacilityIds, getSchedulesByFacilityIdsAndMonth } from '../lib/schedules';
@@ -209,15 +209,17 @@ export function FavoritesSection({ initialFavorites, allFacilities }: FavoritesS
 	};
 
 	// 月の切り替えハンドラ
-	const handleMonthChange = async (facilityId: string, year: number, month: number) => {
+	const handleMonthChange = useCallback(async (facilityId: string, year: number, month: number) => {
 		const targetMonth = getMonthFirstDay(year, month);
+		
 		// 選択月を即座に更新
 		setSelectedMonths((prev) => ({ ...prev, [facilityId]: targetMonth }));
 		
 		// 該当施設のスケジュールを取得
 		try {
 			const scheduleMap = await getSchedulesByFacilityIdsAndMonth([facilityId], targetMonth);
-			// 該当施設のスケジュールを更新（見つからない場合はundefinedで上書きしてクリア）
+			
+			// 該当施設のスケジュールを更新（見つからない場合は削除）
 			setSchedules((prev) => {
 				const updated = { ...prev };
 				if (scheduleMap[facilityId]) {
@@ -237,7 +239,7 @@ export function FavoritesSection({ initialFavorites, allFacilities }: FavoritesS
 				return updated;
 			});
 		}
-	};
+	}, []);
 
 	// 月の表示名を取得（ローカルタイムゾーン）
 	const getMonthLabel = (monthStr: string): string => {

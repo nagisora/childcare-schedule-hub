@@ -85,3 +85,20 @@ main {
 	background-color: var(--color-primary-50);
 }
 
+/* Instagram埋め込みのサイズ調整（親要素に内接） */
+.instagram-embed-container {
+	max-width: 100%;
+	overflow: hidden;
+}
+
+.instagram-embed-container .instagram-media {
+	max-width: 100% !important;
+	width: 100% !important;
+}
+
+.instagram-embed-container .instagram-media iframe {
+	max-width: 100% !important;
+	width: 100% !important;
+	height: auto !important;
+}
+
