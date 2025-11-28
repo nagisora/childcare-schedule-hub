@@ -77,3 +77,69 @@ export async function getLatestSchedulesByFacilityIds(
 	return scheduleMap;
 }
 
+/**
+ * 施設IDと対象月でスケジュールを取得する
+ * @param facilityId 施設ID
+ * @param targetMonth 対象月（YYYY-MM-DD形式、月の1日）
+ * @returns スケジュール（見つからない場合は null）
+ */
+export async function getScheduleByFacilityIdAndMonth(
+	facilityId: string,
+	targetMonth: string
+): Promise<Schedule | null> {
+	const { data, error } = await supabase
+		.from('schedules')
+		.select('*')
+		.eq('facility_id', facilityId)
+		.eq('published_month', targetMonth)
+		.eq('status', 'published')
+		.single();
+
+	if (error) {
+		if (error.code === 'PGRST116') {
+			// レコードが見つからない場合
+			return null;
+		}
+		throw new Error(formatSupabaseError('GET_BY_FACILITY_ID_AND_MONTH', error));
+	}
+
+	return data;
+}
+
+/**
+ * 複数の施設IDと対象月でスケジュールを一括取得する
+ * @param facilityIds 施設IDの配列
+ * @param targetMonth 対象月（YYYY-MM-DD形式、月の1日）
+ * @returns 施設IDをキーとしたスケジュールのマップ（見つからない場合は含まれない）
+ */
+export async function getSchedulesByFacilityIdsAndMonth(
+	facilityIds: string[],
+	targetMonth: string
+): Promise<Record<string, Schedule>> {
+	if (facilityIds.length === 0) {
+		return {};
+	}
+
+	const { data, error } = await supabase
+		.from('schedules')
+		.select('*')
+		.in('facility_id', facilityIds)
+		.eq('published_month', targetMonth)
+		.eq('status', 'published');
+
+	if (error) {
+		throw new Error(formatSupabaseError('GET_BY_FACILITY_IDS_AND_MONTH', error));
+	}
+
+	if (!data || data.length === 0) {
+		return {};
+	}
+
+	const scheduleMap: Record<string, Schedule> = {};
+	for (const schedule of data) {
+		scheduleMap[schedule.facility_id] = schedule;
+	}
+
+	return scheduleMap;
+}
+
