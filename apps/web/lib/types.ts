@@ -21,3 +21,20 @@ export type Facility = {
  */
 export type FacilitiesByWard = Record<string, Facility[]>;
 
+/**
+ * スケジュール（Schedule）の型定義
+ * [02 設計資料](../docs/02-design.md) 3.3節を参照
+ */
+export type Schedule = {
+	id: string;
+	facility_id: string;
+	image_url: string;
+	instagram_post_url: string | null;
+	embed_html: string | null;
+	published_month: string; // date形式（YYYY-MM-DD）
+	status: string;
+	notes: string | null;
+	created_at?: string;
+	updated_at?: string;
+};
+

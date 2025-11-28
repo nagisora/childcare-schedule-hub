@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { matchFavoritesWithFacilities } from '../lib/favorites';
 import { getWardName } from '../lib/facilities-utils';
+import { getLatestSchedulesByFacilityIds } from '../lib/schedules';
+import { InstagramEmbed } from './InstagramEmbed';
 import type { FavoriteFacility } from '../lib/favorites';
-import type { Facility } from '../lib/types';
+import type { Facility, Schedule } from '../lib/types';
 import {
 	readFavoritesFromStorage,
 	updateFavoritesInStorage,
@@ -43,9 +45,27 @@ function getFavoritesFromStorageSnapshot(
 export function FavoritesSection({ initialFavorites, allFacilities }: FavoritesSectionProps) {
 	// お気に入りをクライアント側の状態として管理（単一のソース・オブ・トゥルース）
 	const [favorites, setFavorites] = useState<FavoriteFacility[]>(initialFavorites);
+	// スケジュールデータを管理
+	const [schedules, setSchedules] = useState<Record<string, Schedule>>({});
 
 	// localStorageの変更を監視して状態を同期（FacilitiesTableからの変更を検知）
 	const lastStorageRef = useRef<string>('');
+
+	// スケジュールデータを取得する関数
+	const fetchSchedules = async (facilityIds: string[]) => {
+		if (facilityIds.length === 0) {
+			setSchedules({});
+			return;
+		}
+
+		try {
+			const scheduleMap = await getLatestSchedulesByFacilityIds(facilityIds);
+			setSchedules(scheduleMap);
+		} catch (error) {
+			console.error('Failed to fetch schedules:', error);
+			setSchedules({});
+		}
+	};
 
 	useEffect(() => {
 		// 初期同期: localStorageから読み込んで状態を初期化
@@ -56,8 +76,11 @@ export function FavoritesSection({ initialFavorites, allFacilities }: FavoritesS
 		if (initialStorageItems.length > 0) {
 			const loadedFavorites = matchFavoritesWithFacilities(initialStorageItems, allFacilities);
 			setFavorites(loadedFavorites);
+			// スケジュールデータを取得
+			fetchSchedules(loadedFavorites.map((f) => f.facility.id));
 		} else {
 			setFavorites([]);
+			setSchedules({});
 		}
 
 		// 変更検知ロジック: localStorageの変更を検知して状態を更新
@@ -75,8 +98,12 @@ export function FavoritesSection({ initialFavorites, allFacilities }: FavoritesS
 					const currentStorageItems = readFavoritesFromStorage();
 					const recalculated = matchFavoritesWithFacilities(currentStorageItems, allFacilities);
 					setFavorites(recalculated);
+					// スケジュールデータを取得
+					fetchSchedules(recalculated.map((f) => f.facility.id));
 				} else {
 					setFavorites(updatedFavorites);
+					// スケジュールデータを取得
+					fetchSchedules(updatedFavorites.map((f) => f.facility.id));
 				}
 			}
 		};
@@ -113,6 +140,8 @@ export function FavoritesSection({ initialFavorites, allFacilities }: FavoritesS
 		// 状態を即座に更新
 		const updatedFavorites = matchFavoritesWithFacilities(updated, allFacilities);
 		setFavorites(updatedFavorites);
+		// スケジュールデータを更新
+		fetchSchedules(updatedFavorites.map((f) => f.facility.id));
 		// カスタムイベントを発火してFacilitiesTableに通知
 		window.dispatchEvent(new CustomEvent(FAVORITES_UPDATED_EVENT));
 	};
@@ -145,16 +174,25 @@ export function FavoritesSection({ initialFavorites, allFacilities }: FavoritesS
 							解除
 						</button>
 					</header>
-					<div className="mt-3 h-64 rounded-lg bg-slate-50 flex items-center justify-center text-xs text-slate-400">
-						<div className="text-center">
-							<p className="mb-2">Instagram 埋め込み（プレースホルダー）</p>
-							<a
-								href={`/facilities/${item.facility.id}`}
-								className="text-blue-600 hover:text-blue-800 underline"
-							>
-								スケジュール詳細を見る
-							</a>
-						</div>
+					<div className="mt-3">
+						{schedules[item.facility.id]?.instagram_post_url ? (
+							<InstagramEmbed
+								postUrl={schedules[item.facility.id].instagram_post_url!}
+								className="rounded-lg overflow-hidden"
+							/>
+						) : (
+							<div className="h-64 rounded-lg bg-slate-50 flex items-center justify-center text-xs text-slate-400">
+								<div className="text-center">
+									<p className="mb-2">スケジュールが登録されていません</p>
+									<a
+										href={`/facilities/${item.facility.id}`}
+										className="text-blue-600 hover:text-blue-800 underline"
+									>
+										詳細ページを見る
+									</a>
+								</div>
+							</div>
+						)}
 					</div>
 				</article>
 			))}
