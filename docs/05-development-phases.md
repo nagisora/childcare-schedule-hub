@@ -133,6 +133,20 @@
 
 **検討ドキュメント**: 調査・設計方針の検討は [`docs/instagram-integration/`](./instagram-integration/README.md) で実施。複数のAIからの知見を集約し、最適な実装方針を決定する。
 
+**実装済み内容**:
+- Instagram埋め込みコンポーネント（`InstagramEmbed.tsx`）の実装
+  - Instagram公式のblockquote埋め込み方法を使用（API不要）
+  - 親要素に内接するようにサイズ調整（`globals.css`にスタイル追加）
+- お気に入りセクションにInstagramスケジュール表示機能を実装
+  - `FavoritesSection`コンポーネントにスケジュール表示機能を追加
+  - 月切り替え機能（前月・次月）を実装（初期表示は今月）
+- Vercelデプロイ時のエラー対応
+  - 環境変数設定（`NEXT_PUBLIC_SUPABASE_URL`、`NEXT_PUBLIC_SUPABASE_ANON_KEY`）
+  - ESLintエラー修正（`@ts-expect-error`ディレクティブに説明を追加）
+  - ビルドキャッシュの問題解決
+
+**開発セッション**: [`docs/dev-sessions/20251128-session-phase6-vercel-deploy.md`](./dev-sessions/20251128-session-phase6-vercel-deploy.md) を参照
+
 フェーズ5とは独立して進めることで、**施設情報（静的に近い）とスケジュール情報（頻繁に変わる）を分離**し、それぞれに適した更新・運用設計が可能になります。
 
 ## フェーズ7: デザイン / UX 仕上げ & リリース準備
