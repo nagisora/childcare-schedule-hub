@@ -25,19 +25,19 @@ export function InstagramEmbed({ postUrl, className = '' }: InstagramEmbedProps)
 		const processEmbed = () => {
 			// @ts-expect-error - Instagram SDKのグローバル関数
 			if (window.instgrm?.Embeds?.process && containerRef.current) {
-				// @ts-expect-error
+				// @ts-expect-error - Instagram SDKのグローバル関数
 				window.instgrm.Embeds.process(containerRef.current);
 			}
 		};
 
 		// 既にSDKが読み込まれている場合は即座に処理
-		// @ts-expect-error
+		// @ts-expect-error - Instagram SDKのグローバル関数
 		if (window.instgrm?.Embeds?.process) {
 			processEmbed();
 		} else {
 			// SDK読み込み後に処理
 			const checkInterval = setInterval(() => {
-				// @ts-expect-error
+				// @ts-expect-error - Instagram SDKのグローバル関数
 				if (window.instgrm?.Embeds?.process) {
 					clearInterval(checkInterval);
 					processEmbed();
