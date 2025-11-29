@@ -58,19 +58,6 @@ export function useFavoritesSync(allFacilities: Facility[]) {
 		return currentMonth;
 	}, []);
 
-	// 選択月を計算（既存の選択月を保持しつつ、新規施設のみ現在月を設定）
-	// 純粋関数として実装（setSelectedMonthsは呼び出さない）
-	const calculateUpdatedSelectedMonths = useCallback((facilityIds: string[], currentSelectedMonths: Record<string, string>) => {
-		const { year, month } = getCurrentYearMonth();
-		const currentMonth = getMonthFirstDay(year, month);
-		const updated: Record<string, string> = {};
-		// 新しく追加された施設のみ現在月を設定（既存の施設は選択月を保持）
-		for (const id of facilityIds) {
-			updated[id] = currentSelectedMonths[id] || currentMonth;
-		}
-		return updated;
-	}, []);
-
 	// スケジュールデータを取得する関数
 	const fetchSchedules = useCallback(async (facilityIds: string[], targetMonth?: string) => {
 		if (facilityIds.length === 0) {
@@ -95,23 +82,14 @@ export function useFavoritesSync(allFacilities: Facility[]) {
 	}, []);
 
 	// お気に入りとスケジュールを更新する共通処理
-	// 既存の選択月を保持しつつ、新規施設のみ現在月を設定
 	const updateFavoritesAndSchedules = useCallback(
 		(updatedFavorites: FavoriteFacility[]) => {
 			setFavorites(updatedFavorites);
 			const facilityIds = updatedFavorites.map((f) => f.facility.id);
-			// 既存の選択月を保持しつつ、新規施設のみ現在月を設定
-			setSelectedMonths((prev) => {
-				const updatedMonths = calculateUpdatedSelectedMonths(facilityIds, prev);
-				// 選択月を更新した後、各施設の選択月に基づいてスケジュールを取得
-				// 計算した選択月を使ってスケジュールを取得（prevではなくupdatedMonthsを使用）
-				Object.entries(updatedMonths).forEach(([facilityId, targetMonth]) => {
-					fetchSchedules([facilityId], targetMonth);
-				});
-				return updatedMonths;
-			});
+			const currentMonth = initializeSelectedMonths(facilityIds);
+			fetchSchedules(facilityIds, currentMonth);
 		},
-		[calculateUpdatedSelectedMonths, fetchSchedules]
+		[initializeSelectedMonths, fetchSchedules]
 	);
 
 	useEffect(() => {
