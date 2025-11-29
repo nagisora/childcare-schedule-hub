@@ -18,7 +18,7 @@
 ### 2.1 前提ソフトウェア
 - Node.js 20.x（LTS）
 - pnpm 8.x 以上
-- Git、Vercel CLI（プレビュー確認用）
+- Git、Vercel CLI（現状の仮MVPホスティングでのプレビュー確認用）
 - Supabase CLI 1.150.x 以上（ローカル DB・マイグレーション管理）
 
 ### 2.2 初期準備（mise を利用）
@@ -61,7 +61,7 @@ mise exec -- pnpm --filter web dev
    - 環境変数設定手順: [06 節 4.2](./06-db-operations.md#42-環境変数の取得と設定)
    - テーブル作成手順: [06 節 4.3](./06-db-operations.md#43-テーブル作成)
 2. RLS ポリシーは「公開読み取り / 管理者書き込み」を原則とし、`favorites` はポストMVPで有効化（[02 設計資料](./02-design.md) 3.4 節を参照）
-3. Vercel 環境変数に Supabase URL / キーを登録する（[3.4 環境別運用](#34-環境別運用) を参照）
+3. ホスティング基盤の環境変数に Supabase URL / キーを登録する（現状: Vercel、[3.4 環境別運用](#34-環境別運用) を参照）
 
 ### 2.5 Supabase CLI の基本操作
 - プロジェクト初期化: `supabase init`
@@ -117,8 +117,9 @@ SUPABASE_DB_PASSWORD=""        # Supabase CLI を使う場合
 - 共有が必要な値は `.env.example` にダミー値を追加し、PR で変更点を共有する。
 
 ### 3.4 環境別運用
-- Vercel の `Production` / `Preview` / `Development` に同一キーを登録し、Service Role Key は `Encrypted` として保存する。
+- 現在の仮MVP環境（Vercel）では、`Production` / `Preview` / `Development` に同一キーを登録し、Service Role Key は `Encrypted` として保存する。
 - Preview デプロイで動作検証する際は、必要な環境変数が設定されているか `vercel env pull` で確認する。
+- 注: 本番デプロイ先は [フェーズ8: デプロイ先の検討（コスト最適化）](./05-development-phases.md#フェーズ8-デプロイ先の検討コスト最適化) で再検討する。ホスティングを変更した場合は、本節の手順を移植・更新すること。
 
 ## 4. データベースと Supabase CLI
 
@@ -193,7 +194,7 @@ Supabase CLI を使ったローカル開発環境やマイグレーション管�
 
 ### 5.3 パフォーマンス・キャッシュ
 - ISR を 60 分に設定し、初回表示 3 秒以内を維持（[01 要件定義](./01-requirements.md)）。
-- `revalidateTag` などの再生成フローを API 実装時に忘れずに追加し、Vercel Speed Insights / Lighthouse CI を週次で記録する。
+- `revalidateTag` などの再生成フローを API 実装時に忘れずに追加し、ホスティング基盤のパフォーマンス計測ツール（現状: Vercel Speed Insights） / Lighthouse CI を週次で記録する。
 
 ### 5.4 アクセシビリティ・品質
 - Storybook + Axe による自動検証を PR 前に実行。
@@ -254,10 +255,11 @@ Supabase CLI を使ったローカル開発環境やマイグレーション管�
 - 要件・設計・API に影響する変更は該当ドキュメントを同じ PR で更新し、レビュー指摘を減らす。
 
 ## 7. デプロイと運用
-1. GitHub と Vercel を連携し、PR ごとにプレビュー環境を自動生成。
+1. GitHub とホスティング基盤（現状: Vercel）を連携し、PR ごとにプレビュー環境を自動生成。
 2. 本番デプロイ前にプレビュー URL で動作確認し、非機能要件を満たすかチェック。
-3. 環境変数は Vercel の Environment（Preview / Production）に分けて登録する。
-4. トラブル時は `supabase logs` や Vercel ログを確認し、影響度を即時に共有する。
+3. 環境変数はホスティング基盤の Environment（現状: Vercel の Preview / Production）に分けて登録する。
+4. トラブル時は `supabase logs` やホスティング基盤のログ（現状: Vercel ログ）を確認し、影響度を即時に共有する。
+5. 注: 本番デプロイ先は [フェーズ8: デプロイ先の検討（コスト最適化）](./05-development-phases.md#フェーズ8-デプロイ先の検討コスト最適化) で再検討する。ホスティングを変更した場合は、本節の手順を移植・更新すること。
 
 ## 8. トラブルシューティング
 | 問題 | 対処 |
@@ -272,9 +274,10 @@ Supabase CLI を使ったローカル開発環境やマイグレーション管�
 | Supabase クォータ超過 | [01 要件定義](./01-requirements.md) のリスク対応に従い、プラン変更またはキャッシュ最適化を検討。 |
 
 ## 9. 運用 Runbook
-- **ISR 再生成**: `/api/revalidate` に対象タグ (`facilities` / `schedules`) を付与して POST。成功レスポンスと Vercel ダッシュボードを確認。
+- **ISR 再生成**: `/api/revalidate` に対象タグ (`facilities` / `schedules`) を付与して POST。成功レスポンスとホスティング基盤のダッシュボード（現状: Vercel ダッシュボード）を確認。
 - **ログ確認**: Supabase Studio の Logs タブでエラー/関数ログを確認し、Instagram 埋め込み失敗ログは 24 時間以内にレビュー。
-- **ロールバック**: 重大障害時は Vercel の Deploy ログから直前成功ビルドにロールバックし、Supabase `supabase db restore` で最新バックアップを適用。
+- **ロールバック**: 重大障害時はホスティング基盤の Deploy ログ（現状: Vercel の Deploy ログ）から直前成功ビルドにロールバックし、Supabase `supabase db restore` で最新バックアップを適用。
+- 注: 本番デプロイ先は [フェーズ8: デプロイ先の検討（コスト最適化）](./05-development-phases.md#フェーズ8-デプロイ先の検討コスト最適化) で再検討する。ホスティングを変更した場合は、本節の手順を移植・更新すること。
 - **連絡体制**: 管理者メール `ops@childcare-hub.example` と Slack `#childcare-hub-ops` に通知。SLO 逸脱時は 30 分以内に一次報告。
 
 ## 9.5 施設情報データ取得・投入フロー（フェーズ5）

@@ -16,8 +16,9 @@
 ### 2.1 構成概要
 - クライアント: Next.js 14 (App Router) を利用した `apps/web`
 - サーバー/API 層: Supabase REST / Edge Functions（MVP では REST 中心）
-- 画像/静的ホスティング: Supabase Storage + Vercel
-- インフラ運用: Vercel（CI/CD）、GitHub Actions（補助タスク）、Supabase バックエンド
+- 画像/静的ホスティング: Supabase Storage + ホスティング基盤（現状: Vercel、本番デプロイ先はフェーズ8で再検討）
+- インフラ運用: ホスティング基盤（現状: Vercel、CI/CD）、GitHub Actions（補助タスク）、Supabase バックエンド
+  - 注: 本番デプロイ先の選定は [フェーズ8: デプロイ先の検討（コスト最適化）](./05-development-phases.md#フェーズ8-デプロイ先の検討コスト最適化) で実施。Cloudflare Pages などに変更する場合は、本節をアップデートすること。
 - モノレポ管理: pnpm workspace（`apps/` と `packages/` を分離）
 
 ### 2.2 アーキテクチャ図
