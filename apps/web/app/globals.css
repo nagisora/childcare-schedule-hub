@@ -40,6 +40,10 @@ main {
 	border-radius: 1rem; /* 角丸（rounded-2xl相当） */
 }
 
+/* ========================================
+   ボタン共通スタイル
+   ======================================== */
+
 /* お気に入り解除ボタンのスタイル */
 .btn-remove {
 	border-radius: 0.375rem;
@@ -84,6 +88,10 @@ main {
 .btn-add:hover {
 	background-color: var(--color-primary-50);
 }
+
+/* ========================================
+   Instagram 埋め込み用レイアウト
+   ======================================== */
 
 /* Instagram埋め込みのサイズ調整（親要素に内接） */
 .instagram-embed-container {

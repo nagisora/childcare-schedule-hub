@@ -1,16 +1,6 @@
 import { supabase } from './supabase';
 import type { Schedule } from './types';
-import type { PostgrestError } from '@supabase/supabase-js';
-
-/**
- * Supabase エラーメッセージを統一フォーマットで整形する
- * @param operation 操作種別
- * @param error Supabase エラーオブジェクト
- * @returns 整形されたエラーメッセージ
- */
-function formatSupabaseError(operation: string, error: PostgrestError): string {
-	return `Failed to fetch schedule data (operation=${operation}): ${error.message}`;
-}
+import { createSupabaseErrorMessage } from './supabase-errors';
 
 /**
  * 施設IDで最新のスケジュールを取得する
@@ -18,24 +8,8 @@ function formatSupabaseError(operation: string, error: PostgrestError): string {
  * @returns 最新のスケジュール（見つからない場合は null）
  */
 export async function getLatestScheduleByFacilityId(facilityId: string): Promise<Schedule | null> {
-	const { data, error } = await supabase
-		.from('schedules')
-		.select('*')
-		.eq('facility_id', facilityId)
-		.eq('status', 'published')
-		.order('published_month', { ascending: false })
-		.limit(1)
-		.single();
-
-	if (error) {
-		if (error.code === 'PGRST116') {
-			// レコードが見つからない場合
-			return null;
-		}
-		throw new Error(formatSupabaseError('GET_LATEST_BY_FACILITY_ID', error));
-	}
-
-	return data;
+	const scheduleMap = await getLatestSchedulesByFacilityIds([facilityId]);
+	return scheduleMap[facilityId] || null;
 }
 
 /**
@@ -58,7 +32,7 @@ export async function getLatestSchedulesByFacilityIds(
 		.order('published_month', { ascending: false });
 
 	if (error) {
-		throw new Error(formatSupabaseError('GET_LATEST_BY_FACILITY_IDS', error));
+		throw new Error(createSupabaseErrorMessage('schedule', 'GET_LATEST_BY_FACILITY_IDS', error));
 	}
 
 	if (!data || data.length === 0) {
@@ -87,23 +61,8 @@ export async function getScheduleByFacilityIdAndMonth(
 	facilityId: string,
 	targetMonth: string
 ): Promise<Schedule | null> {
-	const { data, error } = await supabase
-		.from('schedules')
-		.select('*')
-		.eq('facility_id', facilityId)
-		.eq('published_month', targetMonth)
-		.eq('status', 'published')
-		.single();
-
-	if (error) {
-		if (error.code === 'PGRST116') {
-			// レコードが見つからない場合
-			return null;
-		}
-		throw new Error(formatSupabaseError('GET_BY_FACILITY_ID_AND_MONTH', error));
-	}
-
-	return data;
+	const scheduleMap = await getSchedulesByFacilityIdsAndMonth([facilityId], targetMonth);
+	return scheduleMap[facilityId] || null;
 }
 
 /**
@@ -128,7 +87,7 @@ export async function getSchedulesByFacilityIdsAndMonth(
 		.eq('status', 'published');
 
 	if (error) {
-		throw new Error(formatSupabaseError('GET_BY_FACILITY_IDS_AND_MONTH', error));
+		throw new Error(createSupabaseErrorMessage('schedule', 'GET_BY_FACILITY_IDS_AND_MONTH', error));
 	}
 
 	if (!data || data.length === 0) {

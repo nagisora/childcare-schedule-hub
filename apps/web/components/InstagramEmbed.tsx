@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import Script from 'next/script';
+import { isInstagramPostUrl, processInstagramEmbed, isInstagramSDKLoaded } from '../lib/instagram-utils';
 
 type InstagramEmbedProps = {
 	postUrl: string;
@@ -17,28 +18,29 @@ export function InstagramEmbed({ postUrl, className = '' }: InstagramEmbedProps)
 	const containerRef = useRef<HTMLDivElement>(null);
 
 	// 投稿URLのバリデーション
-	const isValidUrl = postUrl.startsWith('https://www.instagram.com/p/') || 
-	                   postUrl.startsWith('https://instagram.com/p/');
+	const isValidUrl = isInstagramPostUrl(postUrl);
 
 	useEffect(() => {
+		if (!containerRef.current) {
+			return;
+		}
+
 		// Instagram SDKが読み込まれた後に埋め込みを処理
 		const processEmbed = () => {
-			// @ts-expect-error - Instagram SDKのグローバル関数
-			if (window.instgrm?.Embeds?.process && containerRef.current) {
-				// @ts-expect-error - Instagram SDKのグローバル関数
-				window.instgrm.Embeds.process(containerRef.current);
+			if (containerRef.current) {
+				processInstagramEmbed(containerRef.current);
 			}
 		};
 
 		// 既にSDKが読み込まれている場合は即座に処理
-		// @ts-expect-error - Instagram SDKのグローバル関数
-		if (window.instgrm?.Embeds?.process) {
+		// Script コンポーネントの strategy="lazyOnload" により、SDK の読み込みタイミングが
+		// 遅延する可能性があるため、ポーリングで待機する
+		if (isInstagramSDKLoaded()) {
 			processEmbed();
 		} else {
-			// SDK読み込み後に処理
+			// SDK読み込み後に処理（100ms間隔でポーリング）
 			const checkInterval = setInterval(() => {
-				// @ts-expect-error - Instagram SDKのグローバル関数
-				if (window.instgrm?.Embeds?.process) {
+				if (isInstagramSDKLoaded()) {
 					clearInterval(checkInterval);
 					processEmbed();
 				}

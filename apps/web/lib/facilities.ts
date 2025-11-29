@@ -1,21 +1,12 @@
 import { supabase } from './supabase';
 import type { Facility } from './types';
-import type { PostgrestError } from '@supabase/supabase-js';
+import { createSupabaseErrorMessage } from './supabase-errors';
 
 /**
  * 施設データ取得時に選択するフィールド（共通定義）
+ * Facility 型の主要フィールドに対応
  */
 const FACILITY_FIELDS_FOR_LIST = 'id,name,ward_name,address_full_raw,phone,instagram_url,website_url,facility_type,detail_page_url';
-
-/**
- * Supabase エラーメッセージを統一フォーマットで整形する
- * @param operation 操作種別（'LIST' | 'GET_BY_ID'）
- * @param error Supabase エラーオブジェクト
- * @returns 整形されたエラーメッセージ
- */
-function formatSupabaseError(operation: 'LIST' | 'GET_BY_ID', error: PostgrestError): string {
-	return `Failed to fetch facility data (operation=${operation}): ${error.message}`;
-}
 
 /**
  * Supabase から拠点一覧を取得する
@@ -29,7 +20,7 @@ export async function getFacilities(): Promise<Facility[]> {
 		.order('name', { ascending: true });
 
 	if (error) {
-		throw new Error(formatSupabaseError('LIST', error));
+		throw new Error(createSupabaseErrorMessage('facility', 'LIST', error));
 	}
 
 	return data || [];
@@ -52,7 +43,7 @@ export async function getFacilityById(id: string): Promise<Facility | null> {
 			// レコードが見つからない場合
 			return null;
 		}
-		throw new Error(formatSupabaseError('GET_BY_ID', error));
+		throw new Error(createSupabaseErrorMessage('facility', 'GET_BY_ID', error));
 	}
 
 	return data;
