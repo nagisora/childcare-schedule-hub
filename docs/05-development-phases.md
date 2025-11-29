@@ -145,6 +145,9 @@
   - 月切り替え機能（前月・次月）を実装（初期表示は今月）
 - 手動でのスケジュールURL登録フローの確立
   - `schedules` テーブルへの手動登録手順を [04 開発ガイド](./04-development.md) 9.6節に記載
+- 実装メモ:
+  - `app/facilities/[id]/page.tsx` の `params` は Next.js の実ランタイム仕様（Promise で渡される）に合わせて `Promise<{ id: string }>` とし、
+    `pnpm dev` 実行時の警告を避けるために `await params` で展開する実装としている（phase6 のリファクタ計画で検討した同期型 `params` 案からの差分）。
 
 **開発セッション**: [`docs/dev-sessions/20251128-session-phase6-vercel-deploy.md`](./dev-sessions/20251128-session-phase6-vercel-deploy.md) を参照
 

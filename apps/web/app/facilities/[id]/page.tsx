@@ -7,13 +7,16 @@ import { getWardName } from '../../../lib/facilities-utils';
  * 拠点詳細ページ（ポストMVP想定）
  * MVP では最小限の実装（拠点情報とスケジュール表示のプレースホルダー）
  * [02 設計資料](../../../docs/02-design.md) 4.2節を参照
- * 
+ *
  * 今後の拡張予定:
  * - スケジュールセクション: Instagram埋め込みや月切り替えUIの追加
  * - リンクセクション: 必要に応じてInstagram埋め込みや詳細情報の追加
+ *
+ * Next.js 15 以降では、動的ルートの params は Promise として渡されるため、
+ * プロパティを参照する前に await する必要がある。
  */
-export default async function FacilityDetailPage({ params }: { params: { id: string } }) {
-	const { id } = params;
+export default async function FacilityDetailPage({ params }: { params: Promise<{ id: string }> }) {
+	const { id } = await params;
 	const facility = await getFacilityById(id);
 
 	if (!facility) {
