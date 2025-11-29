@@ -234,7 +234,7 @@ WHERE facility_id = 'facility-uuid-here'
 
 ## 04-development.md への統合
 
-本ドキュメントの内容は、確定後に [`docs/04-development.md`](../04-development.md) の 9.6節「Instagram連携によるスケジュールURL取得・更新フロー（フェーズ6）」として統合済み。
+本ドキュメントの内容は、確定後に [`docs/04-development.md`](../04-development.md) の 9.6節「Instagram連携 & お気に入りでのスケジュール埋め込み（フェーズ6）」として統合済み。
 
 統合日: 2025-01-22
 

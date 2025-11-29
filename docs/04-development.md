@@ -417,7 +417,7 @@ name,facility_type,prefecture_code,municipality_code,ward_code,postal_code,prefe
 中区子育て支援センター,childcare_ouen_base,23,23100,23101,460-0001,愛知県,名古屋市,中区,三の丸1-1-1,〒460-0001 名古屋市中区三の丸1-1-1,中区,〒460-0001 名古屋市中区三の丸1-1-1,052-123-4567,,,https://www.kosodate.city.nagoya.jp/play/...
 ```
 
-## 9.6 Instagram連携によるスケジュールURL取得・更新フロー（フェーズ6）
+## 9.6 Instagram連携 & お気に入りでのスケジュール埋め込み（フェーズ6）
 
 本節は、Instagram連携によるスケジュールURL取得・更新の運用手順をまとめる。詳細な調査・設計資料は [`docs/instagram-integration/`](./instagram-integration/README.md) を参照。
 
