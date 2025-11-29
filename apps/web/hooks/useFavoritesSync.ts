@@ -46,7 +46,34 @@ export function useFavoritesSync(allFacilities: Facility[]) {
 	const [selectedMonths, setSelectedMonths] = useState<Record<string, string>>({});
 	const lastStorageRef = useRef<string>('');
 
+	// 選択月をマージする純粋関数（既存の選択月を保持しつつ、新規施設のみ今月を設定）
+	// @param facilityIds 最新のお気に入り施設IDの配列
+	// @param prev 現在の選択月マップ
+	// @returns 次の選択月マップと新規追加された施設IDの配列
+	const mergeSelectedMonths = useCallback(
+		(facilityIds: string[], prev: Record<string, string>): { next: Record<string, string>; newIds: string[] } => {
+			const { year, month } = getCurrentYearMonth();
+			const currentMonth = getMonthFirstDay(year, month);
+			const next: Record<string, string> = {};
+			const newIds: string[] = [];
+
+			for (const id of facilityIds) {
+				// 既存の選択月があれば維持、なければ今月を設定
+				if (prev[id]) {
+					next[id] = prev[id];
+				} else {
+					next[id] = currentMonth;
+					newIds.push(id);
+				}
+			}
+
+			return { next, newIds };
+		},
+		[]
+	);
+
 	// 施設ごとの選択月を初期化（今月をデフォルト）
+	// 初期ロード時のみ使用（updateFavoritesAndSchedules からは呼ばない）
 	const initializeSelectedMonths = useCallback((facilityIds: string[]) => {
 		const { year, month } = getCurrentYearMonth();
 		const currentMonth = getMonthFirstDay(year, month);
@@ -82,14 +109,28 @@ export function useFavoritesSync(allFacilities: Facility[]) {
 	}, []);
 
 	// お気に入りとスケジュールを更新する共通処理
+	// 既存の選択月を保持しつつ、新規施設のみ今月を設定
 	const updateFavoritesAndSchedules = useCallback(
 		(updatedFavorites: FavoriteFacility[]) => {
 			setFavorites(updatedFavorites);
 			const facilityIds = updatedFavorites.map((f) => f.facility.id);
-			const currentMonth = initializeSelectedMonths(facilityIds);
-			fetchSchedules(facilityIds, currentMonth);
+
+			// 選択月をマージ（既存の選択月を保持しつつ、新規施設のみ今月を設定）
+			setSelectedMonths((prev) => {
+				const { next, newIds } = mergeSelectedMonths(facilityIds, prev);
+
+				// 新規追加された施設のスケジュールを取得（今月）
+				// 既存施設のスケジュールは schedules 状態に既に保持されているため、取得不要
+				if (newIds.length > 0) {
+					const { year, month } = getCurrentYearMonth();
+					const currentMonth = getMonthFirstDay(year, month);
+					fetchSchedules(newIds, currentMonth);
+				}
+
+				return next;
+			});
 		},
-		[initializeSelectedMonths, fetchSchedules]
+		[mergeSelectedMonths, fetchSchedules]
 	);
 
 	useEffect(() => {
