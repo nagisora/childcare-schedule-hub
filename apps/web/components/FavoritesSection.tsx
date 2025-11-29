@@ -17,6 +17,7 @@ type FavoritesSectionProps = {
  * お気に入りセクションコンポーネント
  * お気に入り登録済みの施設とスケジュールを表示
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function FavoritesSection({ initialFavorites: _initialFavorites, allFacilities }: FavoritesSectionProps) {
 	// initialFavorites は互換性のため props に残しているが、useFavoritesSync が localStorage から読み込むため使用しない
 	const { favorites, schedules, selectedMonths, handleRemove, handleMonthChange } =
