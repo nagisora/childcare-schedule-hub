@@ -119,7 +119,7 @@ SUPABASE_DB_PASSWORD=""        # Supabase CLI を使う場合
 ### 3.4 環境別運用
 - 現在の仮MVP環境（Vercel）では、`Production` / `Preview` / `Development` に同一キーを登録し、Service Role Key は `Encrypted` として保存する。
 - Preview デプロイで動作検証する際は、必要な環境変数が設定されているか `vercel env pull` で確認する。
-- 注: 本番デプロイ先は [フェーズ8: デプロイ先の検討（コスト最適化）](./05-development-phases.md#フェーズ8-デプロイ先の検討コスト最適化) で再検討する。ホスティングを変更した場合は、本節の手順を移植・更新すること。
+- 注: 本番デプロイ先は [フェーズ11: デプロイ先の検討（コスト最適化）](./05-development-phases.md#フェーズ11-デプロイ先の検討コスト最適化) で再検討する。ホスティングを変更した場合は、本節の手順を移植・更新すること。
 
 ## 4. データベースと Supabase CLI
 
@@ -277,7 +277,7 @@ Supabase CLI を使ったローカル開発環境やマイグレーション管�
 - **ISR 再生成**: `/api/revalidate` に対象タグ (`facilities` / `schedules`) を付与して POST。成功レスポンスとホスティング基盤のダッシュボード（現状: Vercel ダッシュボード）を確認。
 - **ログ確認**: Supabase Studio の Logs タブでエラー/関数ログを確認し、Instagram 埋め込み失敗ログは 24 時間以内にレビュー。
 - **ロールバック**: 重大障害時はホスティング基盤の Deploy ログ（現状: Vercel の Deploy ログ）から直前成功ビルドにロールバックし、Supabase `supabase db restore` で最新バックアップを適用。
-- 注: 本番デプロイ先は [フェーズ8: デプロイ先の検討（コスト最適化）](./05-development-phases.md#フェーズ8-デプロイ先の検討コスト最適化) で再検討する。ホスティングを変更した場合は、本節の手順を移植・更新すること。
+- 注: 本番デプロイ先は [フェーズ11: デプロイ先の検討（コスト最適化）](./05-development-phases.md#フェーズ11-デプロイ先の検討コスト最適化) で再検討する。ホスティングを変更した場合は、本節の手順を移植・更新すること。
 - **連絡体制**: 管理者メール `ops@childcare-hub.example` と Slack `#childcare-hub-ops` に通知。SLO 逸脱時は 30 分以内に一次報告。
 
 ## 9.5 施設情報データ取得・投入フロー（フェーズ5）
