@@ -70,6 +70,10 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 				))}
 			</nav>
 
+			<p className="mb-2 text-xs text-slate-600">
+				※ 各区の一番上は「応援」、それ以外は「支援」拠点です
+			</p>
+
 			<div className="overflow-x-auto rounded-xl border border-primary-100 bg-white shadow-sm">
 				<table className="w-full text-sm">
 					<thead className="bg-slate-50 text-slate-600">
@@ -84,16 +88,24 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 					<tbody>
 						{wards.map((ward) => (
 							<React.Fragment key={ward}>
-								<tr className="bg-slate-50/70 border-t">
-									<td colSpan={5} className="px-3 py-2 font-semibold text-slate-700" id={`ward-${ward}`}>
+								<tr className="bg-primary-50 border-t border-l-4 border-primary-300">
+									<td colSpan={5} className="px-3 py-3 text-sm font-bold text-primary-900 tracking-wide" id={`ward-${ward}`}>
 										{ward}
 									</td>
 								</tr>
-								{(facilitiesByWard[ward] ?? []).map((f) => {
-									const isFavorite = favoriteIds.has(f.id);
-									return (
-										<tr key={f.id} className="border-t">
-										<td className="px-3 py-2 font-medium text-slate-900">{f.name}</td>
+								{(() => {
+									const facilities = facilitiesByWard[ward] ?? [];
+									const ouen = facilities.filter(f => f.facility_type === 'childcare_ouen_base');
+									const others = facilities.filter(f => f.facility_type !== 'childcare_ouen_base');
+									const orderedFacilities = [...ouen, ...others];
+									return orderedFacilities.map((f) => {
+										const isFavorite = favoriteIds.has(f.id);
+										const isOuenBase = f.facility_type === 'childcare_ouen_base';
+										return (
+											<tr key={f.id} className={`border-t ${isOuenBase ? 'bg-primary-50/60' : ''}`}>
+											<td className="px-3 py-2 font-medium text-slate-900">
+												{f.name}
+											</td>
 										<td className="px-3 py-2 text-slate-700 whitespace-nowrap">{getWardName(f.ward_name)}</td>
 										<td className="px-3 py-2 text-slate-700">{f.address_full_raw}</td>
 											<td className="px-3 py-2 text-slate-700 whitespace-nowrap">{f.phone || '-'}</td>
@@ -112,7 +124,8 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 										</td>
 									</tr>
 									);
-								})}
+									});
+								})()}
 							</React.Fragment>
 						))}
 					</tbody>

@@ -135,6 +135,16 @@ function extractAddressRest(address: string, wardName: string, prefix: string = 
 }
 
 /**
+ * 施設名を正規化する（括弧内があれば括弧内のみ、なければ元の文字列）
+ * 例: "千種区子育て応援拠点 （もんもの木）" → "もんもの木"
+ * 例: "施設名" → "施設名"
+ */
+function normalizeNagoyaFacilityName(rawName: string): string {
+  const match = rawName.match(/（(.+?)）/);
+  return match ? match[1].trim() : rawName.trim();
+}
+
+/**
  * 住所文字列から区名を抽出する（名古屋市の場合）
  */
 function extractWardName(address: string): { wardName: string | null; wardCode: string | null; addressRest: string } {
@@ -182,7 +192,8 @@ function extractFacilityFromRow(
 
   const nameCell = $(cells[0]);
   const nameLink = nameCell.find('a').first();
-  const name = nameLink.text().trim() || nameCell.text().trim();
+  const rawName = nameLink.text().trim() || nameCell.text().trim();
+  const name = normalizeNagoyaFacilityName(rawName);
   const detailPageUrl = nameLink.attr('href') || null;
   // 相対URLの場合は絶対URLに変換
   const absoluteDetailPageUrl = detailPageUrl

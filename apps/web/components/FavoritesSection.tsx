@@ -1,121 +1,28 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { matchFavoritesWithFacilities } from '../lib/favorites';
-import { getWardName } from '../lib/facilities-utils';
-import type { FavoriteFacility } from '../lib/favorites';
+import { getMonthFirstDay, getCurrentYearMonth } from '../lib/date-utils';
+import { useFavoritesSync } from '../hooks/useFavoritesSync';
+import { FavoriteFacilityCard } from './FavoriteFacilityCard';
 import type { Facility } from '../lib/types';
-import {
-	readFavoritesFromStorage,
-	updateFavoritesInStorage,
-	removeFavorite,
-	FAVORITES_UPDATED_EVENT,
-} from '../lib/storage';
+import type { FavoriteFacility } from '../lib/favorites';
 
 type FavoritesSectionProps = {
+	/** 初期お気に入り（互換性のため残しているが、useFavoritesSync が localStorage から読み込むため実際には使用されない） */
 	initialFavorites: FavoriteFacility[];
 	allFacilities: Facility[];
 };
 
+
 /**
- * localStorage からお気に入りを読み込み、Facility データとマッチングする
- * @param lastSnapshot 前回のスナップショット（ID文字列のカンマ区切り）
- * @param allFacilities 全拠点一覧
- * @returns マッチングされたお気に入り配列と新しいスナップショット
+ * お気に入りセクションコンポーネント
+ * お気に入り登録済みの施設とスケジュールを表示
  */
-function getFavoritesFromStorageSnapshot(
-	lastSnapshot: string,
-	allFacilities: Facility[]
-): { favorites: FavoriteFacility[]; snapshot: string } {
-	const currentStorageItems = readFavoritesFromStorage();
-	const currentIds = currentStorageItems.map((f) => f.facilityId).sort().join(',');
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function FavoritesSection({ initialFavorites: _initialFavorites, allFacilities }: FavoritesSectionProps) {
+	// initialFavorites は互換性のため props に残しているが、useFavoritesSync が localStorage から読み込むため使用しない
+	const { favorites, schedules, selectedMonths, handleRemove, handleMonthChange } =
+		useFavoritesSync(allFacilities);
 
-	// 前回のlocalStorage値と比較して変更があった場合のみ更新
-	if (currentIds !== lastSnapshot) {
-		const updatedFavorites = matchFavoritesWithFacilities(currentStorageItems, allFacilities);
-		return { favorites: updatedFavorites, snapshot: currentIds };
-	}
-
-	// 変更がない場合は既存の状態を返す（呼び出し側で判定）
-	return { favorites: [], snapshot: lastSnapshot };
-}
-
-export function FavoritesSection({ initialFavorites, allFacilities }: FavoritesSectionProps) {
-	// お気に入りをクライアント側の状態として管理（単一のソース・オブ・トゥルース）
-	const [favorites, setFavorites] = useState<FavoriteFacility[]>(initialFavorites);
-
-	// localStorageの変更を監視して状態を同期（FacilitiesTableからの変更を検知）
-	const lastStorageRef = useRef<string>('');
-
-	useEffect(() => {
-		// 初期同期: localStorageから読み込んで状態を初期化
-		const initialStorageItems = readFavoritesFromStorage();
-		const initialIds = initialStorageItems.map((f) => f.facilityId).sort().join(',');
-		lastStorageRef.current = initialIds;
-
-		if (initialStorageItems.length > 0) {
-			const loadedFavorites = matchFavoritesWithFacilities(initialStorageItems, allFacilities);
-			setFavorites(loadedFavorites);
-		} else {
-			setFavorites([]);
-		}
-
-		// 変更検知ロジック: localStorageの変更を検知して状態を更新
-		const checkStorageChanges = () => {
-			const { favorites: updatedFavorites, snapshot: newSnapshot } = getFavoritesFromStorageSnapshot(
-				lastStorageRef.current,
-				allFacilities
-			);
-
-			// localStorageのスナップショットが変わった場合は状態を更新
-			if (newSnapshot !== lastStorageRef.current) {
-				lastStorageRef.current = newSnapshot;
-				// マッチング結果が空の場合は再計算（allFacilities が更新された可能性）
-				if (updatedFavorites.length === 0 && newSnapshot !== '') {
-					const currentStorageItems = readFavoritesFromStorage();
-					const recalculated = matchFavoritesWithFacilities(currentStorageItems, allFacilities);
-					setFavorites(recalculated);
-				} else {
-					setFavorites(updatedFavorites);
-				}
-			}
-		};
-
-		// storageイベントで他のタブからの変更を検知
-		const handleStorageEvent = (e: StorageEvent) => {
-			if (e.key === 'csh_favorites') {
-				checkStorageChanges();
-			}
-		};
-		window.addEventListener('storage', handleStorageEvent);
-
-		// カスタムイベントで同一タブ内の変更を検知（FacilitiesTableからの通知）
-		const handleFavoritesUpdated = () => {
-			checkStorageChanges();
-		};
-		window.addEventListener(FAVORITES_UPDATED_EVENT, handleFavoritesUpdated);
-
-		// 定期的にチェック（フォールバック）
-		const interval = setInterval(checkStorageChanges, 500);
-
-		return () => {
-			clearInterval(interval);
-			window.removeEventListener('storage', handleStorageEvent);
-			window.removeEventListener(FAVORITES_UPDATED_EVENT, handleFavoritesUpdated);
-		};
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [allFacilities]); // allFacilitiesが変更されたら再初期化
-
-	const handleRemove = (facilityId: string) => {
-		const currentStorageItems = readFavoritesFromStorage();
-		const updated = removeFavorite(facilityId, currentStorageItems);
-		updateFavoritesInStorage(updated);
-		// 状態を即座に更新
-		const updatedFavorites = matchFavoritesWithFacilities(updated, allFacilities);
-		setFavorites(updatedFavorites);
-		// カスタムイベントを発火してFacilitiesTableに通知
-		window.dispatchEvent(new CustomEvent(FAVORITES_UPDATED_EVENT));
-	};
 
 	if (favorites.length === 0) {
 		return (
@@ -127,36 +34,20 @@ export function FavoritesSection({ initialFavorites, allFacilities }: FavoritesS
 		);
 	}
 
+	const { year: currentYear, month: currentMonth } = getCurrentYearMonth();
+	const defaultMonth = getMonthFirstDay(currentYear, currentMonth);
+
 	return (
 		<div className="space-y-4">
 			{favorites.map((item) => (
-				<article key={item.facility.id} className="rounded-xl border border-primary-100 bg-white p-3 shadow-sm">
-					<header className="flex items-center justify-between">
-						<h3 className="text-sm font-medium text-slate-900">
-							<a href={`/facilities/${item.facility.id}`} className="hover:text-blue-600 hover:underline">
-								{item.facility.name} — {getWardName(item.facility.ward_name)}
-							</a>
-						</h3>
-						<button
-							aria-label={`お気に入りから${item.facility.name}を削除`}
-							className="btn-remove"
-							onClick={() => handleRemove(item.facility.id)}
-						>
-							解除
-						</button>
-					</header>
-					<div className="mt-3 h-64 rounded-lg bg-slate-50 flex items-center justify-center text-xs text-slate-400">
-						<div className="text-center">
-							<p className="mb-2">Instagram 埋め込み（プレースホルダー）</p>
-							<a
-								href={`/facilities/${item.facility.id}`}
-								className="text-blue-600 hover:text-blue-800 underline"
-							>
-								スケジュール詳細を見る
-							</a>
-						</div>
-					</div>
-				</article>
+				<FavoriteFacilityCard
+					key={item.facility.id}
+					favorite={item}
+					schedule={schedules[item.facility.id]}
+					selectedMonth={selectedMonths[item.facility.id] || defaultMonth}
+					onRemove={handleRemove}
+					onMonthChange={handleMonthChange}
+				/>
 			))}
 		</div>
 	);
