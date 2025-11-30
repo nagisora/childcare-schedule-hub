@@ -1,5 +1,7 @@
 'use client';
 
+import React from 'react';
+
 type LoadingSkeletonProps = {
 	/** 行数 */
 	rows?: number;

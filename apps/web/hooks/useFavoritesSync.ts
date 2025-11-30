@@ -44,6 +44,10 @@ export function useFavoritesSync(allFacilities: Facility[]) {
 	const [favorites, setFavorites] = useState<FavoriteFacility[]>([]);
 	const [schedules, setSchedules] = useState<Record<string, Schedule>>({});
 	const [selectedMonths, setSelectedMonths] = useState<Record<string, string>>({});
+	// 施設IDごとのローディング状態
+	const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
+	// 施設IDごとのエラー状態
+	const [errors, setErrors] = useState<Record<string, Error | null>>({});
 	const lastStorageRef = useRef<string>('');
 	// レースコンディション対策: 選択月の最新値を保持
 	const selectedMonthsRef = useRef<Record<string, string>>({});
@@ -95,6 +99,24 @@ export function useFavoritesSync(allFacilities: Facility[]) {
 			return;
 		}
 
+		// ローディング状態を開始
+		setLoadingStates((prev) => {
+			const updated = { ...prev };
+			for (const id of facilityIds) {
+				updated[id] = true;
+			}
+			return updated;
+		});
+
+		// エラー状態をクリア
+		setErrors((prev) => {
+			const updated = { ...prev };
+			for (const id of facilityIds) {
+				updated[id] = null;
+			}
+			return updated;
+		});
+
 		try {
 			let scheduleMap: Record<string, Schedule>;
 			if (targetMonth) {
@@ -121,11 +143,29 @@ export function useFavoritesSync(allFacilities: Facility[]) {
 			});
 		} catch (error) {
 			console.error('Failed to fetch schedules:', error);
+			// エラー状態を設定
+			const errorObj = error instanceof Error ? error : new Error('スケジュールの取得に失敗しました');
+			setErrors((prev) => {
+				const updated = { ...prev };
+				for (const id of facilityIds) {
+					updated[id] = errorObj;
+				}
+				return updated;
+			});
 			// エラー時も該当施設のスケジュールのみを削除（他の施設のスケジュールは保持）
 			setSchedules((prev) => {
 				const updated = { ...prev };
 				for (const id of facilityIds) {
 					delete updated[id];
+				}
+				return updated;
+			});
+		} finally {
+			// ローディング状態を終了
+			setLoadingStates((prev) => {
+				const updated = { ...prev };
+				for (const id of facilityIds) {
+					updated[id] = false;
 				}
 				return updated;
 			});
@@ -257,12 +297,17 @@ export function useFavoritesSync(allFacilities: Facility[]) {
 
 	// 月の切り替えハンドラ
 	// レースコンディション対策: リクエスト完了時に選択月が変わっていない場合のみスケジュールを更新
-	const handleMonthChange = useCallback(
+		const handleMonthChange = useCallback(
 		async (facilityId: string, year: number, month: number) => {
 			const targetMonth = getMonthFirstDay(year, month);
 
 			// 選択月を即座に更新
 			setSelectedMonths((prev) => ({ ...prev, [facilityId]: targetMonth }));
+
+			// ローディング状態を開始
+			setLoadingStates((prev) => ({ ...prev, [facilityId]: true }));
+			// エラー状態をクリア
+			setErrors((prev) => ({ ...prev, [facilityId]: null }));
 
 			// 該当施設のスケジュールを取得
 			try {
@@ -271,6 +316,7 @@ export function useFavoritesSync(allFacilities: Facility[]) {
 				// レースコンディション対策: リクエスト完了時に選択月が変わっていない場合のみ更新
 				if (selectedMonthsRef.current[facilityId] !== targetMonth) {
 					// ユーザーが別の月を選択していた場合は結果を破棄
+					setLoadingStates((prev) => ({ ...prev, [facilityId]: false }));
 					return;
 				}
 
@@ -290,14 +336,21 @@ export function useFavoritesSync(allFacilities: Facility[]) {
 				// レースコンディション対策: エラー時も選択月が変わっていない場合のみクリア
 				if (selectedMonthsRef.current[facilityId] !== targetMonth) {
 					// ユーザーが別の月を選択していた場合は結果を破棄
+					setLoadingStates((prev) => ({ ...prev, [facilityId]: false }));
 					return;
 				}
+				// エラー状態を設定
+				const errorObj = error instanceof Error ? error : new Error('スケジュールの取得に失敗しました');
+				setErrors((prev) => ({ ...prev, [facilityId]: errorObj }));
 				// エラー時も該当施設のスケジュールをクリア
 				setSchedules((prev) => {
 					const updated = { ...prev };
 					delete updated[facilityId];
 					return updated;
 				});
+			} finally {
+				// ローディング状態を終了
+				setLoadingStates((prev) => ({ ...prev, [facilityId]: false }));
 			}
 		},
 		[]
@@ -307,6 +360,8 @@ export function useFavoritesSync(allFacilities: Facility[]) {
 		favorites,
 		schedules,
 		selectedMonths,
+		loadingStates,
+		errors,
 		handleRemove,
 		handleMonthChange,
 	};

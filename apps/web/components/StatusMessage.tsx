@@ -1,5 +1,7 @@
 'use client';
 
+import React from 'react';
+
 type StatusMessageProps = {
 	/** メッセージタイプ */
 	type: 'error' | 'success' | 'info' | 'warning';

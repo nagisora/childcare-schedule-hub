@@ -20,7 +20,7 @@ type FavoritesSectionProps = {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function FavoritesSection({ initialFavorites: _initialFavorites, allFacilities }: FavoritesSectionProps) {
 	// initialFavorites は互換性のため props に残しているが、useFavoritesSync が localStorage から読み込むため使用しない
-	const { favorites, schedules, selectedMonths, handleRemove, handleMonthChange } =
+	const { favorites, schedules, selectedMonths, loadingStates, errors, handleRemove, handleMonthChange } =
 		useFavoritesSync(allFacilities);
 
 
@@ -45,6 +45,8 @@ export function FavoritesSection({ initialFavorites: _initialFavorites, allFacil
 					favorite={item}
 					schedule={schedules[item.facility.id]}
 					selectedMonth={selectedMonths[item.facility.id] || defaultMonth}
+					isLoading={loadingStates[item.facility.id] || false}
+					error={errors[item.facility.id] || null}
 					onRemove={handleRemove}
 					onMonthChange={handleMonthChange}
 				/>

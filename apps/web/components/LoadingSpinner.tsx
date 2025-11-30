@@ -1,5 +1,7 @@
 'use client';
 
+import React from 'react';
+
 type LoadingSpinnerProps = {
 	/** ローディングメッセージ（任意） */
 	message?: string;
