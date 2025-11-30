@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { addFavorite, readFavoritesFromStorage, updateFavoritesInStorage, FAVORITES_UPDATED_EVENT } from '../lib/storage';
+import { addFavorite, removeFavorite, readFavoritesFromStorage, updateFavoritesInStorage, FAVORITES_UPDATED_EVENT } from '../lib/storage';
 import { getWardName } from '../lib/facilities-utils';
 import type { FacilitiesByWard } from '../lib/types';
 
@@ -52,6 +52,17 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 
 		updateFavoritesInStorage(updated);
 		// クライアント側の状態も即時更新して「追加済み」を反映
+		setFavoriteIds(new Set(updated.map((f) => f.facilityId)));
+		// カスタムイベントを発火してFavoritesSectionに通知
+		window.dispatchEvent(new CustomEvent(FAVORITES_UPDATED_EVENT));
+	};
+
+	const handleRemoveFavorite = (facilityId: string) => {
+		const currentFavorites = readFavoritesFromStorage();
+		const updated = removeFavorite(facilityId, currentFavorites);
+
+		updateFavoritesInStorage(updated);
+		// クライアント側の状態も即時更新
 		setFavoriteIds(new Set(updated.map((f) => f.facilityId)));
 		// カスタムイベントを発火してFavoritesSectionに通知
 		window.dispatchEvent(new CustomEvent(FAVORITES_UPDATED_EVENT));
@@ -111,9 +122,15 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 										return (
 											<tr key={f.id} className={`border-t ${isOuenBase ? 'bg-primary-50/60' : ''}`}>
 												{/* 区名・住所・電話の列を削除: 区名は上記のグルーピング行で表示、住所・電話は詳細ページで確認可能 */}
-												<td className="px-3 py-2">
+												<td className="px-3 py-2 text-center">
 													{isFavorite ? (
-														<span className="text-xs text-slate-400">追加済み</span>
+														<button
+															aria-label={`${f.name}をお気に入りから削除`}
+															className="btn-remove"
+															onClick={() => handleRemoveFavorite(f.id)}
+														>
+															−
+														</button>
 													) : (
 														<button
 															aria-label={`${f.name}をお気に入りに追加`}
