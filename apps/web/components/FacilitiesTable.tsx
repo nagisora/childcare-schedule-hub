@@ -78,10 +78,10 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 				<table className="w-full text-sm">
 					<thead className="bg-slate-50 text-slate-600">
 						<tr>
-							{/* 区名は各行の上にあるグルーピング行（bg-primary-50）で表示されているため、区名の列は不要 */}
-							<th className="text-left font-medium px-3 py-2">拠点名</th>
 							{/* 住所・電話は詳細ページ（/facilities/[id]）で確認できるため、一覧では非表示 */}
 							<th className="text-left font-medium px-3 py-2">お気に入り</th>
+							{/* 区名は各行の上にあるグルーピング行（bg-primary-50）で表示されているため、区名の列は不要 */}
+							<th className="text-left font-medium px-3 py-2">拠点名</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -103,9 +103,6 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 										const isOuenBase = f.facility_type === 'childcare_ouen_base';
 										return (
 											<tr key={f.id} className={`border-t ${isOuenBase ? 'bg-primary-50/60' : ''}`}>
-												<td className="px-3 py-2 font-medium text-slate-900">
-													{f.name}
-												</td>
 												{/* 区名・住所・電話の列を削除: 区名は上記のグルーピング行で表示、住所・電話は詳細ページで確認可能 */}
 												<td className="px-3 py-2">
 													{isFavorite ? (
@@ -119,6 +116,9 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 															＋
 														</button>
 													)}
+												</td>
+												<td className="px-3 py-2 font-medium text-slate-900">
+													{f.name}
 												</td>
 											</tr>
 										);
