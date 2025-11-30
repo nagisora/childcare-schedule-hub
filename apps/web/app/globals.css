@@ -58,6 +58,7 @@ main {
 	line-height: 1rem;
 	font-weight: 500;
 	color: var(--color-primary-600);
+	transition: background-color 0.2s, border-color 0.2s;
 }
 
 .btn-remove:hover {
@@ -67,6 +68,11 @@ main {
 
 .btn-remove:active {
 	background-color: var(--color-primary-100);
+}
+
+.btn-remove:focus {
+	outline: 2px solid var(--color-primary-500);
+	outline-offset: 2px;
 }
 
 /* お気に入り追加ボタンのスタイル */
@@ -83,10 +89,16 @@ main {
 	line-height: 1rem;
 	color: var(--color-primary-700);
 	cursor: pointer;
+	transition: background-color 0.2s, border-color 0.2s;
 }
 
 .btn-add:hover {
 	background-color: var(--color-primary-50);
+}
+
+.btn-add:focus {
+	outline: 2px solid var(--color-primary-500);
+	outline-offset: 2px;
 }
 
 /* ========================================
@@ -108,5 +120,56 @@ main {
 	max-width: 100% !important;
 	width: 100% !important;
 	height: auto !important;
+}
+
+/* ========================================
+   レスポンシブレイアウト
+   ======================================== */
+
+/* モバイル表示の改善 */
+@media (max-width: 640px) {
+	main {
+		padding-left: 1rem;
+		padding-right: 1rem;
+	}
+
+	/* テーブルの列幅を調整（モバイルで見やすくする） */
+	table {
+		font-size: 0.875rem;
+	}
+
+	table th,
+	table td {
+		padding-left: 0.5rem;
+		padding-right: 0.5rem;
+		padding-top: 0.5rem;
+		padding-bottom: 0.5rem;
+	}
+
+	/* テーブルの列を最小幅に設定（横スクロールを有効にする） */
+	table th:nth-child(1),
+	table td:nth-child(1) {
+		min-width: 120px; /* 拠点名 */
+	}
+
+	table th:nth-child(2),
+	table td:nth-child(2) {
+		min-width: 60px; /* 区 */
+	}
+
+	table th:nth-child(3),
+	table td:nth-child(3) {
+		min-width: 180px; /* 住所 */
+	}
+
+	table th:nth-child(4),
+	table td:nth-child(4) {
+		min-width: 100px; /* 電話 */
+	}
+
+	table th:nth-child(5),
+	table td:nth-child(5) {
+		min-width: 80px; /* お気に入り */
+	}
 }
 

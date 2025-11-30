@@ -4,6 +4,8 @@ import { getWardName } from '../lib/facilities-utils';
 import { getMonthLabel, getMonthFirstDay, getCurrentYearMonth } from '../lib/date-utils';
 import { InstagramEmbed } from './InstagramEmbed';
 import { MonthSelector } from './MonthSelector';
+import { LoadingSpinner } from './LoadingSpinner';
+import { StatusMessage } from './StatusMessage';
 import type { FavoriteFacility } from '../lib/favorites';
 import type { Schedule } from '../lib/types';
 
@@ -13,6 +15,10 @@ type FavoriteFacilityCardProps = {
 	selectedMonth: string;
 	onRemove: (facilityId: string) => void;
 	onMonthChange: (facilityId: string, year: number, month: number) => void;
+	/** スケジュール取得中かどうか（任意） */
+	isLoading?: boolean;
+	/** スケジュール取得エラー（任意） */
+	error?: Error | null;
 };
 
 /**
@@ -25,6 +31,8 @@ export function FavoriteFacilityCard({
 	selectedMonth,
 	onRemove,
 	onMonthChange,
+	isLoading = false,
+	error = null,
 }: FavoriteFacilityCardProps) {
 	const { year: currentYear, month: currentMonth } = getCurrentYearMonth();
 	const defaultMonth = getMonthFirstDay(currentYear, currentMonth);
@@ -54,7 +62,18 @@ export function FavoriteFacilityCard({
 
 			{/* スケジュール表示 */}
 			<div className="mt-3">
-				{schedule?.instagram_post_url ? (
+				{isLoading ? (
+					<div className="h-64 rounded-lg bg-slate-50 flex items-center justify-center">
+						<LoadingSpinner message="スケジュールを読み込み中..." size="sm" />
+					</div>
+				) : error ? (
+					<div className="h-64 rounded-lg bg-slate-50 flex items-center justify-center p-4">
+						<StatusMessage
+							type="error"
+							message="スケジュールの取得に失敗しました。しばらくしてから再度お試しください。"
+						/>
+					</div>
+				) : schedule?.instagram_post_url ? (
 					<InstagramEmbed postUrl={schedule.instagram_post_url} className="rounded-lg overflow-hidden" />
 				) : (
 					<div className="h-64 rounded-lg bg-slate-50 flex items-center justify-center text-xs text-slate-400">

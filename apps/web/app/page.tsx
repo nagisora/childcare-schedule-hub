@@ -1,9 +1,12 @@
 import { HeroSection } from '../components/HeroSection';
 import { FavoritesSection } from '../components/FavoritesSection';
 import { FacilitiesTable } from '../components/FacilitiesTable';
+import { ErrorAlert } from '../components/ErrorAlert';
+import { EmptyState } from '../components/EmptyState';
 import { getFacilities } from '../lib/facilities';
 import { groupFacilitiesByWard } from '../lib/facilities-utils';
 import { MAX_FAVORITES } from '../lib/constants';
+import type { Facility, FacilitiesByWard } from '../lib/types';
 
 /**
  * トップページ（サーバーコンポーネント）
@@ -18,9 +21,22 @@ import { MAX_FAVORITES } from '../lib/constants';
 export const revalidate = 3600; // 60分（3600秒）
 
 export default async function HomePage() {
-	// Supabase から拠点一覧を取得
-	const facilities = await getFacilities();
-	const { wards, facilitiesByWard } = groupFacilitiesByWard(facilities);
+	let facilities: Facility[] = [];
+	let wards: string[] = [];
+	let facilitiesByWard: FacilitiesByWard = {};
+	let error: Error | null = null;
+
+	try {
+		// Supabase から拠点一覧を取得
+		facilities = await getFacilities();
+		const grouped = groupFacilitiesByWard(facilities);
+		wards = grouped.wards;
+		facilitiesByWard = grouped.facilitiesByWard;
+	} catch (e) {
+		// エラーをキャッチしてユーザー向けメッセージを表示
+		error = e instanceof Error ? e : new Error('データの取得に失敗しました');
+		facilities = [];
+	}
 
 	// お気に入りはlocalStorageに保存されるため、サーバー側では空配列を初期値とする
 	// クライアント側で useEffect により読み込まれる
@@ -42,10 +58,27 @@ export default async function HomePage() {
 						最大{MAX_FAVORITES}件まで登録可
 					</span>
 				</div>
-				<FavoritesSection initialFavorites={[]} allFacilities={facilities} />
+				{error ? (
+					<ErrorAlert message="お気に入り拠点のデータを取得できませんでした。ページを再読み込みしてください。" />
+				) : (
+					<FavoritesSection initialFavorites={[]} allFacilities={facilities} />
+				)}
 			</section>
 
-			<FacilitiesTable wards={wards} facilitiesByWard={facilitiesByWard} initialFavoriteIds={favoriteIds} />
+			{error ? (
+				<section className="max-w-6xl mx-auto">
+					<ErrorAlert message={error.message || '拠点一覧のデータを取得できませんでした。'} />
+				</section>
+			) : facilities.length === 0 ? (
+				<section className="max-w-6xl mx-auto">
+					<EmptyState
+						message="拠点データが登録されていません"
+						description="データがまだ投入されていない可能性があります。"
+					/>
+				</section>
+			) : (
+				<FacilitiesTable wards={wards} facilitiesByWard={facilitiesByWard} initialFavoriteIds={favoriteIds} />
+			)}
 		</main>
 	);
 }
