@@ -78,18 +78,18 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 				<table className="w-full text-sm">
 					<thead className="bg-slate-50 text-slate-600">
 						<tr>
+							{/* 区名は各行の上にあるグルーピング行（bg-primary-50）で表示されているため、区名の列は不要 */}
 							<th className="text-left font-medium px-3 py-2">拠点名</th>
-							<th className="text-left font-medium px-3 py-2">区</th>
-							<th className="text-left font-medium px-3 py-2">住所</th>
-							<th className="text-left font-medium px-3 py-2">電話</th>
+							{/* 住所・電話は詳細ページ（/facilities/[id]）で確認できるため、一覧では非表示 */}
 							<th className="text-left font-medium px-3 py-2">お気に入り</th>
 						</tr>
 					</thead>
 					<tbody>
 						{wards.map((ward) => (
 							<React.Fragment key={ward}>
+								{/* 区名のグルーピング行: この行で区名が表示されているため、各行に区名を含める必要はない */}
 								<tr className="bg-primary-50 border-t border-l-4 border-primary-300">
-									<td colSpan={5} className="px-3 py-3 text-sm font-bold text-primary-900 tracking-wide" id={`ward-${ward}`}>
+									<td colSpan={2} className="px-3 py-3 text-sm font-bold text-primary-900 tracking-wide" id={`ward-${ward}`}>
 										{ward}
 									</td>
 								</tr>
@@ -103,27 +103,25 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 										const isOuenBase = f.facility_type === 'childcare_ouen_base';
 										return (
 											<tr key={f.id} className={`border-t ${isOuenBase ? 'bg-primary-50/60' : ''}`}>
-											<td className="px-3 py-2 font-medium text-slate-900">
-												{f.name}
-											</td>
-										<td className="px-3 py-2 text-slate-700 whitespace-nowrap">{getWardName(f.ward_name)}</td>
-										<td className="px-3 py-2 text-slate-700">{f.address_full_raw}</td>
-											<td className="px-3 py-2 text-slate-700 whitespace-nowrap">{f.phone || '-'}</td>
-										<td className="px-3 py-2">
-												{isFavorite ? (
-													<span className="text-xs text-slate-400">追加済み</span>
-												) : (
-											<button
-														aria-label={`${f.name}をお気に入りに追加`}
-												className="btn-add"
-														onClick={() => handleAddFavorite(f.id)}
-											>
-												＋
-											</button>
-												)}
-										</td>
-									</tr>
-									);
+												<td className="px-3 py-2 font-medium text-slate-900">
+													{f.name}
+												</td>
+												{/* 区名・住所・電話の列を削除: 区名は上記のグルーピング行で表示、住所・電話は詳細ページで確認可能 */}
+												<td className="px-3 py-2">
+													{isFavorite ? (
+														<span className="text-xs text-slate-400">追加済み</span>
+													) : (
+														<button
+															aria-label={`${f.name}をお気に入りに追加`}
+															className="btn-add"
+															onClick={() => handleAddFavorite(f.id)}
+														>
+															＋
+														</button>
+													)}
+												</td>
+											</tr>
+										);
 									});
 								})()}
 							</React.Fragment>
