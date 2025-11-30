@@ -147,29 +147,16 @@ main {
 	}
 
 	/* テーブルの列を最小幅に設定（横スクロールを有効にする） */
+	/* 現在のテーブル構造: 1列目=お気に入り（★）、2列目=拠点名 */
 	table th:nth-child(1),
 	table td:nth-child(1) {
-		min-width: 120px; /* 拠点名 */
+		min-width: auto; /* お気に入り列（★）は内容に合わせて最小幅 */
+		width: auto;
 	}
 
 	table th:nth-child(2),
 	table td:nth-child(2) {
-		min-width: 60px; /* 区 */
-	}
-
-	table th:nth-child(3),
-	table td:nth-child(3) {
-		min-width: 180px; /* 住所 */
-	}
-
-	table th:nth-child(4),
-	table td:nth-child(4) {
-		min-width: 100px; /* 電話 */
-	}
-
-	table th:nth-child(5),
-	table td:nth-child(5) {
-		min-width: 80px; /* お気に入り */
+		min-width: 120px; /* 拠点名 */
 	}
 }
 

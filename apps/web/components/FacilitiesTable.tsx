@@ -90,7 +90,7 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 					<thead className="bg-slate-50 text-slate-600">
 						<tr>
 							{/* お気に入り列はアイコンのみ表示して列幅を抑える。ラベルはスクリーンリーダー向けに保持 */}
-							<th scope="col" className="w-10 px-3 py-2 text-center font-medium">
+							<th scope="col" className="px-2 py-2 text-center font-medium">
 								<span className="sr-only">お気に入り</span>
 								<span aria-hidden="true">★</span>
 							</th>
@@ -122,7 +122,7 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 										return (
 											<tr key={f.id} className={`border-t ${isOuenBase ? 'bg-primary-50/60' : ''}`}>
 												{/* 区名・住所・電話の列を削除: 区名は上記のグルーピング行で表示、住所・電話は詳細ページで確認可能 */}
-												<td className="px-3 py-2 text-center">
+												<td className="px-2 py-2 text-center">
 													{isFavorite ? (
 														<button
 															aria-label={`${f.name}をお気に入りから削除`}
