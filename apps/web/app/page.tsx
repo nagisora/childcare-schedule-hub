@@ -52,6 +52,7 @@ export default async function HomePage() {
 			>
 				<div className="flex items-center justify-between mb-3">
 					<h2 id="favorites-heading" className="text-xl font-semibold text-slate-900">
+						<span aria-hidden="true" className="mr-1">★</span>
 						お気に入り拠点
 					</h2>
 					<span className="inline-flex items-center gap-1 rounded-full bg-primary-50 px-2 py-0.5 text-[11px] text-primary-700">

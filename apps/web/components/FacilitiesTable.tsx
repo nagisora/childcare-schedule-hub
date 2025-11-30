@@ -78,8 +78,11 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 				<table className="w-full text-sm">
 					<thead className="bg-slate-50 text-slate-600">
 						<tr>
-							{/* 住所・電話は詳細ページ（/facilities/[id]）で確認できるため、一覧では非表示 */}
-							<th className="text-left font-medium px-3 py-2">お気に入り</th>
+							{/* お気に入り列はアイコンのみ表示して列幅を抑える。ラベルはスクリーンリーダー向けに保持 */}
+							<th scope="col" className="w-10 px-3 py-2 text-center font-medium">
+								<span className="sr-only">お気に入り</span>
+								<span aria-hidden="true">★</span>
+							</th>
 							{/* 区名は各行の上にあるグルーピング行（bg-primary-50）で表示されているため、区名の列は不要 */}
 							<th className="text-left font-medium px-3 py-2">拠点名</th>
 						</tr>
