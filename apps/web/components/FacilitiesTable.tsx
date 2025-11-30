@@ -87,9 +87,13 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 					<tbody>
 						{wards.map((ward) => (
 							<React.Fragment key={ward}>
-								{/* 区名のグルーピング行: この行で区名が表示されているため、各行に区名を含める必要はない */}
+								{/* 区名のグルーピング行: お気に入り列は空セルにして、拠点名列の位置に区名を表示 */}
 								<tr className="bg-primary-50 border-t border-l-4 border-primary-300">
-									<td colSpan={2} className="px-3 py-3 text-sm font-bold text-primary-900 tracking-wide" id={`ward-${ward}`}>
+									<td className="px-3 py-3" aria-hidden="true" />
+									<td
+										className="px-3 py-3 text-sm font-bold text-primary-900 tracking-wide"
+										id={`ward-${ward}`}
+									>
 										{ward}
 									</td>
 								</tr>
