@@ -12,7 +12,6 @@ type FavoritesSectionProps = {
 	allFacilities: Facility[];
 };
 
-
 /**
  * お気に入りセクションコンポーネント
  * お気に入り登録済みの施設とスケジュールを表示
@@ -23,7 +22,7 @@ export function FavoritesSection({ initialFavorites: _initialFavorites, allFacil
 	const { favorites, schedules, selectedMonths, loadingStates, errors, handleRemove, handleMove, handleMonthChange } =
 		useFavoritesSync(allFacilities);
 
-
+	// 空状態コンポーネント
 	if (favorites.length === 0) {
 		return (
 			<div className="rounded-xl border bg-slate-50 p-8 text-center">
@@ -39,22 +38,31 @@ export function FavoritesSection({ initialFavorites: _initialFavorites, allFacil
 
 	return (
 		<div className="space-y-4">
-			{favorites.map((item, index) => (
+			{favorites.map((item, index) => {
+				const facilityId = item.facility.id;
+				const selectedMonth = selectedMonths[facilityId] || defaultMonth;
+				const isLoading = loadingStates[facilityId] || false;
+				const error = errors[facilityId] || null;
+				const isFirst = index === 0;
+				const isLast = index === favorites.length - 1;
+
+				return (
 				<FavoriteFacilityCard
-					key={item.facility.id}
+						key={facilityId}
 					favorite={item}
-					schedule={schedules[item.facility.id]}
-					selectedMonth={selectedMonths[item.facility.id] || defaultMonth}
-					isLoading={loadingStates[item.facility.id] || false}
-					error={errors[item.facility.id] || null}
+						schedule={schedules[facilityId]}
+						selectedMonth={selectedMonth}
+						isLoading={isLoading}
+						error={error}
 					onRemove={handleRemove}
-					onMoveUp={index > 0 ? () => handleMove(item.facility.id, 'up') : undefined}
-					onMoveDown={index < favorites.length - 1 ? () => handleMove(item.facility.id, 'down') : undefined}
-					isFirst={index === 0}
-					isLast={index === favorites.length - 1}
+						onMoveUp={!isFirst ? () => handleMove(facilityId, 'up') : undefined}
+						onMoveDown={!isLast ? () => handleMove(facilityId, 'down') : undefined}
+						isFirst={isFirst}
+						isLast={isLast}
 					onMonthChange={handleMonthChange}
 				/>
-			))}
+				);
+			})}
 		</div>
 	);
 }

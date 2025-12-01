@@ -31,6 +31,107 @@ type FavoriteFacilityCardProps = {
 };
 
 /**
+ * お気に入りカードのヘッダーアクション部分（上下移動ボタン・解除ボタン）
+ */
+function FavoriteCardHeaderActions({
+	facilityName,
+	facilityId,
+	onMoveUp,
+	onMoveDown,
+	onRemove,
+	isFirst,
+	isLast,
+}: {
+	facilityName: string;
+	facilityId: string;
+	onMoveUp?: () => void;
+	onMoveDown?: () => void;
+	onRemove: (facilityId: string) => void;
+	isFirst: boolean;
+	isLast: boolean;
+}) {
+	return (
+		<div className="flex items-center gap-2">
+			{/* 上下移動ボタン */}
+			{onMoveUp && !isFirst && (
+				<button
+					aria-label={`${facilityName}をお気に入り内で上に移動`}
+					className="btn-move"
+					onClick={onMoveUp}
+					type="button"
+				>
+					↑
+				</button>
+			)}
+			{onMoveDown && !isLast && (
+				<button
+					aria-label={`${facilityName}をお気に入り内で下に移動`}
+					className="btn-move"
+					onClick={onMoveDown}
+					type="button"
+				>
+					↓
+				</button>
+			)}
+			{/* 解除ボタン */}
+			<button
+				aria-label={`お気に入りから${facilityName}を削除`}
+				className="btn-remove"
+				onClick={() => onRemove(facilityId)}
+				type="button"
+			>
+				解除
+			</button>
+		</div>
+	);
+}
+
+/**
+ * スケジュール表示内容をレンダリングする内部関数
+ */
+function renderScheduleContent(
+	isLoading: boolean,
+	error: Error | null,
+	schedule: Schedule | undefined,
+	month: string,
+	facilityId: string
+) {
+	if (isLoading) {
+		return (
+			<div className="h-64 rounded-lg bg-slate-50 flex items-center justify-center">
+				<LoadingSpinner message="スケジュールを読み込み中..." size="sm" />
+			</div>
+		);
+	}
+
+	if (error) {
+		return (
+			<div className="h-64 rounded-lg bg-slate-50 flex items-center justify-center p-4">
+				<StatusMessage
+					type="error"
+					message="スケジュールの取得に失敗しました。しばらくしてから再度お試しください。"
+				/>
+			</div>
+		);
+	}
+
+	if (schedule?.instagram_post_url) {
+		return <InstagramEmbed postUrl={schedule.instagram_post_url} className="rounded-lg overflow-hidden" />;
+	}
+
+	return (
+		<div className="h-64 rounded-lg bg-slate-50 flex items-center justify-center text-xs text-slate-400">
+			<div className="text-center">
+				<p className="mb-2">{getMonthLabel(month)}のスケジュールが登録されていません</p>
+				<a href={`/facilities/${facilityId}`} className="text-blue-600 hover:text-blue-800 underline">
+					詳細ページを見る
+				</a>
+			</div>
+		</div>
+	);
+}
+
+/**
  * お気に入り施設カードコンポーネント
  * 施設情報・月切り替えUI・スケジュール表示を担当
  */
@@ -59,38 +160,15 @@ export function FavoriteFacilityCard({
 						{favorite.facility.name} — {getWardName(favorite.facility.ward_name)}
 					</a>
 				</h3>
-				<div className="flex items-center gap-2">
-					{/* 上下移動ボタン */}
-					{onMoveUp && !isFirst && (
-						<button
-							aria-label={`${favorite.facility.name}をお気に入り内で上に移動`}
-							className="btn-move"
-							onClick={onMoveUp}
-							type="button"
-						>
-							↑
-						</button>
-					)}
-					{onMoveDown && !isLast && (
-						<button
-							aria-label={`${favorite.facility.name}をお気に入り内で下に移動`}
-							className="btn-move"
-							onClick={onMoveDown}
-							type="button"
-						>
-							↓
-						</button>
-					)}
-					{/* 解除ボタン */}
-					<button
-						aria-label={`お気に入りから${favorite.facility.name}を削除`}
-						className="btn-remove"
-						onClick={() => onRemove(favorite.facility.id)}
-						type="button"
-					>
-						解除
-					</button>
-				</div>
+				<FavoriteCardHeaderActions
+					facilityName={favorite.facility.name}
+					facilityId={favorite.facility.id}
+					onMoveUp={onMoveUp}
+					onMoveDown={onMoveDown}
+					onRemove={onRemove}
+					isFirst={isFirst}
+					isLast={isLast}
+				/>
 			</header>
 
 			<MonthSelector
@@ -100,32 +178,7 @@ export function FavoriteFacilityCard({
 
 			{/* スケジュール表示 */}
 			<div className="mt-3">
-				{isLoading ? (
-					<div className="h-64 rounded-lg bg-slate-50 flex items-center justify-center">
-						<LoadingSpinner message="スケジュールを読み込み中..." size="sm" />
-					</div>
-				) : error ? (
-					<div className="h-64 rounded-lg bg-slate-50 flex items-center justify-center p-4">
-						<StatusMessage
-							type="error"
-							message="スケジュールの取得に失敗しました。しばらくしてから再度お試しください。"
-						/>
-					</div>
-				) : schedule?.instagram_post_url ? (
-					<InstagramEmbed postUrl={schedule.instagram_post_url} className="rounded-lg overflow-hidden" />
-				) : (
-					<div className="h-64 rounded-lg bg-slate-50 flex items-center justify-center text-xs text-slate-400">
-						<div className="text-center">
-							<p className="mb-2">{getMonthLabel(month)}のスケジュールが登録されていません</p>
-							<a
-								href={`/facilities/${favorite.facility.id}`}
-								className="text-blue-600 hover:text-blue-800 underline"
-							>
-								詳細ページを見る
-							</a>
-						</div>
-					</div>
-				)}
+				{renderScheduleContent(isLoading, error, schedule, month, favorite.facility.id)}
 			</div>
 		</article>
 	);

@@ -59,12 +59,39 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 	const handleRemoveFavorite = (facilityId: string) => {
 		const currentFavorites = readFavoritesFromStorage();
 		const updated = removeFavorite(facilityId, currentFavorites);
-
 		updateFavoritesInStorage(updated);
 		// クライアント側の状態も即時更新
 		setFavoriteIds(new Set(updated.map((f) => f.facilityId)));
 		// カスタムイベントを発火してFavoritesSectionに通知
 		window.dispatchEvent(new CustomEvent(FAVORITES_UPDATED_EVENT));
+	};
+
+	// お気に入りセル（+ / − ボタン）をレンダリングする関数
+	const renderFavoriteCell = (facilityId: string, facilityName: string) => {
+		const isFavorite = favoriteIds.has(facilityId);
+		return (
+			<td className="px-2 py-2 text-center">
+				{isFavorite ? (
+					<button
+						aria-label={`${facilityName}をお気に入りから削除`}
+						className="btn-remove"
+						onClick={() => handleRemoveFavorite(facilityId)}
+						type="button"
+					>
+						−
+					</button>
+				) : (
+					<button
+						aria-label={`${facilityName}をお気に入りに追加`}
+						className="btn-add"
+						onClick={() => handleAddFavorite(facilityId)}
+						type="button"
+					>
+						＋
+					</button>
+				)}
+			</td>
+		);
 	};
 
 	return (
@@ -112,39 +139,18 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 								</tr>
 								{(() => {
 									const facilities = facilitiesByWard[ward] ?? [];
-									const ouen = facilities.filter(f => f.facility_type === 'childcare_ouen_base');
-									const others = facilities.filter(f => f.facility_type !== 'childcare_ouen_base');
+									// 応援拠点を先頭に、それ以外を後に配置
+									const ouen = facilities.filter((f) => f.facility_type === 'childcare_ouen_base');
+									const others = facilities.filter((f) => f.facility_type !== 'childcare_ouen_base');
 									const orderedFacilities = [...ouen, ...others];
 									return orderedFacilities.map((f) => {
-										const isFavorite = favoriteIds.has(f.id);
 										const isOuenBase = f.facility_type === 'childcare_ouen_base';
 										return (
 											<tr key={f.id} className={`border-t ${isOuenBase ? 'bg-primary-50/60' : ''}`}>
-												{/* 区名・住所・電話の列を削除: 区名は上記のグルーピング行で表示、住所・電話は詳細ページで確認可能 */}
-												<td className="px-2 py-2 text-center">
-													{isFavorite ? (
-														<button
-															aria-label={`${f.name}をお気に入りから削除`}
-															className="btn-remove"
-															onClick={() => handleRemoveFavorite(f.id)}
-														>
-															−
-														</button>
-													) : (
-														<button
-															aria-label={`${f.name}をお気に入りに追加`}
-															className="btn-add"
-															onClick={() => handleAddFavorite(f.id)}
-														>
-															＋
-														</button>
-													)}
-												</td>
-												<td className="px-3 py-2 font-medium text-slate-900">
-													{f.name}
-												</td>
-											</tr>
-										);
+												{renderFavoriteCell(f.id, f.name)}
+												<td className="px-3 py-2 font-medium text-slate-900">{f.name}</td>
+									</tr>
+									);
 									});
 								})()}
 							</React.Fragment>

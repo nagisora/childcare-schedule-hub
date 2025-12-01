@@ -27,7 +27,7 @@ export default async function HomePage() {
 	let error: Error | null = null;
 
 	try {
-		// Supabase から拠点一覧を取得
+	// Supabase から拠点一覧を取得
 		facilities = await getFacilities();
 		const grouped = groupFacilitiesByWard(facilities);
 		wards = grouped.wards;
@@ -62,7 +62,7 @@ export default async function HomePage() {
 				{error ? (
 					<ErrorAlert message="お気に入り拠点のデータを取得できませんでした。ページを再読み込みしてください。" />
 				) : (
-					<FavoritesSection initialFavorites={[]} allFacilities={facilities} />
+				<FavoritesSection initialFavorites={[]} allFacilities={facilities} />
 				)}
 			</section>
 
@@ -78,7 +78,7 @@ export default async function HomePage() {
 					/>
 				</section>
 			) : (
-				<FacilitiesTable wards={wards} facilitiesByWard={facilitiesByWard} initialFavoriteIds={favoriteIds} />
+			<FacilitiesTable wards={wards} facilitiesByWard={facilitiesByWard} initialFavoriteIds={favoriteIds} />
 			)}
 		</main>
 	);
