@@ -14,6 +14,10 @@ vi.mock('../lib/date-utils', () => ({
 		const [year, month] = monthStr.split('-');
 		return `${year}年${parseInt(month)}月`;
 	},
+}));
+
+// facilities-utils のモック
+vi.mock('../lib/facilities-utils', () => ({
 	getWardName: (wardName: string | null) => wardName || 'エリア不明',
 }));
 
@@ -61,6 +65,10 @@ describe('FavoriteFacilityCard', () => {
 		selectedMonth: '2025-01-01',
 		onRemove: vi.fn(),
 		onMonthChange: vi.fn(),
+		onMoveUp: undefined,
+		onMoveDown: undefined,
+		isFirst: false,
+		isLast: false,
 	};
 
 	// Given: スケジュールが登録されている
@@ -127,6 +135,114 @@ describe('FavoriteFacilityCard', () => {
 
 		expect(container.textContent).toContain('スケジュールを読み込み中');
 		expect(container.querySelector('[data-testid="instagram-embed"]')).not.toBeInTheDocument();
+	});
+
+	// Given: 上下移動ハンドラが提供されている
+	// When: FavoriteFacilityCard をレンダリング
+	// Then: 上下移動ボタンが表示される
+	it('TC-N-06: 上下移動ハンドラが提供されている場合、上下移動ボタンを表示する', () => {
+		const onMoveUp = vi.fn();
+		const onMoveDown = vi.fn();
+		render(
+			<FavoriteFacilityCard
+				{...defaultProps}
+				onMoveUp={onMoveUp}
+				onMoveDown={onMoveDown}
+				isFirst={false}
+				isLast={false}
+			/>
+		);
+
+		const upButton = screen.getByLabelText(/お気に入り内で上に移動/i);
+		const downButton = screen.getByLabelText(/お気に入り内で下に移動/i);
+		expect(upButton).toBeInTheDocument();
+		expect(downButton).toBeInTheDocument();
+		expect(upButton).toHaveTextContent('↑');
+		expect(downButton).toHaveTextContent('↓');
+	});
+
+	// Given: 先頭のカード（isFirst=true）
+	// When: FavoriteFacilityCard をレンダリング
+	// Then: 上移動ボタンが表示されない
+	it('TC-N-07: 先頭のカードでは上移動ボタンを表示しない', () => {
+		const onMoveUp = vi.fn();
+		const onMoveDown = vi.fn();
+		render(
+			<FavoriteFacilityCard
+				{...defaultProps}
+				onMoveUp={onMoveUp}
+				onMoveDown={onMoveDown}
+				isFirst={true}
+				isLast={false}
+			/>
+		);
+
+		expect(screen.queryByLabelText(/お気に入り内で上に移動/i)).not.toBeInTheDocument();
+		expect(screen.getByLabelText(/お気に入り内で下に移動/i)).toBeInTheDocument();
+	});
+
+	// Given: 末尾のカード（isLast=true）
+	// When: FavoriteFacilityCard をレンダリング
+	// Then: 下移動ボタンが表示されない
+	it('TC-N-08: 末尾のカードでは下移動ボタンを表示しない', () => {
+		const onMoveUp = vi.fn();
+		const onMoveDown = vi.fn();
+		render(
+			<FavoriteFacilityCard
+				{...defaultProps}
+				onMoveUp={onMoveUp}
+				onMoveDown={onMoveDown}
+				isFirst={false}
+				isLast={true}
+			/>
+		);
+
+		expect(screen.getByLabelText(/お気に入り内で上に移動/i)).toBeInTheDocument();
+		expect(screen.queryByLabelText(/お気に入り内で下に移動/i)).not.toBeInTheDocument();
+	});
+
+	// Given: 上下移動ハンドラが提供されている
+	// When: 上移動ボタンをクリック
+	// Then: onMoveUp が呼び出される
+	it('TC-N-09: 上移動ボタンをクリックすると onMoveUp が呼び出される', () => {
+		const onMoveUp = vi.fn();
+		const onMoveDown = vi.fn();
+		render(
+			<FavoriteFacilityCard
+				{...defaultProps}
+				onMoveUp={onMoveUp}
+				onMoveDown={onMoveDown}
+				isFirst={false}
+				isLast={false}
+			/>
+		);
+
+		const upButton = screen.getByLabelText(/お気に入り内で上に移動/i);
+		upButton.click();
+		expect(onMoveUp).toHaveBeenCalledTimes(1);
+		expect(onMoveDown).not.toHaveBeenCalled();
+	});
+
+	// Given: 上下移動ハンドラが提供されている
+	// When: 下移動ボタンをクリック
+	// Then: onMoveDown が呼び出される
+	it('TC-N-10: 下移動ボタンをクリックすると onMoveDown が呼び出される', () => {
+		const onMoveUp = vi.fn();
+		const onMoveDown = vi.fn();
+		render(
+			<FavoriteFacilityCard
+				{...defaultProps}
+				onMoveUp={onMoveUp}
+				onMoveDown={onMoveDown}
+				isFirst={false}
+				isLast={false}
+			/>
+		);
+
+		const downButton = screen.getByLabelText(/お気に入り内で下に移動/i);
+		downButton.click();
+		expect(onMoveDown).toHaveBeenCalledTimes(1);
+		expect(onMoveUp).not.toHaveBeenCalled();
 	});
 });
 

@@ -7,6 +7,7 @@ import {
 	readFavoritesFromStorage,
 	updateFavoritesInStorage,
 	removeFavorite,
+	reorderFavorites,
 	FAVORITES_UPDATED_EVENT,
 } from '../lib/storage';
 import { getMonthFirstDay, getCurrentYearMonth } from '../lib/date-utils';
@@ -295,6 +296,52 @@ export function useFavoritesSync(allFacilities: Facility[]) {
 		[allFacilities, updateFavoritesAndSchedules]
 	);
 
+	// お気に入り並び替えハンドラ
+	const handleMove = useCallback(
+		(facilityId: string, direction: 'up' | 'down') => {
+			const currentStorageItems = readFavoritesFromStorage();
+			const currentIds = currentStorageItems.map((f) => f.facilityId);
+			const currentIndex = currentIds.indexOf(facilityId);
+
+			// 移動できない場合は何もしない
+			if (currentIndex === -1) {
+				return;
+			}
+			if (direction === 'up' && currentIndex === 0) {
+				return;
+			}
+			if (direction === 'down' && currentIndex === currentIds.length - 1) {
+				return;
+			}
+
+			// 新しい順序を計算
+			const newIds = [...currentIds];
+			const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+			[newIds[currentIndex], newIds[targetIndex]] = [newIds[targetIndex], newIds[currentIndex]];
+
+			// 並び順を更新
+			const updated = reorderFavorites(newIds, currentStorageItems);
+			
+			// localStorage を更新
+			updateFavoritesInStorage(updated);
+			
+			// 状態を即座に更新（checkStorageChanges を待たずに即座に反映）
+			const updatedFavorites = matchFavoritesWithFacilities(updated, allFacilities);
+			updateFavoritesAndSchedules(updatedFavorites);
+			
+			// スナップショットを更新して、checkStorageChanges が再度実行されないようにする
+			// getFavoritesFromStorageSnapshot はIDをソートして比較するため、
+			// 順序変更を検知できない。そのため、スナップショットを手動で更新する
+			// ソート済みのスナップショットを設定することで、checkStorageChanges が変更を検知しないようにする
+			const newSnapshot = updated.map((f) => f.facilityId).sort().join(',');
+			lastStorageRef.current = newSnapshot;
+			
+			// カスタムイベントを発火してFacilitiesTableに通知
+			window.dispatchEvent(new CustomEvent(FAVORITES_UPDATED_EVENT));
+		},
+		[allFacilities, updateFavoritesAndSchedules]
+	);
+
 	// 月の切り替えハンドラ
 	// レースコンディション対策: リクエスト完了時に選択月が変わっていない場合のみスケジュールを更新
 		const handleMonthChange = useCallback(
@@ -363,6 +410,7 @@ export function useFavoritesSync(allFacilities: Facility[]) {
 		loadingStates,
 		errors,
 		handleRemove,
+		handleMove,
 		handleMonthChange,
 	};
 }

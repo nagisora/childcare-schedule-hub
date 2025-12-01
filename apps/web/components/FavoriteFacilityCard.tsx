@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { getWardName } from '../lib/facilities-utils';
 import { getMonthLabel, getMonthFirstDay, getCurrentYearMonth } from '../lib/date-utils';
 import { InstagramEmbed } from './InstagramEmbed';
@@ -19,6 +20,14 @@ type FavoriteFacilityCardProps = {
 	isLoading?: boolean;
 	/** スケジュール取得エラー（任意） */
 	error?: Error | null;
+	/** 上に移動するハンドラ（任意） */
+	onMoveUp?: () => void;
+	/** 下に移動するハンドラ（任意） */
+	onMoveDown?: () => void;
+	/** 先頭のカードかどうか（上ボタンの表示制御用） */
+	isFirst?: boolean;
+	/** 末尾のカードかどうか（下ボタンの表示制御用） */
+	isLast?: boolean;
 };
 
 /**
@@ -33,6 +42,10 @@ export function FavoriteFacilityCard({
 	onMonthChange,
 	isLoading = false,
 	error = null,
+	onMoveUp,
+	onMoveDown,
+	isFirst = false,
+	isLast = false,
 }: FavoriteFacilityCardProps) {
 	const { year: currentYear, month: currentMonth } = getCurrentYearMonth();
 	const defaultMonth = getMonthFirstDay(currentYear, currentMonth);
@@ -46,13 +59,38 @@ export function FavoriteFacilityCard({
 						{favorite.facility.name} — {getWardName(favorite.facility.ward_name)}
 					</a>
 				</h3>
-				<button
-					aria-label={`お気に入りから${favorite.facility.name}を削除`}
-					className="btn-remove"
-					onClick={() => onRemove(favorite.facility.id)}
-				>
-					解除
-				</button>
+				<div className="flex items-center gap-2">
+					{/* 上下移動ボタン */}
+					{onMoveUp && !isFirst && (
+						<button
+							aria-label={`${favorite.facility.name}をお気に入り内で上に移動`}
+							className="btn-move"
+							onClick={onMoveUp}
+							type="button"
+						>
+							↑
+						</button>
+					)}
+					{onMoveDown && !isLast && (
+						<button
+							aria-label={`${favorite.facility.name}をお気に入り内で下に移動`}
+							className="btn-move"
+							onClick={onMoveDown}
+							type="button"
+						>
+							↓
+						</button>
+					)}
+					{/* 解除ボタン */}
+					<button
+						aria-label={`お気に入りから${favorite.facility.name}を削除`}
+						className="btn-remove"
+						onClick={() => onRemove(favorite.facility.id)}
+						type="button"
+					>
+						解除
+					</button>
+				</div>
 			</header>
 
 			<MonthSelector

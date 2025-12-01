@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { addFavorite, removeFavorite, readFavoritesFromStorage, updateFavoritesInStorage, FAVORITES_UPDATED_EVENT } from '../lib/storage';
-import { getWardName } from '../lib/facilities-utils';
 import type { FacilitiesByWard } from '../lib/types';
 
 type FacilitiesTableProps = {
