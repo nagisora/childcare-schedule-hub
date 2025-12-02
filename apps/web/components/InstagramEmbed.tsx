@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Script from 'next/script';
 import { isInstagramPostUrl, processInstagramEmbed, isInstagramSDKLoaded } from '../lib/instagram-utils';
 
@@ -10,45 +10,181 @@ type InstagramEmbedProps = {
 };
 
 /**
+ * Instagram埋め込みの状態
+ * - 'loading': SDK読み込み中または埋め込み処理中
+ * - 'success': 埋め込み成功（iframe生成済み）
+ * - 'failed': 埋め込み失敗（タイムアウトまたはエラー）
+ */
+type EmbedState = 'loading' | 'success' | 'failed';
+
+/**
  * Instagram投稿を埋め込み表示するコンポーネント
  * Instagram公式のblockquote埋め込み方法を使用（API不要）
  * 投稿URLからblockquoteを生成し、Instagramのembed.jsで自動変換
+ * 埋め込み失敗時はフォールバック表示（投稿URLへの直接リンク）を表示
  */
+/**
+ * Instagram SDKの読み込みを確認し、読み込み完了後に埋め込み処理を実行する
+ * @param containerRef 埋め込み先のコンテナ要素のref
+ * @param onSuccess 埋め込み成功時のコールバック
+ * @param onFailure 埋め込み失敗時のコールバック
+ * @returns cleanup関数（タイマー・インターバルのクリア）
+ */
+function ensureInstagramEmbedScript(
+	containerRef: React.RefObject<HTMLDivElement>,
+	onSuccess: () => void,
+	onFailure: () => void
+): () => void {
+	let checkInterval: NodeJS.Timeout | null = null;
+	let timeout: NodeJS.Timeout | null = null;
+
+	// 成功・失敗が確定したときに必ずタイマーを止めるヘルパー
+	const stopWatching = () => {
+		if (checkInterval) {
+			clearInterval(checkInterval);
+			checkInterval = null;
+		}
+		if (timeout) {
+			clearTimeout(timeout);
+			timeout = null;
+		}
+	};
+
+	// 既にSDKが読み込まれている場合は即座に処理
+	if (isInstagramSDKLoaded()) {
+		if (containerRef.current) {
+			const success = processInstagramEmbed(containerRef.current);
+			if (success) {
+				onSuccess();
+			} else {
+				onFailure();
+			}
+		}
+		// この場合もクリーンアップ関数は返しておく（中で何も起きない）
+		return stopWatching;
+	}
+
+	// SDK読み込み待機（100ms間隔でポーリング、最大10秒）
+	let attempts = 0;
+	const maxAttempts = 100;
+	checkInterval = setInterval(() => {
+		attempts++;
+		if (isInstagramSDKLoaded()) {
+			// SDK読み込みに成功したらポーリングとタイムアウトを止める
+			stopWatching();
+			if (containerRef.current) {
+				const success = processInstagramEmbed(containerRef.current);
+				if (success) {
+					onSuccess();
+				} else {
+					onFailure();
+				}
+			}
+		} else if (attempts >= maxAttempts) {
+			// 規定回数ポーリングしてもSDKが来なければ失敗扱い
+			stopWatching();
+			onFailure();
+		}
+	}, 100);
+
+	// タイムアウト（10秒後にフォールバック表示）
+	timeout = setTimeout(() => {
+		// ここに来るのは「SDKが10秒経っても読み込まれない」場合だけにしたいので、
+		// 成否にかかわらず一度タイマーを止めてから onFailure を呼ぶ
+		stopWatching();
+		onFailure();
+	}, 10000);
+
+	// cleanup関数（アンマウント時もポーリングとタイマーを必ず止める）
+	return () => {
+		stopWatching();
+	};
+}
+
 export function InstagramEmbed({ postUrl, className = '' }: InstagramEmbedProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
+	const [embedState, setEmbedState] = useState<EmbedState>('loading');
+	const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+	const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
+	const embedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
 	// 投稿URLのバリデーション
 	const isValidUrl = isInstagramPostUrl(postUrl);
 
 	useEffect(() => {
-		if (!containerRef.current) {
+		if (!containerRef.current || !isValidUrl) {
 			return;
 		}
 
-		// Instagram SDKが読み込まれた後に埋め込みを処理
-		const processEmbed = () => {
-			if (containerRef.current) {
-				processInstagramEmbed(containerRef.current);
+		// 埋め込み失敗のタイムアウト（10秒後にフォールバック表示）
+		timeoutRef.current = setTimeout(() => {
+			// iframe が生成されていない場合は埋め込み失敗とみなす
+			const iframe = containerRef.current?.querySelector('iframe');
+			if (!iframe) {
+				setEmbedState('failed');
 			}
+		}, 10000);
+
+		// Instagram SDKが読み込まれた後に埋め込みを処理
+		const handleEmbedSuccess = () => {
+			// 埋め込み成功を確認（iframe が生成されるまで待機）
+			checkIntervalRef.current = setInterval(() => {
+				const iframe = containerRef.current?.querySelector('iframe');
+				if (iframe) {
+					if (checkIntervalRef.current) {
+						clearInterval(checkIntervalRef.current);
+						checkIntervalRef.current = null;
+					}
+					if (timeoutRef.current) {
+						clearTimeout(timeoutRef.current);
+						timeoutRef.current = null;
+					}
+					if (embedTimeoutRef.current) {
+						clearTimeout(embedTimeoutRef.current);
+						embedTimeoutRef.current = null;
+					}
+					setEmbedState('success');
+				}
+			}, 500);
+
+			// 5秒後にタイムアウト
+			embedTimeoutRef.current = setTimeout(() => {
+				if (checkIntervalRef.current) {
+					clearInterval(checkIntervalRef.current);
+					checkIntervalRef.current = null;
+				}
+				if (!containerRef.current?.querySelector('iframe')) {
+					setEmbedState('failed');
+				}
+				// コールバック実行後はタイマー参照をクリア
+				embedTimeoutRef.current = null;
+			}, 5000);
 		};
 
-		// 既にSDKが読み込まれている場合は即座に処理
-		// Script コンポーネントの strategy="lazyOnload" により、SDK の読み込みタイミングが
-		// 遅延する可能性があるため、ポーリングで待機する
-		if (isInstagramSDKLoaded()) {
-			processEmbed();
-		} else {
-			// SDK読み込み後に処理（100ms間隔でポーリング）
-			const checkInterval = setInterval(() => {
-				if (isInstagramSDKLoaded()) {
-					clearInterval(checkInterval);
-					processEmbed();
-				}
-			}, 100);
+		const handleEmbedFailure = () => {
+			setEmbedState('failed');
+		};
 
-			return () => clearInterval(checkInterval);
-		}
-	}, [postUrl]);
+		// SDK読み込み確認と埋め込み処理の実行
+		const cleanup = ensureInstagramEmbedScript(containerRef, handleEmbedSuccess, handleEmbedFailure);
+
+		// cleanup関数（タイマー・インターバルのクリア）
+		return () => {
+			cleanup();
+			if (timeoutRef.current) {
+				clearTimeout(timeoutRef.current);
+				timeoutRef.current = null;
+			}
+			if (embedTimeoutRef.current) {
+				clearTimeout(embedTimeoutRef.current);
+				embedTimeoutRef.current = null;
+			}
+			if (checkIntervalRef.current) {
+				clearInterval(checkIntervalRef.current);
+				checkIntervalRef.current = null;
+			}
+		};
+	}, [postUrl, isValidUrl]);
 
 	if (!isValidUrl) {
 		return (
@@ -59,6 +195,23 @@ export function InstagramEmbed({ postUrl, className = '' }: InstagramEmbedProps)
 					target="_blank"
 					rel="noopener noreferrer"
 					className="text-sm text-blue-600 hover:text-blue-800 underline"
+				>
+					Instagramで開く
+				</a>
+			</div>
+		);
+	}
+
+	if (embedState === 'failed') {
+		return (
+			<div className={`flex flex-col items-center justify-center h-64 bg-slate-50 rounded-lg p-4 ${className}`}>
+				<p className="text-sm text-slate-600 mb-2">Instagram投稿の埋め込みに失敗しました</p>
+				<a
+					href={postUrl}
+					target="_blank"
+					rel="noopener noreferrer"
+					className="text-sm text-blue-600 hover:text-blue-800 underline"
+					aria-label="Instagram投稿を新しいタブで開く"
 				>
 					Instagramで開く
 				</a>
@@ -77,6 +230,7 @@ export function InstagramEmbed({ postUrl, className = '' }: InstagramEmbedProps)
 			<div 
 				ref={containerRef} 
 				className={`w-full instagram-embed-container ${className}`}
+				aria-label="Instagram投稿の埋め込み"
 			>
 				<blockquote
 					className="instagram-media"

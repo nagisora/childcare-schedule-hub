@@ -7,6 +7,7 @@ import {
 	readFavoritesFromStorage,
 	updateFavoritesInStorage,
 	removeFavorite,
+	reorderFavorites,
 	FAVORITES_UPDATED_EVENT,
 } from '../lib/storage';
 import { getMonthFirstDay, getCurrentYearMonth } from '../lib/date-utils';
@@ -44,6 +45,10 @@ export function useFavoritesSync(allFacilities: Facility[]) {
 	const [favorites, setFavorites] = useState<FavoriteFacility[]>([]);
 	const [schedules, setSchedules] = useState<Record<string, Schedule>>({});
 	const [selectedMonths, setSelectedMonths] = useState<Record<string, string>>({});
+	// 施設IDごとのローディング状態
+	const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
+	// 施設IDごとのエラー状態
+	const [errors, setErrors] = useState<Record<string, Error | null>>({});
 	const lastStorageRef = useRef<string>('');
 	// レースコンディション対策: 選択月の最新値を保持
 	const selectedMonthsRef = useRef<Record<string, string>>({});
@@ -74,26 +79,79 @@ export function useFavoritesSync(allFacilities: Facility[]) {
 		[]
 	);
 
-	// 施設ごとの選択月を初期化（今月をデフォルト）
-	// 初期ロード時のみ使用（updateFavoritesAndSchedules からは呼ばない）
-	const initializeSelectedMonths = useCallback((facilityIds: string[]) => {
-		const { year, month } = getCurrentYearMonth();
-		const currentMonth = getMonthFirstDay(year, month);
-		const initial: Record<string, string> = {};
+	// ヘルパー関数: 複数の施設IDに対してローディング状態を設定
+	const setLoadingForIds = useCallback((facilityIds: string[], isLoading: boolean) => {
+		setLoadingStates((prev) => {
+			const updated = { ...prev };
+			for (const id of facilityIds) {
+				updated[id] = isLoading;
+			}
+			return updated;
+		});
+	}, []);
+
+	// ヘルパー関数: 複数の施設IDに対してエラー状態をクリア
+	const clearErrorsForIds = useCallback((facilityIds: string[]) => {
+		setErrors((prev) => {
+			const updated = { ...prev };
+			for (const id of facilityIds) {
+				updated[id] = null;
+			}
+			return updated;
+		});
+	}, []);
+
+	// ヘルパー関数: 複数の施設IDに対してエラー状態を設定
+	const setErrorsForIds = useCallback((facilityIds: string[], error: Error) => {
+		setErrors((prev) => {
+			const updated = { ...prev };
+			for (const id of facilityIds) {
+				updated[id] = error;
+			}
+			return updated;
+		});
+	}, []);
+
+	// ヘルパー関数: スケジュールマップを更新（既存のスケジュールを保持しつつ、指定された施設IDのスケジュールのみを更新）
+	const updateSchedulesForIds = useCallback((facilityIds: string[], scheduleMap: Record<string, Schedule>) => {
+		setSchedules((prev) => {
+			const updated = { ...prev };
+			for (const id of facilityIds) {
+				if (scheduleMap[id]) {
+					updated[id] = scheduleMap[id];
+				} else {
+					// スケジュールが見つからない場合は削除（該当施設のみ）
+					delete updated[id];
+				}
+			}
+			return updated;
+		});
+	}, []);
+
+	// ヘルパー関数: エラー時にスケジュールをクリア
+	const clearSchedulesForIds = useCallback((facilityIds: string[]) => {
+		setSchedules((prev) => {
+			const updated = { ...prev };
 		for (const id of facilityIds) {
-			initial[id] = currentMonth;
+				delete updated[id];
 		}
-		setSelectedMonths(initial);
-		return currentMonth;
+			return updated;
+		});
 	}, []);
 
 	// スケジュールデータを取得する関数
 	// 既存のスケジュールを保持しつつ、指定された施設IDのスケジュールのみを更新する
-	const fetchSchedules = useCallback(async (facilityIds: string[], targetMonth?: string) => {
+	const fetchSchedules = useCallback(
+		async (facilityIds: string[], targetMonth?: string) => {
 		if (facilityIds.length === 0) {
 			// 空配列の場合は何もしない（既存のスケジュールを保持）
 			return;
 		}
+
+			// ローディング状態を開始
+			setLoadingForIds(facilityIds, true);
+			// エラー状態をクリア
+			clearErrorsForIds(facilityIds);
 
 		try {
 			let scheduleMap: Record<string, Schedule>;
@@ -106,30 +164,76 @@ export function useFavoritesSync(allFacilities: Facility[]) {
 			}
 
 			// 既存のスケジュールを保持しつつ、取得した施設IDのスケジュールのみを更新
-			setSchedules((prev) => {
-				const updated = { ...prev };
-				// 取得した施設IDのスケジュールを更新または追加
-				for (const id of facilityIds) {
-					if (scheduleMap[id]) {
-						updated[id] = scheduleMap[id];
-					} else {
-						// スケジュールが見つからない場合は削除（該当施設のみ）
-						delete updated[id];
-					}
-				}
-				return updated;
-			});
+			updateSchedulesForIds(facilityIds, scheduleMap);
 		} catch (error) {
 			console.error('Failed to fetch schedules:', error);
+			// エラー状態を設定
+			const errorObj = error instanceof Error ? error : new Error('スケジュールの取得に失敗しました');
+			setErrorsForIds(facilityIds, errorObj);
 			// エラー時も該当施設のスケジュールのみを削除（他の施設のスケジュールは保持）
+			clearSchedulesForIds(facilityIds);
+		} finally {
+			// ローディング状態を終了
+			setLoadingForIds(facilityIds, false);
+		}
+	},
+		[setLoadingForIds, clearErrorsForIds, setErrorsForIds, updateSchedulesForIds, clearSchedulesForIds]
+	);
+
+	// ヘルパー関数: 新規追加された施設のスケジュールを取得（今月）
+	const fetchSchedulesForNewFacilities = useCallback(
+		(newIds: string[]) => {
+			if (newIds.length > 0) {
+				const { year, month } = getCurrentYearMonth();
+				const currentMonth = getMonthFirstDay(year, month);
+				fetchSchedules(newIds, currentMonth);
+			}
+		},
+		[fetchSchedules]
+	);
+
+	// ヘルパー関数: 削除された施設のスケジュール・ローディング・エラー状態をクリア
+	const clearStatesForRemovedFacilities = useCallback((currentFacilityIds: string[]) => {
+		const currentIdsSet = new Set(currentFacilityIds);
+
+		// スケジュールをクリア
 			setSchedules((prev) => {
 				const updated = { ...prev };
-				for (const id of facilityIds) {
+			let hasChanges = false;
+			for (const id of Object.keys(updated)) {
+				if (!currentIdsSet.has(id)) {
 					delete updated[id];
+					hasChanges = true;
 				}
-				return updated;
+			}
+			return hasChanges ? updated : prev;
+		});
+
+		// ローディング状態をクリア
+		setLoadingStates((prev) => {
+			const updated = { ...prev };
+			let hasChanges = false;
+			for (const id of Object.keys(updated)) {
+				if (!currentIdsSet.has(id)) {
+					delete updated[id];
+					hasChanges = true;
+				}
+				}
+			return hasChanges ? updated : prev;
 			});
-		}
+
+		// エラー状態をクリア
+		setErrors((prev) => {
+			const updated = { ...prev };
+			let hasChanges = false;
+			for (const id of Object.keys(updated)) {
+				if (!currentIdsSet.has(id)) {
+					delete updated[id];
+					hasChanges = true;
+				}
+			}
+			return hasChanges ? updated : prev;
+		});
 	}, []);
 
 	// お気に入りとスケジュールを更新する共通処理
@@ -142,36 +246,16 @@ export function useFavoritesSync(allFacilities: Facility[]) {
 			// 選択月をマージ（既存の選択月を保持しつつ、新規施設のみ今月を設定）
 			setSelectedMonths((prev) => {
 				const { next, newIds } = mergeSelectedMonths(facilityIds, prev);
-
 				// 新規追加された施設のスケジュールを取得（今月）
 				// 既存施設のスケジュールは schedules 状態に既に保持されているため、取得不要
-				if (newIds.length > 0) {
-					const { year, month } = getCurrentYearMonth();
-					const currentMonth = getMonthFirstDay(year, month);
-					fetchSchedules(newIds, currentMonth);
-				}
-
+				fetchSchedulesForNewFacilities(newIds);
 				return next;
 			});
 
-			// 削除された施設のスケジュールをクリア
-			setSchedules((prev) => {
-				const updated = { ...prev };
-				const currentIdsSet = new Set(facilityIds);
-				let hasChanges = false;
-
-				// 現在のお気に入りに含まれない施設のスケジュールを削除
-				for (const id of Object.keys(updated)) {
-					if (!currentIdsSet.has(id)) {
-						delete updated[id];
-						hasChanges = true;
-					}
-				}
-
-				return hasChanges ? updated : prev;
-			});
+			// 削除された施設のスケジュール・ローディング・エラー状態をクリア
+			clearStatesForRemovedFacilities(facilityIds);
 		},
-		[mergeSelectedMonths, fetchSchedules]
+		[mergeSelectedMonths, fetchSchedulesForNewFacilities, clearStatesForRemovedFacilities]
 	);
 
 	// selectedMonths の変更を selectedMonthsRef に反映
@@ -240,19 +324,66 @@ export function useFavoritesSync(allFacilities: Facility[]) {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [allFacilities, updateFavoritesAndSchedules]);
 
-	// お気に入り削除ハンドラ
-	const handleRemove = useCallback(
-		(facilityId: string) => {
-			const currentStorageItems = readFavoritesFromStorage();
-			const updated = removeFavorite(facilityId, currentStorageItems);
-			updateFavoritesInStorage(updated);
-			// 状態を即座に更新
-			const updatedFavorites = matchFavoritesWithFacilities(updated, allFacilities);
+	// ヘルパー関数: localStorage の更新と状態の同期を行う共通処理
+	// この関数は、localStorage を更新した後に状態を即座に反映し、他のコンポーネントに通知する
+	const syncFavoritesFromStorage = useCallback(
+		(updatedStorageItems: ReturnType<typeof readFavoritesFromStorage>) => {
+			updateFavoritesInStorage(updatedStorageItems);
+			const updatedFavorites = matchFavoritesWithFacilities(updatedStorageItems, allFacilities);
 			updateFavoritesAndSchedules(updatedFavorites);
 			// カスタムイベントを発火してFacilitiesTableに通知
 			window.dispatchEvent(new CustomEvent(FAVORITES_UPDATED_EVENT));
 		},
 		[allFacilities, updateFavoritesAndSchedules]
+	);
+
+	// お気に入り削除ハンドラ
+	const handleRemove = useCallback(
+		(facilityId: string) => {
+			const currentStorageItems = readFavoritesFromStorage();
+			const updated = removeFavorite(facilityId, currentStorageItems);
+			syncFavoritesFromStorage(updated);
+		},
+		[syncFavoritesFromStorage]
+	);
+
+	// お気に入り並び替えハンドラ
+	const handleMove = useCallback(
+		(facilityId: string, direction: 'up' | 'down') => {
+			const currentStorageItems = readFavoritesFromStorage();
+			const currentIds = currentStorageItems.map((f) => f.facilityId);
+			const currentIndex = currentIds.indexOf(facilityId);
+
+			// 移動できない場合は何もしない
+			if (currentIndex === -1) {
+				return;
+			}
+			if (direction === 'up' && currentIndex === 0) {
+				return;
+			}
+			if (direction === 'down' && currentIndex === currentIds.length - 1) {
+				return;
+			}
+
+			// 新しい順序を計算
+			const newIds = [...currentIds];
+			const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+			[newIds[currentIndex], newIds[targetIndex]] = [newIds[targetIndex], newIds[currentIndex]];
+
+			// 並び順を更新
+			const updated = reorderFavorites(newIds, currentStorageItems);
+			
+			// localStorage を更新し、状態を即座に反映
+			syncFavoritesFromStorage(updated);
+			
+			// スナップショットを更新して、checkStorageChanges が再度実行されないようにする
+			// getFavoritesFromStorageSnapshot はIDをソートして比較するため、
+			// 順序変更を検知できない。そのため、スナップショットを手動で更新する
+			// ソート済みのスナップショットを設定することで、checkStorageChanges が変更を検知しないようにする
+			const newSnapshot = updated.map((f) => f.facilityId).sort().join(',');
+			lastStorageRef.current = newSnapshot;
+		},
+		[syncFavoritesFromStorage]
 	);
 
 	// 月の切り替えハンドラ
@@ -264,50 +395,52 @@ export function useFavoritesSync(allFacilities: Facility[]) {
 			// 選択月を即座に更新
 			setSelectedMonths((prev) => ({ ...prev, [facilityId]: targetMonth }));
 
+		// ローディング状態を開始、エラー状態をクリア
+		setLoadingForIds([facilityId], true);
+		clearErrorsForIds([facilityId]);
+
 			// 該当施設のスケジュールを取得
 			try {
 				const scheduleMap = await getSchedulesByFacilityIdsAndMonth([facilityId], targetMonth);
 
 				// レースコンディション対策: リクエスト完了時に選択月が変わっていない場合のみ更新
 				if (selectedMonthsRef.current[facilityId] !== targetMonth) {
-					// ユーザーが別の月を選択していた場合は結果を破棄
+					// ユーザーが別の月を選択していた場合は結果を破棄（ローディング状態は最新のリクエスト側に委ねる）
 					return;
 				}
 
 				// 該当施設のスケジュールを更新（見つからない場合は削除）
-				setSchedules((prev) => {
-					const updated = { ...prev };
-					if (scheduleMap[facilityId]) {
-						updated[facilityId] = scheduleMap[facilityId];
-					} else {
-						// スケジュールが見つからない場合は削除
-						delete updated[facilityId];
-					}
-					return updated;
-				});
+				updateSchedulesForIds([facilityId], scheduleMap);
 			} catch (error) {
 				console.error('Failed to fetch schedule for month:', error);
 				// レースコンディション対策: エラー時も選択月が変わっていない場合のみクリア
 				if (selectedMonthsRef.current[facilityId] !== targetMonth) {
-					// ユーザーが別の月を選択していた場合は結果を破棄
+					// ユーザーが別の月を選択していた場合は結果を破棄（ローディング状態は最新のリクエスト側に委ねる）
 					return;
 				}
+				// エラー状態を設定
+				const errorObj = error instanceof Error ? error : new Error('スケジュールの取得に失敗しました');
+				setErrorsForIds([facilityId], errorObj);
 				// エラー時も該当施設のスケジュールをクリア
-				setSchedules((prev) => {
-					const updated = { ...prev };
-					delete updated[facilityId];
-					return updated;
-				});
+				clearSchedulesForIds([facilityId]);
+			} finally {
+				// ローディング状態を終了（現在の選択月とこのリクエストの月が一致する場合のみ）
+				if (selectedMonthsRef.current[facilityId] === targetMonth) {
+					setLoadingForIds([facilityId], false);
+				}
 			}
 		},
-		[]
+		[setLoadingForIds, clearErrorsForIds, setErrorsForIds, updateSchedulesForIds, clearSchedulesForIds]
 	);
 
 	return {
 		favorites,
 		schedules,
 		selectedMonths,
+		loadingStates,
+		errors,
 		handleRemove,
+		handleMove,
 		handleMonthChange,
 	};
 }

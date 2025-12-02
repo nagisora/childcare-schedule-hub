@@ -12,7 +12,6 @@ type FavoritesSectionProps = {
 	allFacilities: Facility[];
 };
 
-
 /**
  * お気に入りセクションコンポーネント
  * お気に入り登録済みの施設とスケジュールを表示
@@ -20,10 +19,10 @@ type FavoritesSectionProps = {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function FavoritesSection({ initialFavorites: _initialFavorites, allFacilities }: FavoritesSectionProps) {
 	// initialFavorites は互換性のため props に残しているが、useFavoritesSync が localStorage から読み込むため使用しない
-	const { favorites, schedules, selectedMonths, handleRemove, handleMonthChange } =
+	const { favorites, schedules, selectedMonths, loadingStates, errors, handleRemove, handleMove, handleMonthChange } =
 		useFavoritesSync(allFacilities);
 
-
+	// 空状態コンポーネント
 	if (favorites.length === 0) {
 		return (
 			<div className="rounded-xl border bg-slate-50 p-8 text-center">
@@ -39,16 +38,31 @@ export function FavoritesSection({ initialFavorites: _initialFavorites, allFacil
 
 	return (
 		<div className="space-y-4">
-			{favorites.map((item) => (
+			{favorites.map((item, index) => {
+				const facilityId = item.facility.id;
+				const selectedMonth = selectedMonths[facilityId] || defaultMonth;
+				const isLoading = loadingStates[facilityId] || false;
+				const error = errors[facilityId] || null;
+				const isFirst = index === 0;
+				const isLast = index === favorites.length - 1;
+
+				return (
 				<FavoriteFacilityCard
-					key={item.facility.id}
+						key={facilityId}
 					favorite={item}
-					schedule={schedules[item.facility.id]}
-					selectedMonth={selectedMonths[item.facility.id] || defaultMonth}
+						schedule={schedules[facilityId]}
+						selectedMonth={selectedMonth}
+						isLoading={isLoading}
+						error={error}
 					onRemove={handleRemove}
+						onMoveUp={!isFirst ? () => handleMove(facilityId, 'up') : undefined}
+						onMoveDown={!isLast ? () => handleMove(facilityId, 'down') : undefined}
+						isFirst={isFirst}
+						isLast={isLast}
 					onMonthChange={handleMonthChange}
 				/>
-			))}
+				);
+			})}
 		</div>
 	);
 }
