@@ -106,6 +106,7 @@ export function InstagramEmbed({ postUrl, className = '' }: InstagramEmbedProps)
 	const [embedState, setEmbedState] = useState<EmbedState>('loading');
 	const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 	const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
+	const embedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
 	// 投稿URLのバリデーション
 	const isValidUrl = isInstagramPostUrl(postUrl);
@@ -138,12 +139,16 @@ export function InstagramEmbed({ postUrl, className = '' }: InstagramEmbedProps)
 						clearTimeout(timeoutRef.current);
 						timeoutRef.current = null;
 					}
+					if (embedTimeoutRef.current) {
+						clearTimeout(embedTimeoutRef.current);
+						embedTimeoutRef.current = null;
+					}
 					setEmbedState('success');
 				}
 			}, 500);
 
 			// 5秒後にタイムアウト
-			setTimeout(() => {
+			embedTimeoutRef.current = setTimeout(() => {
 				if (checkIntervalRef.current) {
 					clearInterval(checkIntervalRef.current);
 					checkIntervalRef.current = null;
@@ -151,6 +156,8 @@ export function InstagramEmbed({ postUrl, className = '' }: InstagramEmbedProps)
 				if (!containerRef.current?.querySelector('iframe')) {
 					setEmbedState('failed');
 				}
+				// コールバック実行後はタイマー参照をクリア
+				embedTimeoutRef.current = null;
 			}, 5000);
 		};
 
@@ -167,6 +174,10 @@ export function InstagramEmbed({ postUrl, className = '' }: InstagramEmbedProps)
 			if (timeoutRef.current) {
 				clearTimeout(timeoutRef.current);
 				timeoutRef.current = null;
+			}
+			if (embedTimeoutRef.current) {
+				clearTimeout(embedTimeoutRef.current);
+				embedTimeoutRef.current = null;
 			}
 			if (checkIntervalRef.current) {
 				clearInterval(checkIntervalRef.current);

@@ -405,8 +405,7 @@ export function useFavoritesSync(allFacilities: Facility[]) {
 
 				// レースコンディション対策: リクエスト完了時に選択月が変わっていない場合のみ更新
 				if (selectedMonthsRef.current[facilityId] !== targetMonth) {
-					// ユーザーが別の月を選択していた場合は結果を破棄
-					setLoadingForIds([facilityId], false);
+					// ユーザーが別の月を選択していた場合は結果を破棄（ローディング状態は最新のリクエスト側に委ねる）
 					return;
 				}
 
@@ -416,8 +415,7 @@ export function useFavoritesSync(allFacilities: Facility[]) {
 				console.error('Failed to fetch schedule for month:', error);
 				// レースコンディション対策: エラー時も選択月が変わっていない場合のみクリア
 				if (selectedMonthsRef.current[facilityId] !== targetMonth) {
-					// ユーザーが別の月を選択していた場合は結果を破棄
-					setLoadingForIds([facilityId], false);
+					// ユーザーが別の月を選択していた場合は結果を破棄（ローディング状態は最新のリクエスト側に委ねる）
 					return;
 				}
 				// エラー状態を設定
@@ -426,8 +424,10 @@ export function useFavoritesSync(allFacilities: Facility[]) {
 				// エラー時も該当施設のスケジュールをクリア
 				clearSchedulesForIds([facilityId]);
 			} finally {
-				// ローディング状態を終了
-				setLoadingForIds([facilityId], false);
+				// ローディング状態を終了（現在の選択月とこのリクエストの月が一致する場合のみ）
+				if (selectedMonthsRef.current[facilityId] === targetMonth) {
+					setLoadingForIds([facilityId], false);
+				}
 			}
 		},
 		[setLoadingForIds, clearErrorsForIds, setErrorsForIds, updateSchedulesForIds, clearSchedulesForIds]
