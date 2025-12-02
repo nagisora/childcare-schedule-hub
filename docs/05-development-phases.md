@@ -308,7 +308,7 @@
 
 ---
 
-## フェーズ進捗状況（2025-01-22 時点）
+## フェーズ進捗状況（2025-12-02 時点）
 
 ### 完了したフェーズ
 - ✅ フェーズ0: 準備（環境 / ドキュメント）
@@ -331,8 +331,14 @@
 - アクセシビリティ改善: エラー/ローディングメッセージに `aria-live` / `role` を付与、ボタンのフォーカスインジケータを改善
 - レスポンシブレイアウトの改善: モバイル表示の調整、テーブルの横スクロール対応
 - 運用Runbookの更新: `docs/04-development.md` に仮MVP環境でのトラブルシューティング手順を追記
+- PRレビュー指摘事項の修正:
+  - Instagram埋め込みの5秒タイマーをrefで管理し、アンマウント時のクリーンアップを追加（React警告の解消）
+  - 月切り替え時のローディング状態管理を改善（staleリクエストが最新リクエストのローディング表示を打ち消さないように修正）
 
-**開発セッション**: [`docs/dev-sessions/20250122-session-phase8-quality-up.md`](./dev-sessions/20250122-session-phase8-quality-up.md) を参照
+**開発セッション**:
+- [`docs/dev-sessions/20251130-session-phase8-quality-up.md`](./dev-sessions/20251130-session-phase8-quality-up.md) - フェーズ8の主要実装
+- [`docs/dev-sessions/20251130-session-phase8-followup.md`](./dev-sessions/20251130-session-phase8-followup.md) - ローディング/エラーUI実装とテスト追加
+- [`docs/dev-sessions/20251202-01-phase8-pr-review-fix.md`](./dev-sessions/20251202-01-phase8-pr-review-fix.md) - PRレビュー指摘事項の修正
 
 ### 次のステップ
 次に取り組むべきフェーズは、以下のいずれかです:
