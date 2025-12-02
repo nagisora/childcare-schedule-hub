@@ -38,6 +38,18 @@ function ensureInstagramEmbedScript(
 	let checkInterval: NodeJS.Timeout | null = null;
 	let timeout: NodeJS.Timeout | null = null;
 
+	// 成功・失敗が確定したときに必ずタイマーを止めるヘルパー
+	const stopWatching = () => {
+		if (checkInterval) {
+			clearInterval(checkInterval);
+			checkInterval = null;
+		}
+		if (timeout) {
+			clearTimeout(timeout);
+			timeout = null;
+		}
+	};
+
 	// 既にSDKが読み込まれている場合は即座に処理
 	if (isInstagramSDKLoaded()) {
 		if (containerRef.current) {
@@ -48,9 +60,8 @@ function ensureInstagramEmbedScript(
 				onFailure();
 			}
 		}
-		return () => {
-			// クリーンアップ不要（即座に処理完了）
-		};
+		// この場合もクリーンアップ関数は返しておく（中で何も起きない）
+		return stopWatching;
 	}
 
 	// SDK読み込み待機（100ms間隔でポーリング、最大10秒）
@@ -59,10 +70,8 @@ function ensureInstagramEmbedScript(
 	checkInterval = setInterval(() => {
 		attempts++;
 		if (isInstagramSDKLoaded()) {
-			if (checkInterval) {
-				clearInterval(checkInterval);
-				checkInterval = null;
-			}
+			// SDK読み込みに成功したらポーリングとタイムアウトを止める
+			stopWatching();
 			if (containerRef.current) {
 				const success = processInstagramEmbed(containerRef.current);
 				if (success) {
@@ -72,31 +81,23 @@ function ensureInstagramEmbedScript(
 				}
 			}
 		} else if (attempts >= maxAttempts) {
-			if (checkInterval) {
-				clearInterval(checkInterval);
-				checkInterval = null;
-			}
+			// 規定回数ポーリングしてもSDKが来なければ失敗扱い
+			stopWatching();
 			onFailure();
 		}
 	}, 100);
 
 	// タイムアウト（10秒後にフォールバック表示）
 	timeout = setTimeout(() => {
-		if (checkInterval) {
-			clearInterval(checkInterval);
-			checkInterval = null;
-		}
+		// ここに来るのは「SDKが10秒経っても読み込まれない」場合だけにしたいので、
+		// 成否にかかわらず一度タイマーを止めてから onFailure を呼ぶ
+		stopWatching();
 		onFailure();
 	}, 10000);
 
-	// cleanup関数
+	// cleanup関数（アンマウント時もポーリングとタイマーを必ず止める）
 	return () => {
-		if (checkInterval) {
-			clearInterval(checkInterval);
-		}
-		if (timeout) {
-			clearTimeout(timeout);
-		}
+		stopWatching();
 	};
 }
 
