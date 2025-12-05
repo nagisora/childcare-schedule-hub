@@ -14,6 +14,7 @@ import type { Facility, FacilitiesByWard } from '../lib/types';
  * [04 開発ガイド](../docs/04-development.md) 5.7節を参照
  * 
  * ISR: 60分間キャッシュ（[02 設計資料](../docs/02-design.md) 2.3節参照）
+ * データ更新時は `/api/revalidate?tag=facilities` を呼び出すことでキャッシュを無効化できる。
  * 
  * お気に入りはlocalStorageに保存されるため、サーバー側では初期値として空配列を渡す。
  * クライアント側で useEffect により読み込まれる。
