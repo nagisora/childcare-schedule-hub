@@ -56,8 +56,10 @@
 - `search-api-comparison.md` - 検索APIの比較資料
   - 現在の方法（Cursorのブラウザ機能）の課題を整理
   - 無料・有料の検索APIを比較（価格、特徴、おすすめ度）
-  - 推奨: DuckDuckGo Search (Pythonライブラリ) - 完全無料、APIキー不要
-  - 実装例を含む
+  - 短期PoC向け: DuckDuckGo Search (Pythonライブラリ) - 完全無料、APIキー不要
+  - 長期運用向け: Google Custom Search API / Serper.dev など公式・安定性の高いAPIを軸に検討
+  - 安定性・保守性（公式APIか/スクレイピングか）の観点も含めて評価
+  - 実装例・今後の検証計画を含む
 
 ## 次のステップ
 
@@ -67,8 +69,10 @@
 2. **確実性**: 正しいURLを特定できる確率
 3. **実装可能性**: Cursor（AIアシスタント）で実装可能か
 4. **保守性**: 長期的に運用しやすいか
+5. **安定性・公式性**: 公式APIかどうか、仕様変更やブロックのリスク、SLAの有無
 
-比較検討の結果は、`docs/instagram-integration/05-instagram-account-search.md` に反映し、検索手順を更新します。
+比較検討の結果と、検索APIを用いたPoC（例: 10〜20施設でのDuckDuckGo / Google Custom Search / Serper.devの精度・所要時間比較）の実測値は、
+`docs/instagram-integration/05-instagram-account-search.md` および関連ドキュメントに順次反映し、正式な検索手順を更新します。
 
 ## 開発セッション記録
 

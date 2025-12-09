@@ -33,7 +33,7 @@
 **要件**:
 
 - なるべく無料で使いたい
-- 月間44件程度の施設を検索する想定（将来的に増える可能性あり）
+- 月間44件程度の施設を検索する想定（フェーズ9の現行スコープからの暫定見積もり。将来的に対象自治体・施設数が増える可能性あり）
 
 ---
 
@@ -94,6 +94,11 @@ def find_instagram_profile(hub_name):
 **推奨度**: ⭐⭐⭐⭐⭐
 - **理由**: 完全無料で制限なし、APIキー不要、実装が簡単
 - **注意点**: Google検索とは結果が異なる可能性があるが、Instagramアカウント検索には十分
+- **重要な注意**:
+  - `duckduckgo-search` は DuckDuckGo 公式の検索APIではなく、**検索結果ページをスクレイピングする非公式ライブラリ** である
+  - DuckDuckGo 側のHTML構造変更や対策により、**予告なく動かなくなるリスク** がある（SLAや後方互換性の保証はない）
+  - ライブラリのメンテ状況やIssueを継続的にウォッチする必要がある
+  - 本ドキュメントでは、**短期のPoCや簡易ツール向けには非常に有力な選択肢**としつつ、**長期運用では後述の公式API系（Google Custom Search API / Serper.devなど）を優先する** 方針とする
 
 ---
 
@@ -196,25 +201,25 @@ def find_instagram_profile(hub_name):
 
 ## おすすめランキング
 
-### 1位: DuckDuckGo Search (Pythonライブラリ) ⭐⭐⭐⭐⭐
+### 1位: Google Custom Search API ⭐⭐⭐⭐（長期運用の第1候補）
 
 **理由**:
-- 完全無料で制限なし
-- APIキー不要で実装が簡単
-- 月間44件程度なら十分対応可能
-- 将来的に検索件数が増えても追加コストなし
+- Google検索の高い精度（ローカルな施設名・地名に対して強い）
+- 公式APIであり、仕様変更リスクやブロックリスクが相対的に低い
+- 無料枠（1日100クエリ）で、月間44件程度の利用であれば**完全に無料で収まる**
 
 **デメリット**:
-- Google検索とは結果が異なる可能性（ただし、Instagramアカウント検索には十分）
+- Custom Search Engineの設定が必要
+- APIキーの取得・管理が必要
 
 **推奨するケース**:
-- 無料で完結したい
-- APIキーの管理を避けたい
-- Python環境がある
+- 本番運用や長期利用を前提としたワークフロー
+- ローカルな子育て拠点などに対して、**できるだけ確実に正しいURLを取りたい** ケース
+- 将来的に検索件数が増える可能性があるが、安定性・公式性を優先したいケース
 
 ---
 
-### 2位: Serper.dev ⭐⭐⭐⭐⭐
+### 2位: Serper.dev ⭐⭐⭐⭐⭐（コスト効率の良い有料候補）
 
 **理由**:
 - 最も安価な有料オプション（$0.80/1,000リクエスト）
@@ -232,22 +237,22 @@ def find_instagram_profile(hub_name):
 
 ---
 
-### 3位: Google Custom Search API ⭐⭐⭐⭐
+### 3位: DuckDuckGo Search (Pythonライブラリ) ⭐⭐⭐⭐（PoC / 補助的な候補）
 
 **理由**:
-- Google検索の高い精度
-- 無料枠（1日100クエリ）で月間44件は十分
-- 公式APIで安定性が高い
+- 完全無料で制限なし（利用規約の範囲内）
+- APIキー不要でインストールも簡単
+- Pythonコードだけで完結し、**PoCや一時的なツール実装に向いている**
 
 **デメリット**:
-- Custom Search Engineの設定が必要
-- APIキーの取得が必要
-- 無料枠が少ない（将来的に増える場合は有料）
+- DuckDuckGo 公式の検索APIではなく、**検索結果ページをスクレイピングする非公式ライブラリ**である
+- DuckDuckGo 側の仕様変更・ブロックなどにより、**突然動かなくなる可能性がある**
+- 日本語ローカル施設の検索精度は、一般に Google 検索に比べて劣る可能性がある
 
 **推奨するケース**:
-- Google検索の精度を重視したい
-- 無料枠内で完結できる見込み
-- 公式APIを優先したい
+- まずは「検索API + ルールベース判定」がワークフローとして有効かどうかを**素早く検証したいPoC段階**
+- APIキー取得やCSE設定なしで、AIからすぐに動くサンプルコードを試したい場合
+- 本番では Google Custom Search API / Serper.dev など公式APIを使う前提で、**実験用・補助的手段として使う** 場合
 
 ---
 
@@ -266,23 +271,50 @@ def find_instagram_profile(hub_name):
 
 ---
 
+## 検証計画（精度・所要時間の評価）
+
+本ドキュメントでの「おすすめ」は机上の比較だけでなく、**少数の実データでの検証結果を踏まえて最終決定する** 方針とする。
+
+### 検証対象
+
+- DuckDuckGo Search（Pythonライブラリ）
+- Google Custom Search API
+- Serper.dev（必要に応じて）
+
+### 検証方法のイメージ
+
+1. サンプルとして 10〜20 件程度の施設（名前・区名・住所が既知のもの）を選定する
+2. 各APIで、同一の検索クエリポリシー（例: `site:instagram.com "<施設名>" "<区名>" 子育て`）を用いて検索する
+3. 以下を記録する:
+   - **成功率**: 「公式と思われるInstagramアカウントURL」を上位 N 件以内から正しく特定できた割合
+   - **所要時間**: 1件あたりの平均応答時間
+   - **実装の複雑さ**: 認証・設定・エラー処理の手間
+4. 結果を `docs/instagram-integration/dev-sessions/` などに記録し、最終的な採用方針を `03-design-decisions.md` / `05-instagram-account-search.md` に反映する
+
+---
+
 ## 実装推奨アプローチ
 
-### フェーズ1: 無料で試す（DuckDuckGo Search）
+### フェーズ1: PoCとして無料で試す（DuckDuckGo Search + 少数のGoogle系API）
 
 1. **DuckDuckGo Search (Pythonライブラリ) を実装**
    - 完全無料で制限なし
    - APIキー不要で実装が簡単
-   - 月間44件程度なら十分対応可能
+   - AIからすぐに実行できる検証用コードとして適している
 
-2. **検証**
+2. **あわせて、Google Custom Search API または Serper.dev でごく少数のサンプルを試す**
+   - CSE設定とAPIキー取得を行い、数件だけでも動作させてみる
+   - DuckDuckGoと比べた「精度差」「実装負荷」を体感レベルで把握する
+
+3. **検証**
    - 実際の施設名で検索して精度を確認
    - 検索結果からInstagram URLを抽出できるか確認
+   - 成功率・所要時間・実装/運用コストを簡易に記録する
 
 ### フェーズ2: 必要に応じて有料APIに移行
 
 1. **DuckDuckGo Searchで精度が不十分な場合**
-   - Serper.devに移行（$0.80/1,000リクエスト）
+   - Serper.dev または Google Custom Search API に移行
    - Google検索の高い精度を活用
 
 2. **検索件数が増えた場合**
@@ -291,20 +323,40 @@ def find_instagram_profile(hub_name):
 
 ---
 
+### エラーハンドリング・フォールバックの方針
+
+検索APIを本番ワークフローに組み込む場合、以下の点を最低限おさえる:
+
+- **タイムアウト・リトライ**
+  - 各リクエストにタイムアウト（例: 5〜10秒）を設定する
+  - ネットワークエラーや一時的な 5xx エラー時のみ、最大2〜3回まで指数バックオフでリトライする
+- **フォールバック戦略**
+  - 優先順位の例:
+    1. 公式API（Google Custom Search API / Serper.dev）
+    2. それでも失敗した場合のみ DuckDuckGo Search などの補助的手段
+    3. それでも特定できなければ「未特定」として Runbook に理由を記録し、**無理に推測でURLを埋めない**
+- **ログ記録**
+  - どのAPIで、どの検索クエリを使って、どの候補URLを返したかを最低限ログに残す
+  - 後から「なぜこのURLになったのか」を追跡できるようにすることで、誤判定の修正が容易になる
+
 ## 実装例（DuckDuckGo Search）
 
 ```python
 from duckduckgo_search import DDGS
+import logging
 import re
+
+logger = logging.getLogger(__name__)
+
 
 def find_instagram_profile(hub_name, ward_name=None):
     """
     子育て拠点のInstagramアカウントURLを検索
-    
+
     Args:
         hub_name: 施設名（例: "こころと"）
-        ward_name: 区名（例: "名古屋市中区"）（オプション）
-    
+        ward_name: 区名または市区町村名（例: "名古屋市中区"）（オプション）
+
     Returns:
         Instagram URL（見つからない場合はNone）
     """
@@ -313,40 +365,70 @@ def find_instagram_profile(hub_name, ward_name=None):
         query = f'"{hub_name}" {ward_name} 子育て site:instagram.com'
     else:
         query = f'"{hub_name}" 子育て site:instagram.com'
-    
+
     # 投稿ページを除外するためのパターン
     exclude_patterns = ['/p/', '/reel/', '/tv/']
-    
+
+    # 候補URLとスコアを保持
+    candidates = []
+
     try:
         with DDGS() as ddgs:
-            # 上位5件を取得
-            results = list(ddgs.text(query, max_results=5))
-            
-            for res in results:
-                url = res.get('href', '')
-                
-                # InstagramのURLか確認
-                if 'instagram.com' not in url:
-                    continue
-                
-                # 投稿ページを除外
-                if any(pattern in url for pattern in exclude_patterns):
-                    continue
-                
-                # プロフィールページのURLを返す
-                # 例: https://www.instagram.com/kokoroto.hiroba/
-                if re.match(r'https://www\.instagram\.com/[^/]+/?$', url):
-                    return url.rstrip('/')
-            
+            # 上位10件を取得
+            results = list(ddgs.text(query, max_results=10))
+
+        for res in results:
+            url = res.get('href', '')
+            title = res.get('title', '') or ''
+            body = res.get('body', '') or ''
+            snippet = f"{title} {body}"
+
+            # InstagramのURLか確認
+            if 'instagram.com' not in url:
+                continue
+
+            # 投稿ページを除外
+            if any(pattern in url for pattern in exclude_patterns):
+                continue
+
+            # プロフィールページのURL形式か確認
+            # 例: https://www.instagram.com/kokoroto.hiroba/
+            if not re.match(r'https://www\.instagram\.com/[^/]+/?$', url):
+                continue
+
+            # 施設名・区名の一致度でスコアリング
+            score = 0
+            if hub_name and hub_name in snippet:
+                score += 2
+            if ward_name and ward_name in snippet:
+                score += 1
+
+            candidates.append((score, url.rstrip('/'), snippet))
+
+        if not candidates:
+            logger.info("Instagram候補が見つからなかった: %s", query)
             return None
-            
+
+        # スコアの高い順に並べて最上位を採用
+        candidates.sort(key=lambda x: x[0], reverse=True)
+        best_score, best_url, best_snippet = candidates[0]
+
+        logger.info(
+            "Instagram候補を選択: url=%s score=%s snippet=%s",
+            best_url,
+            best_score,
+            best_snippet,
+        )
+        return best_url
+
     except Exception as e:
-        print(f"検索エラー: {e}")
+        logger.exception("Instagram検索中にエラーが発生しました: %s", e)
         return None
+
 
 # 使用例
 hub_name = "こころと"
-ward_name = "名古屋市"
+ward_name = "名古屋市中区"
 url = find_instagram_profile(hub_name, ward_name)
 if url:
     print(f"見つかったURL: {url}")
@@ -358,28 +440,28 @@ else:
 
 ## まとめ
 
-### 推奨: DuckDuckGo Search (Pythonライブラリ)
+### 長期運用の推奨: Google Custom Search API / Serper.dev
 
 **理由**:
-1. **完全無料**: 制限なし、APIキー不要
-2. **実装が簡単**: Pythonライブラリをインストールするだけ
-3. **月間44件程度なら十分**: 将来的に増えても追加コストなし
-4. **Cursorで実装可能**: PythonコードとしてCursorで実行できる
+1. **公式API / Google検索の精度**: ローカル施設に対して高い精度が期待できる
+2. **安定性**: 正規のAPIとして提供されており、HTMLスクレイピング系ライブラリより長期運用に向く
+3. **コスト**: 月間44件程度であれば、Google Custom Search API の無料枠内で収まる
+4. **拡張性**: 将来的に件数が増えた場合でも、Serper.dev など安価な有料APIにスムーズに移行できる
 
 **次のステップ**:
-1. DuckDuckGo Searchを実装して検証
-2. 精度が不十分な場合はSerper.devに移行を検討（$0.80/1,000リクエスト）
+1. 少数サンプルで Google Custom Search API / Serper.dev を動かし、精度・所要時間・実装コストを確認する
+2. その結果を踏まえ、どちらかを「本番用の標準API」として `03-design-decisions.md` / `05-instagram-account-search.md` に明記する
 
-### 代替案: Serper.dev
+### 短期PoCの推奨: DuckDuckGo Search (Pythonライブラリ)
 
 **理由**:
-1. **最も安価な有料オプション**: $0.80/1,000リクエスト
-2. **Google検索の精度**: 高い精度を期待できる
-3. **月間44件なら約$0.04/月**: 非常に安価
+1. **完全無料・APIキー不要**: すぐに試せる
+2. **実装が簡単**: Pythonライブラリをインストールするだけで動作する
+3. **PoCに十分**: 「検索API + ルールベース判定」のワークフローが有効かどうかを素早く検証できる
 
 **次のステップ**:
-1. 初回200クレジットで試す
-2. 精度を確認してから継続利用を判断
+1. `duckduckgo-search` を用いたPoCを作成し、サンプル施設で成功率・所要時間を計測する
+2. 上記のGoogle系APIとの比較結果をもとに、「PoC専用として継続利用するか / 本番では公式APIに切り替えるか」を判断する
 
 ---
 

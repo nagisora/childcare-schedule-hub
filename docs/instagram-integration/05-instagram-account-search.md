@@ -8,6 +8,12 @@
     - 「中川区のInstagramのURLを取得して。やり方は `docs/instagram-integration/05-instagram-account-search.md` を参照して。」
     - 「○○区の施設のうち、まだ `instagram_url` がNULLのものだけ対象に同じことをやって。」
 
+> **補足（検索APIによる自動化の検討状況）**
+>
+> 本ドキュメントは、現時点では **ブラウザでGoogle検索を開く手順** を前提とした指示書である。
+> 一方で、`instagram-integration/ai-comparisons/` フォルダでは、Google Custom Search API / Serper.dev / DuckDuckGo Search などの**検索APIを使ってURL特定を自動化する案**を検討している。
+> 将来的に検索API版のワークフローが標準化された場合は、本指示書の内容を「検索API版」の手順に更新する予定。
+
 ## 2. 前提条件
 
 - **技術前提**
