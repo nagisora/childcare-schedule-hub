@@ -39,10 +39,25 @@
 
 ## ファイル構成
 
+### 各AIの回答
+
 - `Gemini.md` - Geminiからの回答
 - `Claude.md` - Claudeからの回答
 - `ChatGPT.md` - ChatGPTからの回答
 - `Grok.md` - Grokからの回答
+
+### まとめ・分析ドキュメント
+
+- `summary.md` - 各AIの提案を整理・比較したまとめドキュメント
+  - 4つのAIの提案を整理
+  - 共通推奨方法、独自提案、実装アプローチをまとめ
+  - 次のステップを明確化
+
+- `search-api-comparison.md` - 検索APIの比較資料
+  - 現在の方法（Cursorのブラウザ機能）の課題を整理
+  - 無料・有料の検索APIを比較（価格、特徴、おすすめ度）
+  - 推奨: DuckDuckGo Search (Pythonライブラリ) - 完全無料、APIキー不要
+  - 実装例を含む
 
 ## 次のステップ
 
@@ -55,8 +70,25 @@
 
 比較検討の結果は、`docs/instagram-integration/05-instagram-account-search.md` に反映し、検索手順を更新します。
 
+## 開発セッション記録
+
+開発セッションの記録方法については、`.cursor/commands/session-recording.md` を参照してください。
+
+このコマンドは、以下の手順で開発セッションを記録します：
+
+1. `docs/05-development-phases.md` のルールと `docs/dev-sessions/template-session.md` に従って、セッションを `docs/dev-sessions/` に記録
+2. 今日のゴール / 実施ログ / 結果とふりかえり / 次回に持ち越すタスク を埋める
+3. 必要があれば `docs/05-development-phases.md` のフェーズ進捗も更新
+
 ## 関連ドキュメント
+
+### Instagram連携関連
 
 - [05-instagram-account-search.md](../05-instagram-account-search.md) - 現在のAI向け検索手順
 - [20251205-01-phase9-instagram-account-coverage.md](../../dev-sessions/20251205-01-phase9-instagram-account-coverage.md) - フェーズ9実施時の課題記録
 - [05-development-phases.md](../../05-development-phases.md) - フェーズ9の定義
+
+### 開発セッション関連
+
+- [.cursor/commands/session-recording.md](../../../.cursor/commands/session-recording.md) - 開発セッション記録コマンド
+- [docs/dev-sessions/template-session.md](../../dev-sessions/template-session.md) - 開発セッションテンプレート
