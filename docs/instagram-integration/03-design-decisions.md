@@ -149,6 +149,70 @@
 
 ---
 
+## フェーズ9以降: InstagramアカウントURL検索フローの方針（2025-12-09更新）
+
+### 背景
+
+- フェーズ9「InstagramアカウントURLの全面カバー」では、**全施設の `facilities.instagram_url` をできるだけ自動＋半自動で埋める** ことが目的。
+- 従来は「ブラウザでGoogle検索を開き、人間 or AI が画面を見て判断する」運用のみを想定していたが、
+  - ブラウザ操作は時間がかかる
+  - AIが検索結果のトップにあるURLを見逃すケースがある
+  という課題があり、**検索APIを用いた構造化データの取得**を検討した。
+
+### 採用方針（検索バックエンド）
+
+- **1. Google Custom Search API を第1候補として採用する**
+  - 理由:
+    - 公式APIであり、HTMLスクレイピング系ライブラリに比べて**長期運用の安定性が高い**
+    - Google検索の精度が高く、日本のローカルな施設名・地名との相性が良い
+    - 無料枠（1日100クエリ）があり、フェーズ9で想定している「月あたり数十件〜数百件」レベルであれば**完全に無料枠内で運用可能**
+    - Next.js（本プロジェクト）のサーバーサイドから `fetch` で直接叩けるため、**別ランタイム（Pythonなど）を増やさずに済む**
+
+- **2. Serper.dev は将来の拡張候補として保持**
+  - 位置づけ:
+    - Google検索結果を安価に利用できる有料APIとして、**無料枠を超える or 高頻度利用が必要になった場合のオプション**とする
+    - 現時点では、フェーズ9のスコープ（クエリ数が少ない）では **Google Custom Search API の無料枠で十分** と判断
+
+- **3. DuckDuckGo Search (Pythonライブラリ) は本プロジェクトでは採用しない**
+  - 理由:
+    - DuckDuckGo公式APIではなく、検索結果HTMLをスクレイピングする**非公式ライブラリ**である
+    - 仕様変更・ブロックにより**突然動かなくなるリスク**があり、長期運用には向かない
+    - 別途Python実行環境を用意する必要があり、Next.js単体で完結しない
+  - 位置づけ:
+    - `docs/instagram-integration/ai-comparisons/search-api-comparison.md` および  
+      `duckduckgo-search-implementation-example.md` に**比較資料・実装例としては残す**が、
+      少なくともフェーズ9の実装では **採用しない前提** とする
+
+### 想定する実装イメージ（高レベル）
+
+- Next.js の **サーバーサイドAPI（Route Handler / API Route）** から Google Custom Search API を呼び出す:
+  - 環境変数（サーバー専用）:
+    - `GOOGLE_CSE_API_KEY`
+    - `GOOGLE_CSE_CX`（Programmable Search Engine の識別子）
+  - 代表的な検索クエリ例:
+    - `site:instagram.com "<施設名>" "<区名>" 子育て`
+  - APIレスポンスから:
+    - `items[].link`（InstagramプロフィールURL候補）
+    - `items[].snippet`（施設名・エリア情報の確認用テキスト）
+    を取得し、**ルールベースで「公式と思われる候補」を1件に絞る**。
+
+- 既存の手動フローとの関係:
+  - `docs/instagram-integration/05-instagram-account-search.md` にある「ブラウザでGoogle検索を開く手順」は、
+    **フォールバック用の手動手順**として維持する。
+  - 今後、Google Custom Search API ベースのフローが十分に安定した段階で、
+    同指示書を「検索API版の手順」に差し替えることを検討する。
+
+### 関連ドキュメント
+
+- 検索APIの比較・検証方針:
+  - `docs/instagram-integration/ai-comparisons/search-api-comparison.md`
+- 実装例（参考）:
+  - `docs/instagram-integration/ai-comparisons/duckduckgo-search-implementation-example.md`
+- 手動検索手順（現行の正式手順）:
+  - `docs/instagram-integration/05-instagram-account-search.md`
+
+---
+
 ## 制約・リスク
 
 ### 既知の制約
