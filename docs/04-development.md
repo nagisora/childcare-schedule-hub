@@ -11,7 +11,7 @@
 
 本書は恒常的な開発業務のガイドラインをまとめる。臨時メモは issue / PR のコメントに記録し、確定事項のみ本書へ反映する。
 
-補足: 高レベルの進め方（開発フェーズ）は [05 開発フェーズ](./05-development-phases.md) を参照。短時間作業の計画・記録には `docs/dev-sessions/template-session.md` をコピーして利用する。
+補足: 高レベルの進め方（開発フェーズ）は [05 開発フェーズ](./05-development-phases.md) を参照。短時間作業の計画・記録には [`docs/dev-sessions/template-session.md`](./dev-sessions/template-session.md) をコピーして利用する。テンプレートには「チェックリスト式実装計画書」が組み込まれており、壁打ち→計画→プロンプト設計→実行の流れで進められる。詳細は [`docs/dev-sessions/README.md`](./dev-sessions/README.md) を参照。
 
 ## 2. 開発環境セットアップ
 
