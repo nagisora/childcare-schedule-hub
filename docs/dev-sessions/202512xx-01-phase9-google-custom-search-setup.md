@@ -1,6 +1,6 @@
 # チェックリスト式実装計画書: 2025-12-xx
 
-> **重要（AI作業時）**: このテンプレートからファイルを作成する際は、**必ず `date` コマンドを実行して現在日付を取得し、その日付を使用すること**。AIの内部的な日付認識に依存せず、システムの現在日付を確認すること。詳細は `docs/05-development-phases.md` の「dev-sessions ファイルの日付の付け方（AI作業時の標準フロー）」を参照。
+> **重要（AI作業時）**: このテンプレートからファイルを作成する際は、**必ず `date` コマンドを実行して現在日付を取得し、その日付を使用すること**。AIの内部的な日付認識に依存せず、システムの現在日付を確認すること。詳細は `docs/05-00-development-phases.md` の「dev-sessions ファイルの日付の付け方（AI作業時の標準フロー）」を参照。
 
 ## セッション概要とゴール
 
@@ -22,7 +22,7 @@
   - 補足: 本日は時間がなくなりましたので、このセッションは明日以降に実施予定です。
 
 ### 関連ドキュメント
-- 参照: `docs/05-development-phases.md`（フェーズ9のセクション） / `docs/instagram-integration/03-design-decisions.md` / `docs/instagram-integration/05-instagram-account-search.md` / `docs/instagram-integration/ai-comparisons/search-api-comparison.md` / `docs/instagram-integration/ai-comparisons/summary.md` / `docs/04-development.md` / `apps/web/env.local.example`
+- 参照: `docs/05-00-development-phases.md`（フェーズ9のセクション） / `docs/05-09-instagram-account-url-coverage.md` / `docs/instagram-integration/03-design-decisions.md` / `docs/instagram-integration/05-instagram-account-search.md` / `docs/instagram-integration/ai-comparisons/search-api-comparison.md` / `docs/instagram-integration/ai-comparisons/summary.md` / `docs/04-development.md` / `apps/web/env.local.example`
 
 ## 前提・合意事項（事前議論・壁打ちメモ）
 

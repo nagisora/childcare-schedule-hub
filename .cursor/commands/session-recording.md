@@ -7,7 +7,7 @@
    - セッション開始時に作成した本日の dev-sessions ファイルがあるか確認（なければ `template-session.md` から新規作成してよい）。
 
 2. **テンプレートに沿って今回のセッション内容を反映**  
-   - `docs/05-development-phases.md` のルールと `docs/dev-sessions/template-session.md` に従って、今回のセッションを `docs/dev-sessions/` に記録する。  
+   - `docs/05-00-development-phases.md` のルールと `docs/dev-sessions/template-session.md` に従って、今回のセッションを `docs/dev-sessions/` に記録する。  
    - 特に以下のセクションが埋まっている状態にして：
      - **メタ情報 / 今日のゴール**
      - **コンテキスト・合意事項（AIとの議論メモ）**  
@@ -21,4 +21,4 @@
      - **結果とふりかえり / 次回に持ち越すタスク**
 
 3. **フェーズ進捗の確認（必要に応じて）**  
-   - 必要があれば `docs/05-development-phases.md` のフェーズ進捗も更新して（完了したフェーズ・次に取り組むフェーズなど）。
+   - 必要があれば `docs/05-00-development-phases.md` のフェーズ進捗も更新して（完了したフェーズ・次に取り組むフェーズなど）。

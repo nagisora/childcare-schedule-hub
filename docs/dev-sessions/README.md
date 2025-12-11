@@ -126,9 +126,9 @@
 - ❌ 手入力で日付を書くこと
 - ❌ 連番を確認せずにファイルを作成すること
 
-詳細は [`docs/05-development-phases.md`](../05-development-phases.md) の「dev-sessions ファイルの日付の付け方（AI作業時の標準フロー）」も参照してください。
+詳細は [`docs/05-00-development-phases.md`](../05-00-development-phases.md) の「dev-sessions ファイルの日付の付け方（AI作業時の標準フロー）」も参照してください。
 
 ## 関連ドキュメント
 
-- [`docs/05-development-phases.md`](../05-development-phases.md): 開発フェーズの定義と運用ルール
+- [`docs/05-00-development-phases.md`](../05-00-development-phases.md): 開発フェーズの定義と運用ルール
 - [`docs/README.md`](../README.md): ドキュメント全体の構成インデックス

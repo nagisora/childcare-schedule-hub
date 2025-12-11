@@ -11,7 +11,7 @@
 
 本書は恒常的な開発業務のガイドラインをまとめる。臨時メモは issue / PR のコメントに記録し、確定事項のみ本書へ反映する。
 
-補足: 高レベルの進め方（開発フェーズ）は [05 開発フェーズ](./05-development-phases.md) を参照。短時間作業の計画・記録には [`docs/dev-sessions/template-session.md`](./dev-sessions/template-session.md) をコピーして利用する。テンプレートには「チェックリスト式実装計画書」が組み込まれており、壁打ち→計画→プロンプト設計→実行の流れで進められる。詳細は [`docs/dev-sessions/README.md`](./dev-sessions/README.md) を参照。
+補足: 高レベルの進め方（開発フェーズ）は [05 開発フェーズ](./05-00-development-phases.md) を参照。短時間作業の計画・記録には [`docs/dev-sessions/template-session.md`](./dev-sessions/template-session.md) をコピーして利用する。テンプレートには「チェックリスト式実装計画書」が組み込まれており、壁打ち→計画→プロンプト設計→実行の流れで進められる。詳細は [`docs/dev-sessions/README.md`](./dev-sessions/README.md) を参照。
 
 ## 2. 開発環境セットアップ
 
@@ -119,7 +119,7 @@ SUPABASE_DB_PASSWORD=""        # Supabase CLI を使う場合
 ### 3.4 環境別運用
 - 現在の仮MVP環境（Vercel）では、`Production` / `Preview` / `Development` に同一キーを登録し、Service Role Key は `Encrypted` として保存する。
 - Preview デプロイで動作検証する際は、必要な環境変数が設定されているか `vercel env pull` で確認する。
-- 注: 本番デプロイ先は [フェーズ11: デプロイ先の検討（コスト最適化）](./05-development-phases.md#フェーズ11-デプロイ先の検討コスト最適化) で再検討する。ホスティングを変更した場合は、本節の手順を移植・更新すること。
+- 注: 本番デプロイ先は [フェーズ12: デプロイ先の検討（コスト最適化）](./05-00-development-phases.md#フェーズ12-デプロイ先の検討コスト最適化) で再検討する。ホスティングを変更した場合は、本節の手順を移植・更新すること。
 
 ## 4. データベースと Supabase CLI
 
@@ -259,7 +259,7 @@ Supabase CLI を使ったローカル開発環境やマイグレーション管�
 2. 本番デプロイ前にプレビュー URL で動作確認し、非機能要件を満たすかチェック。
 3. 環境変数はホスティング基盤の Environment（現状: Vercel の Preview / Production）に分けて登録する。
 4. トラブル時は `supabase logs` やホスティング基盤のログ（現状: Vercel ログ）を確認し、影響度を即時に共有する。
-5. 注: 本番デプロイ先は [フェーズ8: デプロイ先の検討（コスト最適化）](./05-development-phases.md#フェーズ8-デプロイ先の検討コスト最適化) で再検討する。ホスティングを変更した場合は、本節の手順を移植・更新すること。
+5. 注: 本番デプロイ先は [フェーズ12: デプロイ先の検討（コスト最適化）](./05-00-development-phases.md#フェーズ12-デプロイ先の検討コスト最適化) で再検討する。ホスティングを変更した場合は、本節の手順を移植・更新すること。
 
 ## 8. トラブルシューティング
 | 問題 | 対処 |
@@ -280,7 +280,7 @@ Supabase CLI を使ったローカル開発環境やマイグレーション管�
 - **ISR 再生成**: `/api/revalidate` に対象タグ (`facilities` / `schedules`) を付与して POST。成功レスポンスとホスティング基盤のダッシュボード（現状: Vercel ダッシュボード）を確認。
 - **ログ確認**: Supabase Studio の Logs タブでエラー/関数ログを確認し、Instagram 埋め込み失敗ログは 24 時間以内にレビュー。
 - **ロールバック**: 重大障害時はホスティング基盤の Deploy ログ（現状: Vercel の Deploy ログ）から直前成功ビルドにロールバックし、Supabase `supabase db restore` で最新バックアップを適用。
-- 注: 本番デプロイ先は [フェーズ11: デプロイ先の検討（コスト最適化）](./05-development-phases.md#フェーズ11-デプロイ先の検討コスト最適化) で再検討する。ホスティングを変更した場合は、本節の手順を移植・更新すること。
+- 注: 本番デプロイ先は [フェーズ12: デプロイ先の検討（コスト最適化）](./05-00-development-phases.md#フェーズ12-デプロイ先の検討コスト最適化) で再検討する。ホスティングを変更した場合は、本節の手順を移植・更新すること。
 - **連絡体制**: 管理者メール `ops@childcare-hub.example` と Slack `#childcare-hub-ops` に通知。SLO 逸脱時は 30 分以内に一次報告。
 
 ### 9.1 仮MVP環境でのトラブルシューティング（フェーズ8）

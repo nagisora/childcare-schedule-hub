@@ -7,11 +7,11 @@
 | 最終更新日 | 2025-11-19 |
 | 作成責任者 | Childcare Schedule Hub 開発チーム |
 | 対象読者 | 開発者（特にフェーズ3のセットアップを行う人） |
-| 参照元 | [02 設計資料](./02-design.md)、[04 開発ガイド](./04-development.md)、[05 開発フェーズ](./05-development-phases.md) |
+| 参照元 | [02 設計資料](./02-design.md)、[04 開発ガイド](./04-development.md)、[05 開発フェーズ](./05-00-development-phases.md) |
 
 本書は、**Supabase MCP を用いた AI 実行を基本とし**、必要に応じて人間が手動で実行するための Supabase データベースのセットアップ手順と、よく使う DB 操作コマンドをまとめます。
 
-**重要**: 本書は、Cursor + Supabase MCP を使った AI 実行をデフォルト経路として想定しています。MCP を利用できない環境では、人間がターミナルや Supabase Studio で実行する手順としても利用できます。テーブル定義の詳細は [02 設計資料](./02-design.md) 3.3 節を、開発全体の流れは [04 開発ガイド](./04-development.md) と [05 開発フェーズ](./05-development-phases.md) を参照してください。
+**重要**: 本書は、Cursor + Supabase MCP を使った AI 実行をデフォルト経路として想定しています。MCP を利用できない環境では、人間がターミナルや Supabase Studio で実行する手順としても利用できます。テーブル定義の詳細は [02 設計資料](./02-design.md) 3.3 節を、開発全体の流れは [04 開発ガイド](./04-development.md) と [05 開発フェーズ](./05-00-development-phases.md) を参照してください。
 
 ## 2. Supabase MCP（Cursor 連携）
 
@@ -492,5 +492,5 @@ ON CONFLICT DO NOTHING;
 - [02 設計資料](./02-design.md) 3.3 節: テーブル定義の詳細
 - [02 設計資料](./02-design.md) 3.4 節: RLS ポリシーの詳細
 - [04 開発ガイド](./04-development.md): 開発全体のガイドライン
-- [05 開発フェーズ](./05-development-phases.md): フェーズ3の完了条件とチェックリスト
+- [05 開発フェーズ](./05-00-development-phases.md): フェーズ3の完了条件とチェックリスト
 

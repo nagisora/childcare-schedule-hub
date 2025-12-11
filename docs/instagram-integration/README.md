@@ -70,7 +70,7 @@
 
 ## 関連ドキュメント
 
-- [05 開発フェーズ](../05-development-phases.md) - フェーズ6（Instagram連携 & お気に入りでのスケジュール埋め込み）の完了条件
+- [05 開発フェーズ](../05-00-development-phases.md) - フェーズ6（Instagram連携 & お気に入りでのスケジュール埋め込み）の完了条件
 - [02 設計資料](../02-design.md) - schedulesテーブル定義
 - [03 API 仕様](../03-api.md) - Instagram Embed API仕様
 - [04 開発ガイド](../04-development.md) - スクレイピングガイドライン（9.5.1節）

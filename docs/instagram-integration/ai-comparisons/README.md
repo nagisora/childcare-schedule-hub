@@ -80,9 +80,9 @@
 
 このコマンドは、以下の手順で開発セッションを記録します：
 
-1. `docs/05-development-phases.md` のルールと `docs/dev-sessions/template-session.md` に従って、セッションを `docs/dev-sessions/` に記録
+1. `docs/05-00-development-phases.md` のルールと `docs/dev-sessions/template-session.md` に従って、セッションを `docs/dev-sessions/` に記録
 2. 今日のゴール / 実施ログ / 結果とふりかえり / 次回に持ち越すタスク を埋める
-3. 必要があれば `docs/05-development-phases.md` のフェーズ進捗も更新
+3. 必要があれば `docs/05-00-development-phases.md` のフェーズ進捗も更新
 
 ## 関連ドキュメント
 
@@ -90,7 +90,7 @@
 
 - [05-instagram-account-search.md](../05-instagram-account-search.md) - 現在のAI向け検索手順
 - [20251205-01-phase9-instagram-account-coverage.md](../../dev-sessions/20251205-01-phase9-instagram-account-coverage.md) - フェーズ9実施時の課題記録
-- [05-development-phases.md](../../05-development-phases.md) - フェーズ9の定義
+- [05-00-development-phases.md](../../05-00-development-phases.md) - フェーズ9の定義
 
 ### 開発セッション関連
 
