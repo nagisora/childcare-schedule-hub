@@ -1,42 +1,49 @@
-# 開発セッション記録
+# チェックリスト式実装計画書: 2025-12-xx
 
-## メタ情報
-- 日付: 2025-12-11
-- 想定所要時間: 25〜60 分
+> **重要（AI作業時）**: このテンプレートからファイルを作成する際は、**必ず `date` コマンドを実行して現在日付を取得し、その日付を使用すること**。AIの内部的な日付認識に依存せず、システムの現在日付を確認すること。詳細は `docs/05-development-phases.md` の「dev-sessions ファイルの日付の付け方（AI作業時の標準フロー）」を参照。
+
+## セッション概要とゴール
+
+### 概要
+
+- 一言サマリ: フェーズ9のGoogle Custom Search API導入に向けて、環境変数設計とドキュメント反映方針を整理する
 - 対応フェーズ: フェーズ9
+- 日付: 2025-12-xx（実施日未定）
+- 想定所要時間: 25〜60 分
 
-## 今日のゴール（最大 3 つ）
-1. Google Custom Search API（Programmable Search Engine）の導入方針と検索スコープを整理する
-2. 必要な環境変数（APIキー / CX）の命名・スコープ・配置ポリシーを決め、どのドキュメントにどう反映するか設計する
-3. 次のセッションで実装に使える具体的な「AIへの実行プロンプト案」を用意する
+### ゴール
 
-## 関連ドキュメント
-- docs/05-development-phases.md
-- docs/instagram-integration/03-design-decisions.md
-- docs/instagram-integration/05-instagram-account-search.md
-- docs/instagram-integration/ai-comparisons/search-api-comparison.md
-- docs/instagram-integration/ai-comparisons/summary.md
-- docs/04-development.md
-- apps/web/env.local.example
+- **ゴール**: Google Custom Search API（Programmable Search Engine）の導入方針と検索スコープを整理し、必要な環境変数の命名・スコープ・配置ポリシーを決めて、どのドキュメントにどう反映するか設計する
+  - 完了条件: 
+    - Google Custom Search API / Programmable Search Engine 用の環境変数名（例: `GOOGLE_CSE_API_KEY`, `GOOGLE_CSE_CX`）とスコープ（クライアント/サーバー）が決まっている
+    - `docs/04-development.md` の「主要変数一覧」と `apps/web/env.local.example` にどのような行を追加するか、具体的な差分案が文章でまとまっている
+    - APIキーをクライアントに露出させないための注意点がコメントとして明文化されている
+    - 次のセッションで実装に使える具体的な「AIへの実行プロンプト案」が用意されている
+  - 補足: 本日は時間がなくなりましたので、このセッションは明日以降に実施予定です。
 
-## コンテキスト・合意事項（AIとの議論メモ）
+### 関連ドキュメント
+- 参照: `docs/05-development-phases.md`（フェーズ9のセクション） / `docs/instagram-integration/03-design-decisions.md` / `docs/instagram-integration/05-instagram-account-search.md` / `docs/instagram-integration/ai-comparisons/search-api-comparison.md` / `docs/instagram-integration/ai-comparisons/summary.md` / `docs/04-development.md` / `apps/web/env.local.example`
 
-- 壁打ち概要:
+## 前提・合意事項（事前議論・壁打ちメモ）
+
+- 今日のセッションで前提とする方針:
   - フェーズ9では、全施設の Instagram アカウントURLカバーのために、ブラウザ操作ベースではなく検索API（第一候補として Google Custom Search API）を使う方針とした。
   - ai-comparisons の検討結果から、DuckDuckGo Search は本番運用では採用せず、Serper.dev はクエリ数増加時など将来の拡張候補として位置づける。
-- 今日のセッションで前提とする方針:
   - まずは Google Custom Search API の無料枠（1日100クエリ）内で運用する想定で、Programmable Search Engine を `site:instagram.com` を中心としたスコープで構成する。
   - 検索APIの呼び出しは Next.js のサーバーサイド（Route Handler / API Route）からのみ行い、APIキー等のシークレットは `.env.local` / ホスティング環境のサーバー専用環境変数として管理する。
   - 既存のブラウザ手動検索フロー（`docs/instagram-integration/05-instagram-account-search.md`）は、検索APIフローが安定するまではフォールバック手順として維持する。
+- 議論概要:
+  - `phase-planning` コマンドでフェーズ9の実装計画を議論し、Google Custom Search API を第1候補として採用する方針を決定した。
+  - 検索API候補の比較結果を踏まえて、「このプロジェクトでは最初からGoogle Custom Search APIを使う」方針を明文化した。
 - 保留中の論点 / 今回は触らないと決めたこと:
   - Serper.dev や他検索APIへの切り替え条件（クエリ数・コストの閾値）は、本セッションでは決めず、今後の利用状況を見て検討する。
   - Google CSE の検索UI埋め込みなど、REST API 利用に不要な設定項目は扱わず、最小構成に絞る。
 
 ---
 
-## チェックリスト式実装計画書（このセッション）
+## 実装チェックリスト（本セッションにおける）
 
-> このセクションが「チェックリスト式実装計画書」のミニ版です。  
+> このセクションが、このセッションの「チェックリスト式実装計画書」です。  
 > **作業を始める前に必ずこのチェックリストを埋めてから着手する**ことを推奨します。
 
 ### 1. 作業タスク & プロンプト設計（実装・ドキュメント更新）
@@ -92,14 +99,6 @@
           - 具体的なコンソールURLやスクリーンショットは省略し、高レベル手順にとどめる
           - APIキーの扱い・公開禁止について一言注意書きを入れる
         ```
-- [ ] タスク3（任意）: （必要に応じて追加）
-      - 完了条件: 
-      - **実行プロンプト案**:
-        ```
-        - 参照ファイル: 
-        - やりたいこと: 
-        - 制約・注意点: 
-        ```
 
 ### 2. 検証・テスト（確認方法）
 
@@ -130,12 +129,13 @@
 
 - [ ] 
 - [ ] 
+***
 
----
+## 付録（任意）
 
-> **以下、`phase-planning` コマンドでの議論結果全文を記載**  
+> **以下、`phase-planning` コマンドでの議論結果全文を記載**
 
-## フェーズ9: InstagramアカウントURLの全面カバー – 実装計画ラフ
+### フェーズ9: InstagramアカウントURLの全面カバー – 実装計画ラフ
 
 > 本セクションは、`phase-planning` コマンドで議論したフェーズ9全体の実装計画をまとめたものです。  
 > 各タスクの詳細な完了条件・検証方法・dev-sessions粒度については、個別のセッションで具体化していきます。
@@ -214,12 +214,12 @@
 
 ---
 
-## 次の dev-sessions（1回分）の候補タスク
+### 次の dev-sessions（1回分）の候補タスク
 
 > 以下は、フェーズ9の実装計画から「次の1セッション（15〜60分）でやると良いタスク候補」をピックアップしたものです。  
 > 各タスクについて、`template-session.md` の「作業タスク & プロンプト設計」セクションにそのまま貼れる形で、完了条件と実行プロンプト案を記載しています。
 
-### 候補2: `/api/instagram-search` Route Handler のPoC実装設計
+#### 候補2: `/api/instagram-search` Route Handler のPoC実装設計
 
 - **タスク名**: Next.js Route Handler で Google Custom Search API を叩く最小PoCの設計  
 - **完了条件**:  
@@ -243,7 +243,7 @@
   TypeScriptの擬似コードと、エラーハンドリングポリシーをMarkdownでまとめてください。
   ```
 
-### 候補3: クエリ設計とサンプル施設での手動検証
+#### 候補3: クエリ設計とサンプル施設での手動検証
 
 - **タスク名**: 代表施設数件を使った Google 検索クエリのチューニング  
 - **完了条件**:  
@@ -269,6 +269,3 @@
   実際の検索操作自体は私がブラウザで行うので、
   「どのクエリを、どの順番で、何を見て評価すればよいか」を明確にすることに集中してください。
   ```
-
-***
-
