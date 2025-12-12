@@ -30,6 +30,8 @@
   - 目的: 少ない時間でも進めやすい高レベルなフェーズ設計
   - 想定読者: 開発者（タスクを分割して前進したい人）
   - 更新のきっかけ: フェーズ境界や完了条件の見直し
+  - 運用ルール: [運用ルール（フェーズ × セッション）](./05-00-development-phases.md#運用ルールフェーズ--セッション) / [dev-sessions ファイルの日付の付け方](./05-00-development-phases.md#dev-sessions-ファイルの日付の付け方ai作業時の標準フロー)
+  - フェーズ詳細テンプレ: [`docs/phase-planning/template-phase-detail.md`](./phase-planning/template-phase-detail.md)（フェーズ9以降の詳細計画を作成する際のテンプレート）
 - 06 DB セットアップ & 手動オペレーション: `docs/06-db-operations.md`
   - 目的: **Supabase MCP を用いた AI 実行を基本とし**、必要に応じて人間が手動で実行するための Supabase データベースのセットアップ手順と運用手順
   - 想定読者: 開発者（特にフェーズ3のセットアップを行う人）
@@ -63,6 +65,7 @@
 | API のパラメータやレスポンスを確認したい | `03` 2.2〜2.3 |
 | 実装の方針・コーディングルールを知りたい | `04` 全般 |
 | 今日の作業のゴールを決めたい | `05` / [`docs/dev-sessions/`](./dev-sessions/README.md) |
+| フェーズ詳細計画を作成したい（フェーズ9以降） | [`docs/phase-planning/template-phase-detail.md`](./phase-planning/template-phase-detail.md) を参照 |
 | **Supabase DB セットアップ（フェーズ3）を実行したい** | **`06` 2（MCP導入）→ 3（共通フロー）→ 4（初回セットアップ）** / `05` フェーズ3のチェックリスト<br>※ Cursor を使う場合は、06 の MCP セクション（2節）から始めて AI に実行させることを推奨 |
 | Supabase MCP の導入手順を知りたい | `06` 2.1〜2.4 節 |
 | Supabase CLI のコマンドを確認したい | `06` 5 節 |
@@ -73,6 +76,7 @@
 - API（03）: エンドポイント/入出力/エラー仕様の変更時
 - 開発ガイド（04）: 開発フロー、CI、品質・運用手順の更新時
 - 開発フェーズ（05）: フェーズ定義や完了条件の学びが得られたとき
+- フェーズ詳細計画（05-<phase>）: フェーズ9以降の詳細計画を作成・更新するとき（テンプレート: [`docs/phase-planning/template-phase-detail.md`](./phase-planning/template-phase-detail.md)）
 - DB セットアップ & 手動オペレーション（06）: DB セットアップ手順の追加・変更時、MCP 導入・利用方法の更新時
 - セッション記録（dev-sessions）: 各作業の度に追記（小さく早く回す）
 
