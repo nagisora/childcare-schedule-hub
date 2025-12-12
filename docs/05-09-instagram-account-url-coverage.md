@@ -1,5 +1,32 @@
 # フェーズ9詳細: InstagramアカウントURLの全面カバー
 
+<a id="progress"></a>
+## 0. 進捗チェックリスト（正本）
+
+このドキュメントはフェーズ9の**進捗管理の正本**とする。
+
+- チェックの付け方:
+  - 未完了: `- [ ]`
+  - 完了: `- [x]`（可能なら `YYYY-MM-DD` と証跡リンク（dev-sessions等）を併記）
+
+### フェーズ9: 全体の完了条件
+
+- [ ] Google Programmable Search Engine（CSE）が `site:instagram.com` を中心に構成され、環境変数が設定・ドキュメント化されている
+- [ ] Next.js サーバーサイドの検索API（例: `/api/instagram-search`）が PoC レベルで動作し、Google CSE から取得した結果を正規化して返却できる
+- [ ] 複数施設向けの半自動登録フロー（候補提示→人間が採用/スキップを選ぶ）が用意され、`facilities.instagram_url` を安全に更新できる（DRY-RUN / 確認ステップを含む）
+- [ ] Runbookに検索APIベースの標準フローと、フォールバックとしての手動ブラウザ検索フローが整理されている
+- [ ] データ品質チェック（Instagramドメイン以外・重複URLの検出）が1回以上実施され、dev-sessionsに記録されている
+- [ ] 対象施設が「処理済み」になっている（`instagram_url` が埋まった施設だけでなく、見つからない/判断不能な施設も「未特定（理由付き）」として一覧化されている）
+
+### 実装タスク（セッション粒度の進捗）
+
+- [ ] [タスク1: 現状の `instagram_url` カバレッジ棚卸しと対象スコープ決定](#task-1)
+- [ ] [タスク2: Google Custom Search API 用クエリ設計 & 判定ルール整理](#task-2)
+- [ ] [タスク3: Google Programmable Search Engine & 環境変数セットアップ](#task-3)
+- [ ] [タスク4: Next.js サーバーサイド検索API（例 `/api/instagram-search`）のPoC実装](#task-4)
+- [ ] [タスク5: 複数施設向け「半自動登録ツール」の設計・実装](#task-5)
+- [ ] [タスク6: Runbook整備とデータ品質チェック](#task-6)
+
 ## 1. 概要
 
 - **対応フェーズ**: フェーズ9
@@ -13,12 +40,7 @@
 - **用語**:
   - **InstagramアカウントURL**: `https://www.instagram.com/<username>/` 形式のプロフィールURL（投稿URL `/p/` や `/reel/` は含めない）
 - **完了条件**: 
-  - Google Programmable Search Engine（CSE）が `site:instagram.com` を中心に構成され、環境変数が設定・ドキュメント化されている
-  - Next.js サーバーサイドの検索API（例: `/api/instagram-search`）が PoC レベルで動作し、Google CSE から取得した結果を正規化して返却できる
-  - 複数施設向けの半自動登録フロー（候補提示→人間が採用/スキップを選ぶ）が用意され、`facilities.instagram_url` を安全に更新できる（DRY-RUN / 確認ステップを含む）
-  - Runbookに検索APIベースの標準フローと、フォールバックとしての手動ブラウザ検索フローが整理されている
-  - データ品質チェック（Instagramドメイン以外・重複URLの検出）が1回以上実施され、dev-sessionsに記録されている
-  - **対象施設が「処理済み」になっている**（`instagram_url` が埋まった施設だけでなく、見つからない/判断不能な施設も「未特定（理由付き）」として一覧化されている）
+  - 本ドキュメントの「[0. 進捗チェックリスト（正本）](#progress)」に集約（チェックも同セクションで管理）
 - **関連ドキュメント**:
   - `docs/05-00-development-phases.md`（フェーズ9セクション）
   - `docs/instagram-integration/03-design-decisions.md`
@@ -52,11 +74,12 @@
 > このセクションは、フェーズ9全体の実装計画をまとめたものです。  
 > 各タスクの詳細な完了条件・検証方法・dev-sessions粒度については、個別のセッションで具体化していきます。
 
+<a id="task-1"></a>
 ### タスク1: 現状の `instagram_url` カバレッジ棚卸しと対象スコープ決定
 
-- **完了条件**:  
-  - `facilities` テーブルについて、`instagram_url IS NOT NULL` / `IS NULL` の件数が全体および区別に集計されている
-  - フェーズ9で「今回一気に埋めに行く対象」（例: 名古屋市内全件 / まずは○区のみ など）が決まっている
+- **チェックリスト（完了条件）**:
+  - [ ] `facilities` テーブルについて、`instagram_url IS NOT NULL` / `IS NULL` の件数が全体および区別に集計されている
+  - [ ] フェーズ9で「今回一気に埋めに行く対象」（例: 名古屋市内全件 / まずは○区のみ など）が決まっている
 - **検証方法**:  
   - Supabase Studio もしくは Supabase MCP で以下のようなSQLを実行し、集計結果をメモに残す
     - 例: `SELECT ward_name, COUNT(*) AS total, COUNT(instagram_url) AS with_instagram FROM facilities GROUP BY ward_name ORDER BY ward_name;`
@@ -66,11 +89,12 @@
   - `docs/dev-sessions/` 配下（集計結果の記録）
   - `docs/05-09-instagram-account-url-coverage.md`（対象スコープの決定内容）
 
+<a id="task-2"></a>
 ### タスク2: Google Custom Search API 用クエリ設計 & 判定ルール整理
 
-- **完了条件**:  
-  - `docs/instagram-integration/03-design-decisions.md` と `05-instagram-account-search.md` に、Google Custom Search API を前提にした検索クエリ例・ヒューリスティクス・あきらめ条件が追記されている
-  - 代表的なクエリパターン（例: `site:instagram.com "<施設名>" "<区名>" 子育て -site:instagram.com/p/ -site:instagram.com/reel/`）と、「上位N件からどう公式候補を1件に絞るか」のルールが整理されている
+- **チェックリスト（完了条件）**:
+  - [ ] `docs/instagram-integration/03-design-decisions.md` と `05-instagram-account-search.md` に、Google Custom Search API を前提にした検索クエリ例・ヒューリスティクス・あきらめ条件が追記されている
+  - [ ] 代表的なクエリパターン（例: `site:instagram.com "<施設名>" "<区名>" 子育て -site:instagram.com/p/ -site:instagram.com/reel/`）と、「上位N件からどう公式候補を1件に絞るか」のルールが整理されている
 - **検証方法**:  
   - 上記2ファイルを開き、フェーズ9セクションに「Google Custom Search API 版ワークフロー」がまとまっていることを目視確認
   - 2〜3施設分について、設計したクエリを実際のGoogle検索画面で試し、想定通りの結果が出るかを手動チェック
@@ -80,12 +104,13 @@
   - `docs/instagram-integration/03-design-decisions.md`
   - `docs/instagram-integration/05-instagram-account-search.md`
 
+<a id="task-3"></a>
 ### タスク3: Google Programmable Search Engine & 環境変数セットアップ
 
-- **完了条件**:  
-  - Google Programmable Search Engine（CSE）が作成され、`site:instagram.com` もしくは必要な検索範囲に限定されている
-  - APIキー / CX が取得され、`GOOGLE_CSE_API_KEY` / `GOOGLE_CSE_CX` などの環境変数名で `.env.local` / ホスティング環境に設定済み
-  - `docs/04-development.md` の環境変数一覧に Google CSE 関連が追記されている
+- **チェックリスト（完了条件）**:
+  - [ ] Google Programmable Search Engine（CSE）が作成され、`site:instagram.com` もしくは必要な検索範囲に限定されている
+  - [ ] APIキー / CX が取得され、`GOOGLE_CSE_API_KEY` / `GOOGLE_CSE_CX` などの環境変数名で `.env.local` / ホスティング環境に設定済み
+  - [ ] `docs/04-development.md` の環境変数一覧に Google CSE 関連が追記されている
 - **検証方法**:  
   - **APIキーをコマンドライン引数に露出しない**形で、Google Custom Search API からJSONレスポンスが返ることを確認する（例: Nodeのワンライナーで `process.env` からキーを読む）
     - 例（実キーを表示しない/リポジトリには追加しない）:
@@ -100,14 +125,15 @@
   - `apps/web/env.local.example`（環境変数の例）
   - `docs/dev-sessions/` 配下（セットアップ手順の記録）
 
+<a id="task-4"></a>
 ### タスク4: Next.js サーバーサイド検索API（例 `/api/instagram-search`）のPoC実装
 
-- **完了条件**:  
-  - Next.js Route Handler / API Route（サーバーサイド限定）が1つ追加され、
-    - 入力: `facilityId` または `facilityName` + `wardName`
-    - 出力: `[{ link, title, snippet, score }]` のような正規化済み候補リスト
-    - エラー時は統一フォーマット（400/500など）で返却
-  - ローカル環境で `/api/instagram-search?facilityId=...` を叩くと、Google CSE 経由の結果がJSONで返る
+- **チェックリスト（完了条件）**:
+  - [ ] Next.js Route Handler / API Route（サーバーサイド限定）が1つ追加されている
+  - [ ] 入力: `facilityId` または `facilityName` + `wardName`
+  - [ ] 出力: `[{ link, title, snippet, score }]` のような正規化済み候補リスト
+  - [ ] エラー時は統一フォーマット（400/500など）で返却
+  - [ ] ローカル環境で `/api/instagram-search?facilityId=...` を叩くと、Google CSE 経由の結果がJSONで返る
 - **検証方法**:  
   - `mise exec -- pnpm --filter web dev` でローカル起動し、ブラウザ or `curl` で API を叩いてレスポンスを確認
   - ログ（コンソール or logger）で、実際に呼び出しているCSEクエリ文字列とレスポンスステータスを確認（**APIキーは絶対にログへ出さない**）
@@ -118,13 +144,12 @@
   - `docs/03-api.md`（API仕様の追記、必要に応じて）
   - `docs/dev-sessions/` 配下（実装メモ）
 
+<a id="task-5"></a>
 ### タスク5: 複数施設向け「半自動登録ツール」の設計・実装
 
-- **完了条件**:  
-  - `instagram_url IS NULL` の施設に対して、
-    - 一覧から1件ずつ選び → `/api/instagram-search` を叩き → 上位候補を表示 → 人間が「採用 / スキップ」を選ぶ
-    というフローを実現する簡易ツール（CLI or 管理用ページ）が存在する
-  - ツールは直接 `facilities.instagram_url` を更新するか、少なくとも「施設ID + 採用URL」をCSV/JSONとして出力できる
+- **チェックリスト（完了条件）**:
+  - [ ] `instagram_url IS NULL` の施設に対して、一覧から1件ずつ選び → `/api/instagram-search` を叩き → 上位候補を表示 → 人間が「採用 / スキップ」を選ぶフローを実現する簡易ツール（CLI or 管理用ページ）が存在する
+  - [ ] ツールは直接 `facilities.instagram_url` を更新するか、少なくとも「施設ID + 採用URL」をCSV/JSONとして出力できる
 - **検証方法**:  
   - テスト用に3〜5施設を選び、ツールを1回走らせて候補確認〜採用まで一通り通す
   - 実行後に Supabase Studio で `instagram_url` が期待通り更新されていることを確認
@@ -135,17 +160,14 @@
   - `docs/04-development.md`（ツールの使い方・Runbook）
   - `docs/dev-sessions/` 配下（実装メモ）
 
+<a id="task-6"></a>
 ### タスク6: Runbook整備とデータ品質チェック
 
-- **完了条件**:  
-  - `docs/instagram-integration/04-runbook.md` および `05-instagram-account-search.md` に、
-    - 「Google Custom Search API を使った標準フロー」
-    - 「フォールバックとしてのブラウザ手動検索フロー」
-    - 「公式候補が見つからない場合のあきらめ条件と記録方法」
-    が整理されている
-  - `facilities` に対して以下の観点のデータチェックが1回以上実行され、結果がメモされている
-    - `instagram_url` が `instagram.com` 以外のドメインになっていないか
-    - 重複URL（同じInstagramアカウントに複数施設が紐づいていないか、意図したケース以外）
+- **チェックリスト（完了条件）**:
+  - [ ] `docs/instagram-integration/04-runbook.md` および `05-instagram-account-search.md` に「Google Custom Search API を使った標準フロー」が整理されている
+  - [ ] `docs/instagram-integration/04-runbook.md` および `05-instagram-account-search.md` に「フォールバックとしてのブラウザ手動検索フロー」が整理されている
+  - [ ] `docs/instagram-integration/04-runbook.md` および `05-instagram-account-search.md` に「公式候補が見つからない場合のあきらめ条件と記録方法」が整理されている
+  - [ ] `facilities` に対してデータ品質チェック（Instagramドメイン以外・重複URLの検出）が1回以上実行され、結果がメモされている
 - **検証方法**:  
   - Runbookと指示書を開いて、フェーズ9の実運用手順が1ドキュメントから追えるかを目視確認
   - Supabase Studio / SQL で簡易チェッククエリ（例: `SELECT instagram_url, COUNT(*) FROM facilities WHERE instagram_url IS NOT NULL GROUP BY instagram_url HAVING COUNT(*) > 1;`）を実行し、結果を dev-sessions に記録
@@ -159,12 +181,12 @@
 
 ## 4. 品質チェック
 
-- **データ品質チェック**: 
-  - `instagram_url` が `instagram.com` 以外のドメインになっていないか（**部分一致ではなく** 正規表現またはSQLで検出）
-  - `instagram_url` がプロフィールURLになっているか（投稿URL `/p/` 等が混ざっていないか）
-  - `instagram_url` にクエリパラメータ/フラグメントが残っていないか（共有リンクのままになっていないか）
-  - 重複URL（同じInstagramアカウントに複数施設が紐づいていないか、意図したケース以外）
-  - 必須フィールド（`id`, `name` 等）の欠損チェック（`instagram_url` は NULL 可だが、入っている場合は上記ルールを満たす）
+- **データ品質チェック（チェックリスト）**:
+  - [ ] `instagram_url` が `instagram.com` 以外のドメインになっていないか（**部分一致ではなく** 正規表現またはSQLで検出）
+  - [ ] `instagram_url` がプロフィールURLになっているか（投稿URL `/p/` 等が混ざっていないか）
+  - [ ] `instagram_url` にクエリパラメータ/フラグメントが残っていないか（共有リンクのままになっていないか）
+  - [ ] 重複URL（同じInstagramアカウントに複数施設が紐づいていないか、意図したケース以外）
+  - [ ] 必須フィールド（`id`, `name` 等）の欠損チェック（`instagram_url` は NULL 可だが、入っている場合は上記ルールを満たす）
 - **検証クエリ例**: 
   ```sql
   -- 重複URLの検出
