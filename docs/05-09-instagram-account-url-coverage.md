@@ -5,23 +5,27 @@
 - **対応フェーズ**: フェーズ9
 - **目的**: 一部の施設のみの状態から、全施設のInstagramアカウントURLを対象としたデータ投入・更新フローを確立する（検索APIは Google Custom Search API / Programmable Search Engine を第一候補とする）
 - **スコープ**: 
-  - 名古屋市内の保育施設（現在65件）のInstagramアカウントURLを対象とする
+  - 名古屋市内の保育施設のInstagramアカウントURLを対象とする（対象件数はタスク1で集計して確定）
   - Google Custom Search API / Programmable Search Engine を使用した検索・半自動登録フローの構築
 - **非スコープ**: 
   - スケジュールURLのカバー（フェーズ10で実施）
   - 名古屋市以外の自治体の施設（将来の拡張として検討）
+- **用語**:
+  - **InstagramアカウントURL**: `https://www.instagram.com/<username>/` 形式のプロフィールURL（投稿URL `/p/` や `/reel/` は含めない）
 - **完了条件**: 
   - Google Programmable Search Engine（CSE）が `site:instagram.com` を中心に構成され、環境変数が設定・ドキュメント化されている
   - Next.js サーバーサイドの検索API（例: `/api/instagram-search`）が PoC レベルで動作し、Google CSE から取得した結果を正規化して返却できる
-  - 複数施設向けの半自動登録フロー（候補提示→人間が採用/スキップを選ぶ）が用意され、`facilities.instagram_url` を更新できる
+  - 複数施設向けの半自動登録フロー（候補提示→人間が採用/スキップを選ぶ）が用意され、`facilities.instagram_url` を安全に更新できる（DRY-RUN / 確認ステップを含む）
   - Runbookに検索APIベースの標準フローと、フォールバックとしての手動ブラウザ検索フローが整理されている
   - データ品質チェック（Instagramドメイン以外・重複URLの検出）が1回以上実施され、dev-sessionsに記録されている
+  - **対象施設が「処理済み」になっている**（`instagram_url` が埋まった施設だけでなく、見つからない/判断不能な施設も「未特定（理由付き）」として一覧化されている）
 - **関連ドキュメント**:
   - `docs/05-00-development-phases.md`（フェーズ9セクション）
   - `docs/instagram-integration/03-design-decisions.md`
   - `docs/instagram-integration/05-instagram-account-search.md`
   - `docs/04-development.md`（環境変数・Runbook）
-  - `docs/dev-sessions/2025/12/20251200-01-phase9-google-custom-search-setup.md`（代表セッション）
+  - `docs/dev-sessions/2025/12/20251209-01-phase9-instagram-search-api.md`（方針整理）
+  - `docs/dev-sessions/2025/12/20251205-01-phase9-instagram-account-coverage.md`（手動登録の着手ログ）
 
 ## 2. 前提・制約
 
@@ -31,11 +35,14 @@
   - 検索クエリは適切な頻度で実行し、レート制限を遵守する
 - **コスト・レート制限**: 
   - Google Custom Search API は1日あたり100クエリまで無料、それ以上は有料（詳細は [Google Custom Search API の料金](https://developers.google.com/custom-search/v1/overview#pricing) を参照）
-  - 施設数が65件の場合、1日あたりの検索回数は100件以内に収める必要がある（必要に応じて複数日に分ける）
+  - 施設数が無料枠を超える場合は、1日あたりの検索回数を抑えつつ複数日に分けて実行できるようにする（検索の重複実行を避ける設計を含む）
 - **データ品質要件**: 
-  - `instagram_url` は `instagram.com` ドメインのURLのみを許可する
+  - `instagram_url` は `https://(www.|m.)instagram.com/<username>/` のプロフィールURLのみを許可する（正規化して `https://www.instagram.com/<username>/` に統一する）
+  - `instagram_url` に投稿/リール/ストーリーズ等のURL（`/p/`, `/reel/`, `/tv/`, `/stories/`）が入らないこと
+  - `igsh` 等のクエリパラメータやフラグメントを除去する（共有リンクのまま登録しない）
   - 同じInstagramアカウントに複数施設が紐づく場合は、意図的なケース（例: 複数拠点を運営する同一団体）以外は重複として検出する
-  - 公式アカウントであることを確認する（施設名・区名が一致することを最低限の条件とする）
+  - 公式アカウントであることを確認する（最低限: 施設名の一致だけでなく、プロフィールの所在地/公式サイトURL/投稿内容などで関連が説明できること）
+  - 見つからない/判断不能の場合は `instagram_url` を無理に埋めず、**未特定（理由付き）** として一覧化し、次回以降の再試行対象にする
 - **技術的制約**: 
   - Next.js のサーバーサイド（Route Handler / API Route）で実装し、APIキーをクライアントに露出しない
   - 環境変数は `.env.local` とホスティング環境（Vercel等）の両方に設定する
@@ -49,7 +56,7 @@
 
 - **完了条件**:  
   - `facilities` テーブルについて、`instagram_url IS NOT NULL` / `IS NULL` の件数が全体および区別に集計されている
-  - フェーズ9で「今回一気に埋めに行く対象」（例: 名古屋市内全65件 / まずは○区のみ など）が決まっている
+  - フェーズ9で「今回一気に埋めに行く対象」（例: 名古屋市内全件 / まずは○区のみ など）が決まっている
 - **検証方法**:  
   - Supabase Studio もしくは Supabase MCP で以下のようなSQLを実行し、集計結果をメモに残す
     - 例: `SELECT ward_name, COUNT(*) AS total, COUNT(instagram_url) AS with_instagram FROM facilities GROUP BY ward_name ORDER BY ward_name;`
@@ -80,7 +87,11 @@
   - APIキー / CX が取得され、`GOOGLE_CSE_API_KEY` / `GOOGLE_CSE_CX` などの環境変数名で `.env.local` / ホスティング環境に設定済み
   - `docs/04-development.md` の環境変数一覧に Google CSE 関連が追記されている
 - **検証方法**:  
-  - `curl` や一時的な小さなスクリプト（ローカル）で `https://www.googleapis.com/customsearch/v1` を叩き、サンプルクエリでJSONレスポンスが返ることを確認
+  - **APIキーをコマンドライン引数に露出しない**形で、Google Custom Search API からJSONレスポンスが返ることを確認する（例: Nodeのワンライナーで `process.env` からキーを読む）
+    - 例（実キーを表示しない/リポジトリには追加しない）:
+      ```bash
+      node -e 'fetch("https://www.googleapis.com/customsearch/v1?key="+process.env.GOOGLE_CSE_API_KEY+"&cx="+process.env.GOOGLE_CSE_CX+"&q="+encodeURIComponent("site:instagram.com みらい")) .then(r=>r.json()).then(j=>console.log({ ok: !j.error, items: (j.items||[]).length, error: j.error?.message }))'
+      ```
   - Next.js ローカル開発サーバー起動時に、環境変数未設定エラーが出ていないことを確認
 - **dev-sessions粒度**:  
   - 1セッション（30〜60分）で CSE 作成〜キー取得〜環境変数設定〜 docs 追記までをまとめて対応
@@ -99,7 +110,7 @@
   - ローカル環境で `/api/instagram-search?facilityId=...` を叩くと、Google CSE 経由の結果がJSONで返る
 - **検証方法**:  
   - `mise exec -- pnpm --filter web dev` でローカル起動し、ブラウザ or `curl` で API を叩いてレスポンスを確認
-  - ログ（コンソール or logger）で、実際に呼び出しているCSEクエリ文字列とレスポンスステータスを確認
+  - ログ（コンソール or logger）で、実際に呼び出しているCSEクエリ文字列とレスポンスステータスを確認（**APIキーは絶対にログへ出さない**）
 - **dev-sessions粒度**:  
   - 1〜2セッションに分割（①最小の `GET` + 固定クエリでCSEを叩く PoC、②クエリ組み立てとレスポンス正規化・エラーハンドリング）
 - **更新先ドキュメント**: 
@@ -149,9 +160,11 @@
 ## 4. 品質チェック
 
 - **データ品質チェック**: 
-  - `instagram_url` が `instagram.com` 以外のドメインになっていないか（正規表現またはSQLで検出）
+  - `instagram_url` が `instagram.com` 以外のドメインになっていないか（**部分一致ではなく** 正規表現またはSQLで検出）
+  - `instagram_url` がプロフィールURLになっているか（投稿URL `/p/` 等が混ざっていないか）
+  - `instagram_url` にクエリパラメータ/フラグメントが残っていないか（共有リンクのままになっていないか）
   - 重複URL（同じInstagramアカウントに複数施設が紐づいていないか、意図したケース以外）
-  - 必須フィールド（`facility_id`, `instagram_url`）の欠損チェック
+  - 必須フィールド（`id`, `name` 等）の欠損チェック（`instagram_url` は NULL 可だが、入っている場合は上記ルールを満たす）
 - **検証クエリ例**: 
   ```sql
   -- 重複URLの検出
@@ -161,11 +174,23 @@
   GROUP BY instagram_url 
   HAVING COUNT(*) > 1;
   
-  -- Instagramドメイン以外のURL検出
+  -- Instagramドメイン以外のURL検出（NOT LIKE '%instagram.com%' は危険: notinstagram.com 等を誤許可する）
   SELECT id, name, instagram_url
   FROM facilities
   WHERE instagram_url IS NOT NULL 
-    AND instagram_url NOT LIKE '%instagram.com%';
+    AND instagram_url !~* '^https?://(www\.|m\.)?instagram\.com/';
+
+  -- 投稿/リール/ストーリーズ等が混ざっていないか（アカウントURLのみ許可）
+  SELECT id, name, instagram_url
+  FROM facilities
+  WHERE instagram_url IS NOT NULL
+    AND instagram_url ~* '^https?://(www\.|m\.)?instagram\.com/(p|reel|tv|stories)/';
+
+  -- 共有リンクのクエリ/フラグメントが残っていないか
+  SELECT id, name, instagram_url
+  FROM facilities
+  WHERE instagram_url IS NOT NULL
+    AND (instagram_url LIKE '%?%' OR instagram_url LIKE '%#%');
   ```
 - **チェック実施タイミング**: 
   - データ投入後（タスク5の半自動登録ツール実行後）
@@ -185,7 +210,7 @@
 ## 6. リスク・撤退条件・ロールバック
 
 - **リスク**: 
-  - Google Custom Search API のレート制限（1日100クエリ）に達する可能性（施設数が65件の場合、複数日に分ける必要がある）
+  - Google Custom Search API のレート制限（1日100クエリ）に達する可能性（対象件数や再検索回数によっては、複数日に分ける必要がある）
   - APIキーの漏洩リスク（サーバーサイドでのみ使用し、クライアントに露出しない）
   - 外部サービスの仕様変更（Google CSE の仕様変更、Instagram の利用規約変更）
   - 検索結果の精度が低い場合、手動確認の工数が増える
@@ -194,7 +219,8 @@
   - データ品質が一定基準を下回る（例: 正しいURLの検出率が50%未満）
   - Instagram の利用規約に違反する可能性が高い場合
 - **ロールバック手順**: 
-  - データベースのバックアップからの復元（Supabase Studio または MCP を使用）
+  - **更新前にスナップショットを残す**（例: `id,name,ward_name,instagram_url` をCSV/JSONでエクスポートし、dev-sessionsに添付または保存先を記録）
+  - 誤登録が見つかった場合は、対象 `id` の `instagram_url` を `NULL` に戻す（小さな差分で戻せる形にする）
   - 環境変数の削除（`.env.local` とホスティング環境の両方）
   - 実装したAPI Route の削除（`apps/web/app/api/instagram-search/route.ts`）
 - **フォールバック手順**: 
