@@ -12,22 +12,27 @@
 
 ### 1. 新しいセッションを始める
 
-1. **テンプレートをコピー**:
+1. **保存先フォルダ（年/月）を用意**:
    ```bash
-   cp docs/dev-sessions/template-session.md docs/dev-sessions/YYYYMMDD-連番-説明.md
+   YYYYMMDD=$(date +%Y%m%d)  # 例: 20251210
+   YYYY=${YYYYMMDD:0:4}      # 例: 2025
+   MM=${YYYYMMDD:4:2}        # 例: 12
+   mkdir -p "docs/dev-sessions/${YYYY}/${MM}"
    ```
 
 2. **日付と連番を決定**（AI作業時は必須）:
    ```bash
-   # 現在日付を取得
-   date +%Y%m%d  # 例: 20251210
-   
    # その日の既存ファイルを確認して連番を決定
-   ls docs/dev-sessions/YYYYMMDD-*.md | sort | tail -1
+   ls "docs/dev-sessions/${YYYY}/${MM}/${YYYYMMDD}-"*.md | sort | tail -1
    # 例: 20251210-02-session-name.md が最後なら、次の連番は 03
    ```
 
-3. **ファイル名の形式**: `YYYYMMDD-連番-説明.md`
+3. **テンプレートをコピー**:
+   ```bash
+   cp docs/dev-sessions/template-session.md "docs/dev-sessions/${YYYY}/${MM}/${YYYYMMDD}-連番-説明.md"
+   ```
+
+4. **ファイル名の形式**: `YYYY/MM/YYYYMMDD-連番-説明.md`
    - `連番` は2桁の数字（`01`, `02`, `03`...）
    - `説明` はセッションの内容を表す短い文字列（例: `phase9-instagram-search-api`）
 
@@ -91,10 +96,10 @@
 
 ## ファイル命名規則
 
-- 形式: `YYYYMMDD-連番-説明.md`
+- パス形式: `docs/dev-sessions/YYYY/MM/YYYYMMDD-連番-説明.md`
 - 例:
-  - `20251210-01-phase9-instagram-search-api.md`
-  - `20251210-02-phase9-instagram-search-api.md`（同日の2回目）
+  - `2025/12/20251210-01-phase9-instagram-search-api.md`
+  - `2025/12/20251210-02-phase9-instagram-search-api.md`（同日の2回目）
 
 ## 日付の付け方（AI作業時の標準フロー）
 
@@ -107,7 +112,10 @@
 
 2. **その日の既存ファイルを確認し、連番を決定する**:
    ```bash
-   ls docs/dev-sessions/YYYYMMDD-*.md | sort | tail -1
+   YYYYMMDD=$(date +%Y%m%d)
+   YYYY=${YYYYMMDD:0:4}
+   MM=${YYYYMMDD:4:2}
+   ls "docs/dev-sessions/${YYYY}/${MM}/${YYYYMMDD}-"*.md | sort | tail -1
    # 例: 20251210-02-session-name.md が最後のファイルの場合
    # 次の連番は 03
    ```
@@ -115,7 +123,7 @@
    - 既存ファイルがある場合、最大連番+1を新しい連番とする
 
 3. **ファイル名と本文の日付を生成する**:
-   - ファイル名: `YYYYMMDD-連番-説明.md`
+   - ファイル名: `docs/dev-sessions/YYYY/MM/YYYYMMDD-連番-説明.md`
    - 本文の「日付: YYYY-MM-DD」: `YYYYMMDD` 形式を `YYYY-MM-DD` 形式に変換
      - 変換方法: `${YYYYMMDD:0:4}-${YYYYMMDD:4:2}-${YYYYMMDD:6:2}`
      - 例: `20251210` → `2025-12-10`

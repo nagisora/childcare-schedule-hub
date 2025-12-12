@@ -21,7 +21,7 @@
   - `docs/instagram-integration/03-design-decisions.md`
   - `docs/instagram-integration/05-instagram-account-search.md`
   - `docs/04-development.md`（環境変数・Runbook）
-  - `docs/dev-sessions/202512xx-01-phase9-google-custom-search-setup.md`（代表セッション）
+  - `docs/dev-sessions/2025/12/20251200-01-phase9-google-custom-search-setup.md`（代表セッション）
 
 ## 2. 前提・制約
 
@@ -56,7 +56,7 @@
 - **dev-sessions粒度**:  
   - 1セッション（15〜30分）で棚卸しクエリ設計〜集計〜「今回の対象範囲」の言語化まで完了可能
 - **更新先ドキュメント**: 
-  - `docs/dev-sessions/*`（集計結果の記録）
+  - `docs/dev-sessions/` 配下（集計結果の記録）
   - `docs/05-09-instagram-account-url-coverage.md`（対象スコープの決定内容）
 
 ### タスク2: Google Custom Search API 用クエリ設計 & 判定ルール整理
@@ -87,7 +87,7 @@
 - **更新先ドキュメント**: 
   - `docs/04-development.md`（環境変数一覧）
   - `apps/web/env.local.example`（環境変数の例）
-  - `docs/dev-sessions/*`（セットアップ手順の記録）
+  - `docs/dev-sessions/` 配下（セットアップ手順の記録）
 
 ### タスク4: Next.js サーバーサイド検索API（例 `/api/instagram-search`）のPoC実装
 
@@ -105,7 +105,7 @@
 - **更新先ドキュメント**: 
   - `apps/web/app/api/instagram-search/route.ts`（新規作成）
   - `docs/03-api.md`（API仕様の追記、必要に応じて）
-  - `docs/dev-sessions/*`（実装メモ）
+  - `docs/dev-sessions/` 配下（実装メモ）
 
 ### タスク5: 複数施設向け「半自動登録ツール」の設計・実装
 
@@ -122,7 +122,7 @@
 - **更新先ドキュメント**: 
   - `apps/scripts/` または `apps/web/app/admin/`（ツールの実装場所）
   - `docs/04-development.md`（ツールの使い方・Runbook）
-  - `docs/dev-sessions/*`（実装メモ）
+  - `docs/dev-sessions/` 配下（実装メモ）
 
 ### タスク6: Runbook整備とデータ品質チェック
 
@@ -144,7 +144,7 @@
   - `docs/instagram-integration/04-runbook.md`
   - `docs/instagram-integration/05-instagram-account-search.md`
   - `docs/04-development.md`（必要に応じてRunbookへの参照を追加）
-  - `docs/dev-sessions/*`（データ品質チェック結果の記録）
+  - `docs/dev-sessions/` 配下（データ品質チェック結果の記録）
 
 ## 4. 品質チェック
 

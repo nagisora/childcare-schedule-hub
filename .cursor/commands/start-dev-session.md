@@ -3,7 +3,7 @@
 ## 概要
 
 `phase-planning` などでフェーズごとの実装計画を議論したあと、
-**実際の開発セッション用に `docs/dev-sessions/` 配下のファイルを作成し、テンプレートを埋めるためのカスタムコマンド**です。
+**実際の開発セッション用に `docs/dev-sessions/YYYY/MM/` 配下のファイルを作成し、テンプレートを埋めるためのカスタムコマンド**です。
 
 - 対象フェーズと本セッションで取り組むタスク（1〜3個）を決める
 - `docs/dev-sessions/template-session.md` をもとに新しいセッションファイルを作成
@@ -37,12 +37,15 @@
      ```
    - その日の既存ファイルから連番を決定:
      ```bash
-     ls docs/dev-sessions/YYYYMMDD-*.md | sort | tail -1
+     YYYYMMDD=$(date +%Y%m%d)
+     YYYY=${YYYYMMDD:0:4}
+     MM=${YYYYMMDD:4:2}
+     ls "docs/dev-sessions/${YYYY}/${MM}/${YYYYMMDD}-"*.md | sort | tail -1
      # 既存ファイルがなければ 01、あれば最大連番+1
      ```
    - ファイル名の形式:
-     - `docs/dev-sessions/YYYYMMDD-連番-説明.md`
-     - 例: `20251210-01-phase9-instagram-account-coverage.md`
+     - `docs/dev-sessions/YYYY/MM/YYYYMMDD-連番-説明.md`
+     - 例: `docs/dev-sessions/2025/12/20251210-01-phase9-instagram-account-coverage.md`
 
 3. **テンプレートから新規ファイルを作成**  
    - `docs/dev-sessions/template-session.md` をベースに新しいファイルを作るよう指示する。
@@ -65,7 +68,7 @@
    - 実際のコマンド実行はユーザー or 他のコマンドが行う前提で、
      **「どのファイルをどの名前で作り、どのセクションに何を書くべきか」**をMarkdownで具体的に指示する。  
    - 可能であれば、新規セッションファイルの「ひな形（ほぼ完成版）」をそのまま提案し、
-     ユーザーが `docs/dev-sessions/` にコピー＆ペーストできる形にする。
+     ユーザーが `docs/dev-sessions/YYYY/MM/` にコピー＆ペーストできる形にする。
 
 ## メモ
 

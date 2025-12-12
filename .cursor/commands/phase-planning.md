@@ -61,7 +61,7 @@
 5. **出力フォーマット**  
    - フェーズレベルのラフ計画（チェックリスト）と、dev-sessions用の「次セッション候補タスク」の2段構成で出力する。  
 - dev-sessions 側にはフェーズ計画の全文ではなく、必要に応じて要約＋`docs/05-00-development-phases.md` へのリンク、または一部抜粋を貼る運用を推奨する。  
-   - ユーザーがそのまま `docs/dev-sessions/2025...-session-XX.md` にコピペできるよう、Markdownのみで出力する。
+  - ユーザーがそのまま `docs/dev-sessions/YYYY/MM/YYYYMMDD-*.md` にコピペできるよう、Markdownのみで出力する。
 
 ## メモ
 

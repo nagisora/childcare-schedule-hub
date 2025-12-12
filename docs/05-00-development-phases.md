@@ -159,7 +159,7 @@
   - `app/facilities/[id]/page.tsx` の `params` は Next.js の実ランタイム仕様（Promise で渡される）に合わせて `Promise<{ id: string }>` とし、
     `pnpm dev` 実行時の警告を避けるために `await params` で展開する実装としている（phase6 のリファクタ計画で検討した同期型 `params` 案からの差分）。
 
-**開発セッション**: [`docs/dev-sessions/20251128-session-phase6-vercel-deploy.md`](./dev-sessions/20251128-session-phase6-vercel-deploy.md) を参照
+**開発セッション**: [`docs/dev-sessions/2025/11/20251128-session-phase6-vercel-deploy.md`](./dev-sessions/2025/11/20251128-session-phase6-vercel-deploy.md) を参照
 
 **注**: 現在は一部の施設・スケジュールURLのみを手動で登録している状態です。全施設のスケジュールURLカバーは [フェーズ10: スケジュールURLの全面カバー](#フェーズ10-スケジュールurlの全面カバー) で実施します。
 
@@ -181,7 +181,7 @@
 - ビルドキャッシュの問題解決（`.next`ディレクトリの削除による再ビルド）
 - デプロイ成功確認
 
-**開発セッション**: [`docs/dev-sessions/20251128-session-phase6-vercel-deploy.md`](./dev-sessions/20251128-session-phase6-vercel-deploy.md) を参照
+**開発セッション**: [`docs/dev-sessions/2025/11/20251128-session-phase6-vercel-deploy.md`](./dev-sessions/2025/11/20251128-session-phase6-vercel-deploy.md) を参照
 
 **注**: このフェーズは「仮MVP環境」として、一部の施設・スケジュールURLのみを手動で登録した状態でデプロイしています。本番相当のクオリティ向上は [フェーズ8: 仮MVP環境のクオリティアップ](#フェーズ8-仮mvp環境のクオリティアップ) で実施します。
 
@@ -288,7 +288,7 @@
 4. フェーズ完了時は関連ドキュメント（01〜04）のリンクや表の更新だけでも良いので、最小反映を行う。
 
 ### フェーズ計画の正本管理
-- フェーズごとの詳細計画と完了条件の**正本はこのファイル（05-00）に集約**し、`phase-planning` の出力や `docs/dev-sessions/*` は「その時点の作業用ラフ/抜粋」として扱う。
+- フェーズごとの詳細計画と完了条件の**正本はこのファイル（05-00）に集約**し、`phase-planning` の出力や `docs/dev-sessions/` 配下の各セッション記録は「その時点の作業用ラフ/抜粋」として扱う。
 - フェーズごとの詳細な実装計画は、必要に応じて `docs/05-<フェーズ番号>-*.md` 形式の専用ファイルに切り出す（例: `docs/05-09-instagram-account-url-coverage.md`）。このファイル（05-00）は全体のインデックスとして、各フェーズの「目的 / 主に触るドキュメント / 完了条件 / 代表タスク例」のみを持つ。
 - `phase-planning` で新しい決定や計画変更が生じた場合は、必ず本ファイル（または該当フェーズの詳細ファイル）の該当フェーズと「フェーズ進捗状況 / 次のステップ」を更新する。
 - dev-sessions には必要な抜粋やスナップショットだけを貼り、全文を載せる場合は付録扱いとし、正本が本ファイル（または該当フェーズの詳細ファイル）である旨を明記する。
@@ -313,7 +313,10 @@
 
 2. **その日の既存ファイルを確認し、連番を決定する**:
    ```bash
-   ls docs/dev-sessions/YYYYMMDD-*.md | sort | tail -1
+   YYYYMMDD=$(date +%Y%m%d)
+   YYYY=${YYYYMMDD:0:4}
+   MM=${YYYYMMDD:4:2}
+   ls "docs/dev-sessions/${YYYY}/${MM}/${YYYYMMDD}-"*.md | sort | tail -1
    # 例: 20251130-02-phase8-followup.md が最後のファイルの場合
    # 次の連番は 03
    ```
@@ -321,7 +324,7 @@
    - 既存ファイルがある場合、最大連番+1を新しい連番とする（例: 最大が `02` なら `03`）
 
 3. **ファイル名と本文の日付を生成する**:
-   - ファイル名: `YYYYMMDD-連番-説明.md`（例: `20251130-01-phase8-quality-up.md`）
+   - ファイル名: `docs/dev-sessions/YYYY/MM/YYYYMMDD-連番-説明.md`（例: `docs/dev-sessions/2025/11/20251130-01-phase8-quality-up.md`）
      - `連番` は2桁の数字（`01`, `02`, `03`...）
      - `説明` はセッションの内容を表す短い文字列（例: `phase8-quality-up`, `phase6-instagram`）
    - 本文の「日付: YYYY-MM-DD」: 取得した `YYYYMMDD` 形式を `YYYY-MM-DD` 形式に変換して使用
@@ -379,9 +382,9 @@
   - 月切り替え時のローディング状態管理を改善（staleリクエストが最新リクエストのローディング表示を打ち消さないように修正）
 
 **開発セッション**:
-- [`docs/dev-sessions/20251130-session-phase8-quality-up.md`](./dev-sessions/20251130-session-phase8-quality-up.md) - フェーズ8の主要実装
-- [`docs/dev-sessions/20251130-session-phase8-followup.md`](./dev-sessions/20251130-session-phase8-followup.md) - ローディング/エラーUI実装とテスト追加
-- [`docs/dev-sessions/20251202-01-phase8-pr-review-fix.md`](./dev-sessions/20251202-01-phase8-pr-review-fix.md) - PRレビュー指摘事項の修正
+- [`docs/dev-sessions/2025/11/20251130-session-phase8-quality-up.md`](./dev-sessions/2025/11/20251130-session-phase8-quality-up.md) - フェーズ8の主要実装
+- [`docs/dev-sessions/2025/11/20251130-session-phase8-followup.md`](./dev-sessions/2025/11/20251130-session-phase8-followup.md) - ローディング/エラーUI実装とテスト追加
+- [`docs/dev-sessions/2025/12/20251202-01-phase8-pr-review-fix.md`](./dev-sessions/2025/12/20251202-01-phase8-pr-review-fix.md) - PRレビュー指摘事項の修正
 
 ### 次のステップ
 - **フェーズ9**: CSEセットアップ（検索対象スコープ＋API有効化＋キー/CX取得＋環境変数追加）→ `/api/instagram-search` PoC → 半自動登録フロー設計・Runbook更新 → データ品質チェックの順で進める。

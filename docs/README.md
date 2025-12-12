@@ -39,6 +39,7 @@
 - 開発セッション用ワークシート: `docs/dev-sessions/`
   - 目的: 1 回の作業（短時間）を計画→実施→記録するテンプレ置き場
   - テンプレ: `docs/dev-sessions/template-session.md`
+  - 記録ファイル: `docs/dev-sessions/YYYY/MM/` 配下
   - 詳細: [`docs/dev-sessions/README.md`](./dev-sessions/README.md) を参照
 
 推奨読了順: 01 → 02 → 03 → 04 → 05（必要に応じて `dev-sessions` を利用）
@@ -50,7 +51,7 @@
   - `title` は kebab-case。例: `05-00-development-phases.md`（`00` は全体概要用）
 - 運用系フォルダ:
   - `dev-sessions/`: 日々の開発セッション（短時間作業）の記録置き場
-    - 命名例: `YYYYMMDD-session-01.md`（1 日に複数回ある場合は連番）
+    - 命名例: `YYYY/MM/YYYYMMDD-連番-説明.md`（1日に複数回ある場合は連番）
     - テンプレからコピーして利用: `dev-sessions/template-session.md`
     - 詳細: [`docs/dev-sessions/README.md`](./dev-sessions/README.md) を参照
 - 参照リンクは相互に付与し、初見でも辿れるようにする（01→02→03→04→05、04↔05、05↔dev-sessions）。
