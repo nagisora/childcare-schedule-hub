@@ -30,7 +30,7 @@
   - 目的: 少ない時間でも進めやすい高レベルなフェーズ設計
   - 想定読者: 開発者（タスクを分割して前進したい人）
   - 更新のきっかけ: フェーズ境界や完了条件の見直し
-  - 運用ルール: [運用ルール（フェーズ × セッション）](./05-00-development-phases.md#運用ルールフェーズ--セッション) / [dev-sessions ファイルの日付の付け方](./05-00-development-phases.md#dev-sessions-ファイルの日付の付け方ai作業時の標準フロー)
+  - 運用ルール: [運用ルール（フェーズ × セッション）](./05-00-development-phases.md#ops-rules) / [dev-sessions ファイルの日付の付け方](./05-00-development-phases.md#dev-sessions-date)
   - フェーズ詳細テンプレ: [`docs/phase-planning/template-phase-detail.md`](./phase-planning/template-phase-detail.md)（フェーズ9以降の詳細計画を作成する際のテンプレート）
 - 06 DB セットアップ & 手動オペレーション: `docs/06-db-operations.md`
   - 目的: **Supabase MCP を用いた AI 実行を基本とし**、必要に応じて人間が手動で実行するための Supabase データベースのセットアップ手順と運用手順
