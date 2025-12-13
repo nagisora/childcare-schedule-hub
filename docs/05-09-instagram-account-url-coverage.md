@@ -23,8 +23,8 @@
 - [x] [タスク1: 現状の `instagram_url` カバレッジ棚卸しと対象スコープ決定](#task-1) - 2025-12-13 ([dev-session](../../dev-sessions/2025/12/20251213-01-phase9-instagram-account-url-coverage-ward-scope.md))
 - [x] [タスク2: Google Custom Search API 用クエリ設計 & 判定ルール整理](#task-2) - 2025-12-13 ([dev-session](../../dev-sessions/2025/12/20251213-01-phase9-instagram-account-url-coverage-ward-scope.md))
 - [x] [タスク3: Google Programmable Search Engine & 環境変数セットアップ](#task-3) - 2025-12-13（ドキュメント反映完了、Google CSE作成は人間作業で進行中） ([dev-session](../../dev-sessions/2025/12/20251213-01-phase9-instagram-account-url-coverage-ward-scope.md))
-- [ ] [タスク4: Next.js サーバーサイド検索API（例 `/api/instagram-search`）のPoC実装](#task-4)
-- [ ] [タスク5: 複数施設向け「半自動登録ツール」の設計・実装](#task-5)
+- [ ] [タスク4: Next.js サーバーサイド検索API（例 `/api/instagram-search`）のPoC実装](#task-4) - 着手: 2025-12-13 ([dev-session](../../dev-sessions/2025/12/20251213-02-phase9-instagram-search-api-semi-auto-registration.md))
+- [ ] [タスク5: 複数施設向け「半自動登録ツール」の設計・実装](#task-5) - 着手: 2025-12-13 ([dev-session](../../dev-sessions/2025/12/20251213-02-phase9-instagram-search-api-semi-auto-registration.md))
 - [ ] [タスク6: Runbook整備とデータ品質チェック](#task-6)
 
 ## 1. 概要
