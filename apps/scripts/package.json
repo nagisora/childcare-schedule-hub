@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "fetch-nagoya": "tsx fetch-nagoya-childcare-bases.ts"
+    "fetch-nagoya": "tsx fetch-nagoya-childcare-bases.ts",
+    "instagram-registration": "tsx instagram-semi-auto-registration.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.83.0",

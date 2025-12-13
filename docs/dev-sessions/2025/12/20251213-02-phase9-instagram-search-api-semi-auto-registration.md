@@ -104,19 +104,29 @@
 
 ## 実施ログ
 
-- スタート: HH:MM
+- スタート: 2025-12-13
 - メモ:
-  -
+  - **タスク1（検索API PoC）実装完了**:
+    - `apps/web/lib/instagram-search.ts` を新規作成（検索クエリ生成・URL正規化・スコアリング）
+    - `apps/web/app/api/instagram-search/route.ts` を新規作成（管理トークン必須、CSE呼び出し、正規化レスポンス）
+    - 環境変数 `ADMIN_API_TOKEN` を `env.local.example` と `docs/04-development.md` に追加
+    - ユニットテスト `apps/web/__tests__/instagram-search.test.ts` を追加
+  - **タスク2（半自動登録ツール PoC）実装完了**:
+    - `apps/scripts/instagram-semi-auto-registration.ts` を新規作成（DRY-RUNデフォルト、任意apply、バックアップ/二重確認）
+    - `apps/scripts/package.json` に実行スクリプトを追加
+    - `docs/04-development.md` にCLIツールの使い方を追記（9.5.3節）
+  - **動作確認**: 実装は完了したが、実際のサーバー起動・API呼び出しによる動作確認は未実施（次回実施予定）
 
 ## 結果とふりかえり
 
 - 完了できたタスク:
-  - [ ] タスク1（検索API PoC）
-  - [ ] タスク2（半自動登録ツール PoC）
+  - [x] タスク1（検索API PoC）: 実装完了。`/api/instagram-search` Route Handler と共通ロジック（`lib/instagram-search.ts`）を追加。管理トークン認証、CSE呼び出し、正規化・スコアリングを実装。
+  - [x] タスク2（半自動登録ツール PoC）: 実装完了。CLIツール（`apps/scripts/instagram-semi-auto-registration.ts`）を追加。DRY-RUNデフォルト、バックアップ機能、二重確認付き更新機能を実装。
 - 未完了タスク / 想定外だったこと:
-  - [ ] （あれば）
+  - [ ] 動作確認（ローカルサーバー起動・API呼び出し・CLI実行）は未実施。次回セッションで実施予定。
 - 学び・次回改善したいこと:
-  -
+  - CLIツールで `/api/instagram-search` を呼び出す際、開発サーバーが起動している必要がある点を明記した（`docs/04-development.md` に追記済み）
+  - テスト観点表を追加し、URL正規化・スコアリング閾値・クエリ生成のテストを実装した
 
 ## 次回に持ち越すタスク
 

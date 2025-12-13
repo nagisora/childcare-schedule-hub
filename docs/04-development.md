@@ -81,6 +81,7 @@ mise exec -- pnpm --filter web dev
 | `SUPABASE_SERVICE_ROLE_KEY` | 必須 | サーバーのみ | なし | Edge Function や ISR 再生成で使用。クライアントへ送信禁止。 |
 | `GOOGLE_CSE_API_KEY` | 任意 | サーバーのみ | なし | フェーズ9: Google Custom Search API 用のAPIキー。クライアントへ送信禁止・ログ出力禁止。 |
 | `GOOGLE_CSE_CX` | 任意 | サーバーのみ | なし | フェーズ9: Google Programmable Search Engine（CSE）の識別子（cx）。クライアントへ送信禁止。 |
+| `ADMIN_API_TOKEN` | 任意 | サーバーのみ | なし | フェーズ9: 内部API保護用トークン（`/api/instagram-search` など）。`x-admin-token` ヘッダーで検証。クライアントへ送信禁止・ログ出力禁止。 |
 | `INSTAGRAM_OEMBED_TOKEN` | 任意 | サーバーのみ | なし | Instagram oEmbed を高頻度で呼ぶ場合に必須。未設定時はレート制限に注意。 |
 | `CSH_STORAGE_VERSION` | 任意 | クライアント | 文字列 | お気に入りlocalStorageのバージョン管理に利用。デフォルトは `1`。 |
 
@@ -372,7 +373,58 @@ Supabase CLI を使ったローカル開発環境やマイグレーション管�
 - 手動インポート時は、事前に `name` + `facility_type` + `address_full_raw` の組み合わせで重複チェックを行うことを推奨。
 - 将来的には、`name` + `facility_type` + `municipality_code` の組み合わせで一意制約を追加することを検討（ポストMVP）。
 
-### 9.5.3 スクレイピングスクリプト実行フロー
+### 9.5.3 InstagramアカウントURL半自動登録ツール（フェーズ9）
+
+**概要**:
+`apps/scripts/instagram-semi-auto-registration.ts` は、`instagram_url IS NULL` の施設に対して Google Custom Search API を使用してInstagramアカウントを検索し、候補を提示して人間が採用/スキップを選ぶフローを実現するCLIツールです。
+
+**前提条件**:
+- `apps/web/.env.local` に以下が設定されていること:
+  - `NEXT_PUBLIC_SUPABASE_URL`
+  - `SUPABASE_SERVICE_ROLE_KEY`
+  - `GOOGLE_CSE_API_KEY`
+  - `GOOGLE_CSE_CX`
+  - `ADMIN_API_TOKEN`
+- Next.js 開発サーバーが起動していること（`mise exec -- pnpm --filter web dev`）
+
+**使用方法**:
+
+1. **DRY-RUN モード（デフォルト、推奨）**:
+   ```bash
+   cd apps/scripts
+   pnpm tsx instagram-semi-auto-registration.ts
+   ```
+   - 対象施設（デフォルト: 東区）を取得し、各施設に対して `/api/instagram-search` を呼び出す
+   - 候補を表示して、人間が「採用 / スキップ / 未特定」を選択
+   - 結果を `apps/scripts/logs/instagram-registration-<timestamp>.json` に保存（DBは更新しない）
+
+2. **更新モード（実際にDBを更新）**:
+   ```bash
+   cd apps/scripts
+   pnpm tsx instagram-semi-auto-registration.ts --apply --yes
+   ```
+   - `--apply`: 更新モードを有効化
+   - `--yes`: 二重確認（必須）
+   - 更新前にバックアップを `apps/scripts/logs/instagram-backup-<timestamp>.json` に保存
+   - 採用した候補の `instagram_url` を `facilities` テーブルに更新
+
+3. **対象区を指定**:
+   ```bash
+   pnpm tsx instagram-semi-auto-registration.ts --ward=西区
+   ```
+
+**出力ファイル**:
+- `apps/scripts/logs/instagram-registration-<timestamp>.json`: 処理結果（採用/スキップ/未特定の記録）
+- `apps/scripts/logs/instagram-backup-<timestamp>.json`: 更新前のバックアップ（`--apply` 時のみ）
+
+**注意事項**:
+- APIキー等のシークレットは表示・保存されない
+- DRY-RUN モードを推奨（誤登録を防ぐため）
+- 更新モードを使用する場合は、必ずバックアップを確認してから実行すること
+
+**参照**: `docs/05-09-instagram-account-url-coverage.md`（タスク5）
+
+### 9.5.4 スクレイピングスクリプト実行フロー
 
 **前提条件**:
 - Node.js 20.x 以上がインストールされていること
