@@ -52,56 +52,56 @@
 ### 1. 作業タスク & プロンプト設計（実装・ドキュメント更新）
 
 - [x] タスク1: タスク4（検索API PoC）を `apps/web/app/api/instagram-search/route.ts` に実装
-      - 完了条件: ローカルで `/api/instagram-search?facilityId=...` を叩くと、`[{ link, title, snippet, score }]` 形式の候補配列が返る（エラーは統一フォーマット） ✅
-      - **実行プロンプト案**:
-        ```
-        フェーズ9のタスク4として、Next.js の Route Handler で `/api/instagram-search` を PoC 実装してください。
+  - 完了条件: ローカルで `/api/instagram-search?facilityId=...` を叩くと、`[{ link, title, snippet, score }]` 形式の候補配列が返る（エラーは統一フォーマット） ✅
+  - **実行プロンプト案**:
+    ```
+    フェーズ9のタスク4として、Next.js の Route Handler で `/api/instagram-search` を PoC 実装してください。
 
-        - 参照ファイル:
-          - docs/05-09-instagram-account-url-coverage.md（タスク4の完了条件）
-          - docs/dev-sessions/2025/12/20251213-01-phase9-instagram-account-url-coverage-ward-scope.md（東区の対象施設）
-          - docs/instagram-integration/03-design-decisions.md（検索クエリ/判定ルール）
-        - やりたいこと:
-          - 入力は `facilityId`（優先）または `facilityName`+`wardName`
-          - Google CSE をサーバー側で呼び出し、結果を正規化して `[{ link, title, snippet, score }]` を返す
-          - 投稿URL（/p/ /reel/ /tv/ /stories/）や共有リンク（クエリ/フラグメント）は候補から除外し、プロフィールURLへ正規化する
-          - 失敗時（400/500/外部APIエラー）は統一JSONで返す
-        - 制約・注意点:
-          - `GOOGLE_CSE_API_KEY` / `GOOGLE_CSE_CX` はクライアントへ露出させない（レスポンス/ログに出さない）
-          - 公開悪用でクエリ枠を消費されないよう、PoCでも最低限の防御（例: productionでは拒否 or 管理トークン必須）を入れる
-        ```
+    - 参照ファイル:
+      - docs/05-09-instagram-account-url-coverage.md（タスク4の完了条件）
+      - docs/dev-sessions/2025/12/20251213-01-phase9-instagram-account-url-coverage-ward-scope.md（東区の対象施設）
+      - docs/instagram-integration/03-design-decisions.md（検索クエリ/判定ルール）
+    - やりたいこと:
+      - 入力は `facilityId`（優先）または `facilityName`+`wardName`
+      - Google CSE をサーバー側で呼び出し、結果を正規化して `[{ link, title, snippet, score }]` を返す
+      - 投稿URL（/p/ /reel/ /tv/ /stories/）や共有リンク（クエリ/フラグメント）は候補から除外し、プロフィールURLへ正規化する
+      - 失敗時（400/500/外部APIエラー）は統一JSONで返す
+    - 制約・注意点:
+      - `GOOGLE_CSE_API_KEY` / `GOOGLE_CSE_CX` はクライアントへ露出させない（レスポンス/ログに出さない）
+      - 公開悪用でクエリ枠を消費されないよう、PoCでも最低限の防御（例: productionでは拒否 or 管理トークン必須）を入れる
+    ```
 
 - [x] タスク2: タスク5（半自動登録ツール PoC）の設計確定と最小実装（まずは DRY-RUN）
-      - 完了条件: `instagram_url IS NULL` の施設を対象に、候補提示→採用/スキップの記録が1件以上できる（最初はCSV/JSON出力でも可） ✅
-      - **実行プロンプト案**:
-        ```
-        フェーズ9のタスク5として、複数施設向け「半自動登録ツール」を PoC 実装してください。
+  - 完了条件: `instagram_url IS NULL` の施設を対象に、候補提示→採用/スキップの記録が1件以上できる（最初はCSV/JSON出力でも可） ✅
+  - **実行プロンプト案**:
+    ```
+    フェーズ9のタスク5として、複数施設向け「半自動登録ツール」を PoC 実装してください。
 
-        - 参照ファイル:
-          - docs/05-09-instagram-account-url-coverage.md（タスク5の完了条件）
-          - docs/dev-sessions/2025/12/20251213-01-phase9-instagram-account-url-coverage-ward-scope.md（東区の未登録3件）
-        - やりたいこと:
-          - 対象（例: 東区で `instagram_url IS NULL`）の施設を一覧化
-          - 1件ずつ `/api/instagram-search` を叩いて上位候補を提示
-          - 人間が「採用 / スキップ」を選べる（CLI or 管理ページ）
-          - まずは安全のため DRY-RUN（更新せず、採用結果をJSON/CSVに出力）までを必須にする
-          - 可能なら「確認ステップ付き」で `facilities.instagram_url` を更新する経路も用意する
-        - 制約・注意点:
-          - 誤登録が最も危険なので、必ず確認ステップ（Yes/No）と、採用URLの正規化・バリデーションを入れる
-          - APIキー等のシークレットは絶対に表示・保存しない
-        ```
+    - 参照ファイル:
+      - docs/05-09-instagram-account-url-coverage.md（タスク5の完了条件）
+      - docs/dev-sessions/2025/12/20251213-01-phase9-instagram-account-url-coverage-ward-scope.md（東区の未登録3件）
+    - やりたいこと:
+      - 対象（例: 東区で `instagram_url IS NULL`）の施設を一覧化
+      - 1件ずつ `/api/instagram-search` を叩いて上位候補を提示
+      - 人間が「採用 / スキップ」を選べる（CLI or 管理ページ）
+      - まずは安全のため DRY-RUN（更新せず、採用結果をJSON/CSVに出力）までを必須にする
+      - 可能なら「確認ステップ付き」で `facilities.instagram_url` を更新する経路も用意する
+    - 制約・注意点:
+      - 誤登録が最も危険なので、必ず確認ステップ（Yes/No）と、採用URLの正規化・バリデーションを入れる
+      - APIキー等のシークレットは絶対に表示・保存しない
+    ```
 
 ### 2. 検証・テスト（確認方法）
 
 - [x] 確認1: `/api/instagram-search` がローカルで候補を返す
-      - 期待結果: `[{ link, title, snippet, score }]`（少なくとも空配列）で返り、エラー時も統一フォーマット ✅
-      - 実際の結果: あおぞらわらばぁ～で候補2件（スコア6点・5点）を正常に取得
+  - 期待結果: `[{ link, title, snippet, score }]`（少なくとも空配列）で返り、エラー時も統一フォーマット ✅
+  - 実際の結果: あおぞらわらばぁ～で候補2件（スコア6点・5点）を正常に取得
 - [x] 確認2: 半自動登録ツール（PoC）が東区の対象を1件以上処理できる
-      - 期待結果: 採用/スキップが記録される（DRY-RUNならJSON/CSVが生成される） ✅
-      - 実際の結果: 3施設を処理し、結果JSONを `apps/scripts/logs/` に保存
+  - 期待結果: 採用/スキップが記録される（DRY-RUNならJSON/CSVが生成される） ✅
+  - 実際の結果: 3施設を処理し、結果JSONを `apps/scripts/logs/` に保存
 - [ ] 確認3（任意）: 更新を有効化した場合、Supabase Studio で `facilities.instagram_url` が期待通り更新される
-      - 期待結果: 正規化済みプロフィールURLのみが入る（投稿URLやクエリ付きが入らない）
-      - 補足: `--apply --yes` での実際の更新は次回セッションで実施予定
+  - 期待結果: 正規化済みプロフィールURLのみが入る（投稿URLやクエリ付きが入らない）
+  - 補足: `--apply --yes` での実際の更新は次回セッションで実施予定
 
 ---
 
@@ -175,4 +175,16 @@
 
 - フェーズ9の進捗正本: `docs/05-09-instagram-account-url-coverage.md`
 
+### 開発者からの指摘（未編集全文）
 
+```
+現行のスコア算出のやり方の精度が悪くて微妙な気がします。
+
+私がGoogle検索で「site:instagram.com いずみ 子育て 名古屋市 東区」と検索すると添付画像のように検索され、一番上のリンク（ https://www.instagram.com/chunichikai.official/  ）で正しいのです。
+
+つまり、適切なキーワードでGoogke検索して一番上、もしくは3つ目くらいまでで一番正しいものを選ぶのが良いと思うのです。
+
+今のスコア方式も残し、私のやり方も実装し切り替えれるようにするのはどう？
+
+ただ、今日はもう時間がないので、私のこの意見や次への持ち越しなど必要事項を @20251213-02-phase9-instagram-search-api-semi-auto-registration.md に記録して終わりにしましょう。
+```
