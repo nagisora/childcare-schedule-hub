@@ -11,9 +11,9 @@
 
 ### フェーズ9: 全体の完了条件
 
-- [ ] Google Programmable Search Engine（CSE）が `site:instagram.com` を中心に構成され、環境変数が設定・ドキュメント化されている
-- [ ] Next.js サーバーサイドの検索API（例: `/api/instagram-search`）が PoC レベルで動作し、Google CSE から取得した結果を正規化して返却できる
-- [ ] 複数施設向けの半自動登録フロー（候補提示→人間が採用/スキップを選ぶ）が用意され、`facilities.instagram_url` を安全に更新できる（DRY-RUN / 確認ステップを含む）
+- [x] Google Programmable Search Engine（CSE）が `site:instagram.com` を中心に構成され、環境変数が設定・ドキュメント化されている - 2025-12-13（タスク3完了）
+- [x] Next.js サーバーサイドの検索API（例: `/api/instagram-search`）が PoC レベルで動作し、Google CSE から取得した結果を正規化して返却できる - 2025-12-13（タスク4完了）
+- [x] 複数施設向けの半自動登録フロー（候補提示→人間が採用/スキップを選ぶ）が用意され、`facilities.instagram_url` を安全に更新できる（DRY-RUN / 確認ステップを含む） - 2025-12-13（タスク5完了）
 - [ ] Runbookに検索APIベースの標準フローと、フォールバックとしての手動ブラウザ検索フローが整理されている
 - [ ] データ品質チェック（Instagramドメイン以外・重複URLの検出）が1回以上実施され、dev-sessionsに記録されている
 - [ ] 対象施設が「処理済み」になっている（`instagram_url` が埋まった施設だけでなく、見つからない/判断不能な施設も「未特定（理由付き）」として一覧化されている）

@@ -51,8 +51,8 @@
 
 ### 1. 作業タスク & プロンプト設計（実装・ドキュメント更新）
 
-- [ ] タスク1: タスク4（検索API PoC）を `apps/web/app/api/instagram-search/route.ts` に実装
-      - 完了条件: ローカルで `/api/instagram-search?facilityId=...` を叩くと、`[{ link, title, snippet, score }]` 形式の候補配列が返る（エラーは統一フォーマット）
+- [x] タスク1: タスク4（検索API PoC）を `apps/web/app/api/instagram-search/route.ts` に実装
+      - 完了条件: ローカルで `/api/instagram-search?facilityId=...` を叩くと、`[{ link, title, snippet, score }]` 形式の候補配列が返る（エラーは統一フォーマット） ✅
       - **実行プロンプト案**:
         ```
         フェーズ9のタスク4として、Next.js の Route Handler で `/api/instagram-search` を PoC 実装してください。
@@ -71,8 +71,8 @@
           - 公開悪用でクエリ枠を消費されないよう、PoCでも最低限の防御（例: productionでは拒否 or 管理トークン必須）を入れる
         ```
 
-- [ ] タスク2: タスク5（半自動登録ツール PoC）の設計確定と最小実装（まずは DRY-RUN）
-      - 完了条件: `instagram_url IS NULL` の施設を対象に、候補提示→採用/スキップの記録が1件以上できる（最初はCSV/JSON出力でも可）
+- [x] タスク2: タスク5（半自動登録ツール PoC）の設計確定と最小実装（まずは DRY-RUN）
+      - 完了条件: `instagram_url IS NULL` の施設を対象に、候補提示→採用/スキップの記録が1件以上できる（最初はCSV/JSON出力でも可） ✅
       - **実行プロンプト案**:
         ```
         フェーズ9のタスク5として、複数施設向け「半自動登録ツール」を PoC 実装してください。
