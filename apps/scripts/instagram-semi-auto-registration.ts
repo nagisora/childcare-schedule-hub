@@ -142,10 +142,10 @@ async function promptForSelection(
 		return 'not_found';
 	}
 
-	console.log(`\n[${facilityName}] 候補が見つかりました:`);
+	console.log(`\n[${facilityName}] 候補が見つかりました（スコア5点以上、最大9点）:`);
 	candidates.forEach((candidate, index) => {
 		console.log(`  ${index + 1}. ${candidate.link}`);
-		console.log(`     スコア: ${candidate.score}点`);
+		console.log(`     スコア: ${candidate.score}点 / 最大9点`);
 		if (candidate.reasons && candidate.reasons.length > 0) {
 			console.log(`     理由: ${candidate.reasons.join(', ')}`);
 		}
