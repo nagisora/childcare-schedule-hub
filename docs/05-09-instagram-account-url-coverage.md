@@ -20,9 +20,9 @@
 
 ### 実装タスク（セッション粒度の進捗）
 
-- [ ] [タスク1: 現状の `instagram_url` カバレッジ棚卸しと対象スコープ決定](#task-1)
-- [ ] [タスク2: Google Custom Search API 用クエリ設計 & 判定ルール整理](#task-2)
-- [ ] [タスク3: Google Programmable Search Engine & 環境変数セットアップ](#task-3)
+- [x] [タスク1: 現状の `instagram_url` カバレッジ棚卸しと対象スコープ決定](#task-1) - 2025-12-13 ([dev-session](../../dev-sessions/2025/12/20251213-01-phase9-instagram-account-url-coverage-ward-scope.md))
+- [x] [タスク2: Google Custom Search API 用クエリ設計 & 判定ルール整理](#task-2) - 2025-12-13 ([dev-session](../../dev-sessions/2025/12/20251213-01-phase9-instagram-account-url-coverage-ward-scope.md))
+- [x] [タスク3: Google Programmable Search Engine & 環境変数セットアップ](#task-3) - 2025-12-13（ドキュメント反映完了、Google CSE作成は人間作業で進行中） ([dev-session](../../dev-sessions/2025/12/20251213-01-phase9-instagram-account-url-coverage-ward-scope.md))
 - [ ] [タスク4: Next.js サーバーサイド検索API（例 `/api/instagram-search`）のPoC実装](#task-4)
 - [ ] [タスク5: 複数施設向け「半自動登録ツール」の設計・実装](#task-5)
 - [ ] [タスク6: Runbook整備とデータ品質チェック](#task-6)
@@ -78,8 +78,8 @@
 ### タスク1: 現状の `instagram_url` カバレッジ棚卸しと対象スコープ決定
 
 - **チェックリスト（完了条件）**:
-  - [ ] `facilities` テーブルについて、`instagram_url IS NOT NULL` / `IS NULL` の件数が全体および区別に集計されている
-  - [ ] フェーズ9で「今回一気に埋めに行く対象」（例: 名古屋市内全件 / まずは○区のみ など）が決まっている
+  - [x] `facilities` テーブルについて、`instagram_url IS NOT NULL` / `IS NULL` の件数が全体および区別に集計されている - 2025-12-13
+  - [x] フェーズ9で「今回一気に埋めに行く対象」（例: 名古屋市内全件 / まずは○区のみ など）が決まっている - 2025-12-13（対象区: **東区**、未登録3件）([dev-session](../../dev-sessions/2025/12/20251213-01-phase9-instagram-account-url-coverage-ward-scope.md))
 - **検証方法**:  
   - Supabase Studio もしくは Supabase MCP で以下のようなSQLを実行し、集計結果をメモに残す
     - 例: `SELECT ward_name, COUNT(*) AS total, COUNT(instagram_url) AS with_instagram FROM facilities GROUP BY ward_name ORDER BY ward_name;`
@@ -93,8 +93,8 @@
 ### タスク2: Google Custom Search API 用クエリ設計 & 判定ルール整理
 
 - **チェックリスト（完了条件）**:
-  - [ ] `docs/instagram-integration/03-design-decisions.md` と `05-instagram-account-search.md` に、Google Custom Search API を前提にした検索クエリ例・ヒューリスティクス・あきらめ条件が追記されている
-  - [ ] 代表的なクエリパターン（例: `site:instagram.com "<施設名>" "<区名>" 子育て -site:instagram.com/p/ -site:instagram.com/reel/`）と、「上位N件からどう公式候補を1件に絞るか」のルールが整理されている
+  - [x] `docs/instagram-integration/03-design-decisions.md` と `05-instagram-account-search.md` に、Google Custom Search API を前提にした検索クエリ例・ヒューリスティクス・あきらめ条件が追記されている - 2025-12-13
+  - [x] 代表的なクエリパターン（例: `site:instagram.com "<施設名>" "<区名>" 子育て -site:instagram.com/p/ -site:instagram.com/reel/`）と、「上位N件からどう公式候補を1件に絞るか」のルールが整理されている - 2025-12-13 ([dev-session](../../dev-sessions/2025/12/20251213-01-phase9-instagram-account-url-coverage-ward-scope.md))
 - **検証方法**:  
   - 上記2ファイルを開き、フェーズ9セクションに「Google Custom Search API 版ワークフロー」がまとまっていることを目視確認
   - 2〜3施設分について、設計したクエリを実際のGoogle検索画面で試し、想定通りの結果が出るかを手動チェック
@@ -108,9 +108,10 @@
 ### タスク3: Google Programmable Search Engine & 環境変数セットアップ
 
 - **チェックリスト（完了条件）**:
-  - [ ] Google Programmable Search Engine（CSE）が作成され、`site:instagram.com` もしくは必要な検索範囲に限定されている
-  - [ ] APIキー / CX が取得され、`GOOGLE_CSE_API_KEY` / `GOOGLE_CSE_CX` などの環境変数名で `.env.local` / ホスティング環境に設定済み
-  - [ ] `docs/04-development.md` の環境変数一覧に Google CSE 関連が追記されている
+  - [ ] Google Programmable Search Engine（CSE）が作成され、`site:instagram.com` もしくは必要な検索範囲に限定されている（人間作業、進行中）
+  - [ ] APIキー / CX が取得され、`GOOGLE_CSE_API_KEY` / `GOOGLE_CSE_CX` などの環境変数名で `.env.local` / ホスティング環境に設定済み（人間作業、進行中）
+  - [x] `docs/04-development.md` の環境変数一覧に Google CSE 関連が追記されている - 2025-12-13
+  - [x] `apps/web/env.local.example` に Google CSE 関連の環境変数が追記されている - 2025-12-13 ([dev-session](../../dev-sessions/2025/12/20251213-01-phase9-instagram-account-url-coverage-ward-scope.md))
 - **検証方法**:  
   - **APIキーをコマンドライン引数に露出しない**形で、Google Custom Search API からJSONレスポンスが返ることを確認する（例: Nodeのワンライナーで `process.env` からキーを読む）
     - 例（実キーを表示しない/リポジトリには追加しない）:

@@ -79,6 +79,8 @@ mise exec -- pnpm --filter web dev
 | `NEXT_PUBLIC_SUPABASE_URL` | 必須 | クライアント / サーバー | なし | Supabase プロジェクト URL。`NEXT_PUBLIC_` 接頭辞によりクライアントへ配信。 |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 必須 | クライアント / サーバー | なし | Supabase Anon キー。公開可能だが、無料枠保護のためローテーションポリシーを準備。 |
 | `SUPABASE_SERVICE_ROLE_KEY` | 必須 | サーバーのみ | なし | Edge Function や ISR 再生成で使用。クライアントへ送信禁止。 |
+| `GOOGLE_CSE_API_KEY` | 任意 | サーバーのみ | なし | フェーズ9: Google Custom Search API 用のAPIキー。クライアントへ送信禁止・ログ出力禁止。 |
+| `GOOGLE_CSE_CX` | 任意 | サーバーのみ | なし | フェーズ9: Google Programmable Search Engine（CSE）の識別子（cx）。クライアントへ送信禁止。 |
 | `INSTAGRAM_OEMBED_TOKEN` | 任意 | サーバーのみ | なし | Instagram oEmbed を高頻度で呼ぶ場合に必須。未設定時はレート制限に注意。 |
 | `CSH_STORAGE_VERSION` | 任意 | クライアント | 文字列 | お気に入りlocalStorageのバージョン管理に利用。デフォルトは `1`。 |
 
@@ -103,6 +105,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 
 # サーバー専用（クライアントに公開しない）
 SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJI..."
+
+# フェーズ9: Google Custom Search API（Programmable Search Engine）
+GOOGLE_CSE_API_KEY=""
+GOOGLE_CSE_CX=""
+
 INSTAGRAM_OEMBED_TOKEN=""
 SUPABASE_DB_PASSWORD=""        # Supabase CLI を使う場合
 ```
