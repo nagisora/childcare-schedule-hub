@@ -24,7 +24,7 @@
   - 補足: 突発的な作業だったため、事前にセッションファイルを作成せずに実施した。後から記録として作成。
 
 ### 関連ドキュメント
-- 参照: `docs/dev-sessions/template-session.md` / `docs/dev-sessions/README.md` / `docs/05-development-phases.md` / `.cursor/commands/phase-planning.md` / `.cursor/commands/start-dev-session.md`
+- 参照: `docs/dev-sessions/template-session.md` / `docs/dev-sessions/README.md` / `docs/05-development-phases.md`
 
 ## 前提・合意事項（事前議論・壁打ちメモ）
 
@@ -104,11 +104,11 @@
         - phase-planning.mdの箇条書きインデントが統一されている
       - **実行プロンプト案**:
         ```
-        docs/dev-sessions/README.md と .cursor/commands/phase-planning.md を新しいテンプレート構造に合わせて更新してください。
+        docs/dev-sessions/README.md と docs/phase-planning/phase-planning.md を新しいテンプレート構造に合わせて更新してください。
 
         - 参照ファイル:
           - docs/dev-sessions/README.md
-          - .cursor/commands/phase-planning.md
+          - docs/phase-planning/phase-planning.md
         - やりたいこと:
           - READMEの説明を新しいテンプレート構造（セッション概要とゴール、前提・合意事項、実装チェックリスト）に合わせて更新
           - phase-planning.mdの箇条書きインデントを統一

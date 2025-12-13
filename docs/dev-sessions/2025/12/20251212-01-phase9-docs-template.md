@@ -31,7 +31,6 @@
   - `docs/dev-sessions/README.md`（dev-sessionsの入口）
   - `docs/dev-sessions/template-session.md`（セッションテンプレ）
   - `docs/README.md`（ドキュメント全体の入口）
-  - `.cursor/commands/start-dev-session.md`（セッション作成コマンドの指示）
 
 ## 前提・合意事項（事前議論・壁打ちメモ）
 

@@ -76,13 +76,7 @@
 
 ## 開発セッション記録
 
-開発セッションの記録方法については、`.cursor/commands/session-recording.md` を参照してください。
-
-このコマンドは、以下の手順で開発セッションを記録します：
-
-1. `docs/05-00-development-phases.md` のルールと `docs/dev-sessions/template-session.md` に従って、セッションを `docs/dev-sessions/YYYY/MM/` に記録
-2. 今日のゴール / 実施ログ / 結果とふりかえり / 次回に持ち越すタスク を埋める
-3. 必要があれば `docs/05-00-development-phases.md` のフェーズ進捗も更新
+開発セッションの記録は `docs/dev-sessions/README.md` と `docs/dev-sessions/template-session.md` に従って、セッションを `docs/dev-sessions/YYYY/MM/` に記録してください。
 
 ## 関連ドキュメント
 
@@ -94,5 +88,4 @@
 
 ### 開発セッション関連
 
-- [.cursor/commands/session-recording.md](../../../.cursor/commands/session-recording.md) - 開発セッション記録コマンド
 - [docs/dev-sessions/template-session.md](../../dev-sessions/template-session.md) - 開発セッションテンプレート
