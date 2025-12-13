@@ -51,7 +51,7 @@
 
 ### 1. 作業タスク & プロンプト設計（実装・ドキュメント更新）
 
-- [ ] タスク1: 現状の `instagram_url` カバレッジ棚卸しと「対象区（1区）」確定
+- [x] タスク1: 現状の `instagram_url` カバレッジ棚卸しと「対象区（1区）」確定
       - 完了条件:
         - `facilities` の `instagram_url` が **全体**および **区別**で集計できている
         - 対象区（`ward_name = '...'`）が確定し、対象施設（`instagram_url IS NULL`）の一覧（`id,name,ward_name,address_full_raw,instagram_url`）を取得できている
@@ -102,7 +102,7 @@
           ORDER BY name;
           ```
 
-- [ ] タスク2: Google Custom Search API 用クエリ設計 & 判定ルール整理（区ごと前提）
+- [x] タスク2: Google Custom Search API 用クエリ設計 & 判定ルール整理（区ごと前提）
       - 完了条件:
         - `docs/instagram-integration/03-design-decisions.md` と `docs/instagram-integration/05-instagram-account-search.md` に、
           - 検索API前提のクエリパターン（優先順位）
@@ -129,12 +129,12 @@
           - スクレイピングは禁止（利用規約順守）
         ```
 
-- [ ] タスク3: Google Programmable Search Engine（CSE）& 環境変数セットアップ（区ごと前提）
+- [x] タスク3: Google Programmable Search Engine（CSE）& 環境変数セットアップ（区ごと前提）
       - 完了条件:
-        - （人間作業）Google CSE を作成し、APIキーとCXを取得できている
-        - `docs/04-development.md` の「3.1 主要変数一覧」に `GOOGLE_CSE_API_KEY` / `GOOGLE_CSE_CX` が追記されている
-        - `apps/web/env.local.example` に `GOOGLE_CSE_API_KEY` / `GOOGLE_CSE_CX` が追記されている
-        - （可能なら）ローカルで疎通確認できている（キー値は表示しない）
+        - [ ] （人間作業）Google CSE を作成し、APIキーとCXを取得できている（進行中）
+        - [x] `docs/04-development.md` の「3.1 主要変数一覧」に `GOOGLE_CSE_API_KEY` / `GOOGLE_CSE_CX` が追記されている
+        - [x] `apps/web/env.local.example` に `GOOGLE_CSE_API_KEY` / `GOOGLE_CSE_CX` が追記されている
+        - [ ] （可能なら）ローカルで疎通確認できている（キー値は表示しない）（人間がGoogle CSEセットアップ後に実施）
       - **実行プロンプト案**:
         ```
         フェーズ9のタスク3として、Google Custom Search API（CSE）導入のために
@@ -164,10 +164,10 @@
 
 ### 2. 検証・テスト（確認方法）
 
-- [ ] 確認1: タスク1の集計結果が「全体」と「区別」で残っていることを確認
-      - 期待結果: 数字（total/with/without）が記録され、対象区（1区）が決定している
-- [ ] 確認2: タスク2の追記が2ファイルに入り、「検索API版（案）」として読めることを目視確認
-      - 期待結果: クエリ例、判定ルール、あきらめ条件が1ドキュメント内で追える
+- [x] 確認1: タスク1の集計結果が「全体」と「区別」で残っていることを確認
+      - 期待結果: 数字（total/with/without）が記録され、対象区（1区）が決定している ✅
+- [x] 確認2: タスク2の追記が2ファイルに入り、「検索API版（案）」として読めることを目視確認
+      - 期待結果: クエリ例、判定ルール、あきらめ条件が1ドキュメント内で追える ✅
 - [ ] 確認3（任意）: タスク3の疎通確認コマンドを実行し、`{ ok: true, items: <number> }` が出る
       - 期待結果: `ok: true`（errorが出ない）。キー値は出力されない
 
@@ -208,17 +208,35 @@
       2. `いずみ` (id: `b9dc8567-9a45-4251-9f8a-b7e997d54a7b`, 住所: 東区泉二丁目5-26泉ロイヤルビル2B)
       3. `やだっこひろば` (id: `3e7f8366-981f-41fe-b25b-6e41b74c0d3b`, 住所: 東区矢田三丁目3-44やだ保育園2階)
     - 補足: `ward_name IS NULL` のレコードは0件（データ品質OK）
+  - **タスク2: 検索API向けクエリ設計 & 判定ルール追記（完了）**
+    - `docs/instagram-integration/03-design-decisions.md` に「検索クエリ設計と判定ルール（フェーズ9実装案）」セクションを追加
+      - 検索クエリの優先順位（4段階）
+      - 検索結果からの公式判定ルール（スコアリング観点）
+      - 除外すべきパターン（投稿URL、共有リンクなど）
+      - あきらめ条件（未特定の扱い）
+    - `docs/instagram-integration/05-instagram-account-search.md` に「9. 検索API版ワークフロー（フェーズ9以降）」セクションを追加
+      - 同じ内容を「検索API版」として整理
+      - ブラウザ手動フローとの使い分けを明記
+  - **タスク3: 環境変数ドキュメント更新（AI側完了）**
+    - `docs/04-development.md` の「3.1 主要変数一覧」に以下を追加:
+      - `GOOGLE_CSE_API_KEY`（任意、サーバーのみ、ログ出力禁止）
+      - `GOOGLE_CSE_CX`（任意、サーバーのみ）
+    - `apps/web/env.local.example` にも同2変数を追加（値は空、注意事項コメント付き）
+    - フェーズ9正本（`docs/05-09-instagram-account-url-coverage.md`）の進捗チェックリストを更新
+      - タスク1〜3に完了日（2025-12-13）とdev-sessionリンクを反映
 
 ## 結果とふりかえり
 
 - 完了できたタスク:
-  - [ ] タスク1:
-  - [ ] タスク2:
-  - [ ] タスク3:
+  - [x] **タスク1**: 棚卸し完了。全体61件（登録済み17件、未登録44件）、区別集計完了。対象区を「東区」（未登録3件）に決定。
+  - [x] **タスク2**: 検索API向けのクエリ設計・判定ルール・あきらめ条件を`03-design-decisions.md`と`05-instagram-account-search.md`に追記完了。東区の施設名を例にしたクエリ例も含む。
+  - [x] **タスク3（AI側）**: 環境変数のドキュメント更新完了。`docs/04-development.md`と`apps/web/env.local.example`に`GOOGLE_CSE_API_KEY`/`GOOGLE_CSE_CX`を追加。
 - 未完了タスク / 想定外だったこと:
-  - [ ] （例: Googleコンソール作業に想定以上に時間がかかった）
+  - [ ] **タスク3（人間作業）**: Google Programmable Search Engine（CSE）の作成とAPIキー/CX取得（進行中）
+  - [ ] **タスク3の疎通確認**: Google CSEセットアップ後に実施予定
 - 学び・次回改善したいこと:
-  - （例: クエリ優先順位の改善、未特定の記録テンプレ整備）
+  - 検索API版のクエリ設計で「スコアリング基準（5点以上）」を明文化できた。実測時に調整が必要になる可能性がある（特に「施設名の部分一致」の判定）。
+  - 未特定の記録テンプレート（dev-sessionsやRunbookへの記録形式）は、次回の実測フェーズで具体化する。
 
 ## 次回に持ち越すタスク
 
