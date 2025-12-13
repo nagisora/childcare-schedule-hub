@@ -108,8 +108,8 @@
 ### タスク3: Google Programmable Search Engine & 環境変数セットアップ
 
 - **チェックリスト（完了条件）**:
-  - [ ] Google Programmable Search Engine（CSE）が作成され、`site:instagram.com` もしくは必要な検索範囲に限定されている（人間作業、進行中）
-  - [ ] APIキー / CX が取得され、`GOOGLE_CSE_API_KEY` / `GOOGLE_CSE_CX` などの環境変数名で `.env.local` / ホスティング環境に設定済み（人間作業、進行中）
+  - [x] Google Programmable Search Engine（CSE）が作成され、`site:instagram.com` もしくは必要な検索範囲に限定されている - 2025-12-13
+  - [x] APIキー / CX が取得され、`GOOGLE_CSE_API_KEY` / `GOOGLE_CSE_CX` などの環境変数名で `.env.local` / ホスティング環境に設定済み - 2025-12-13（ローカル環境で設定完了、疎通確認成功）
   - [x] `docs/04-development.md` の環境変数一覧に Google CSE 関連が追記されている - 2025-12-13
   - [x] `apps/web/env.local.example` に Google CSE 関連の環境変数が追記されている - 2025-12-13 ([dev-session](../../dev-sessions/2025/12/20251213-01-phase9-instagram-account-url-coverage-ward-scope.md))
 - **検証方法**:  

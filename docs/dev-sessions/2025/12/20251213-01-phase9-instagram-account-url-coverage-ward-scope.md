@@ -131,10 +131,10 @@
 
 - [x] タスク3: Google Programmable Search Engine（CSE）& 環境変数セットアップ（区ごと前提）
       - 完了条件:
-        - [ ] （人間作業）Google CSE を作成し、APIキーとCXを取得できている（進行中）
+        - [x] （人間作業）Google CSE を作成し、APIキーとCXを取得できている ✅
         - [x] `docs/04-development.md` の「3.1 主要変数一覧」に `GOOGLE_CSE_API_KEY` / `GOOGLE_CSE_CX` が追記されている
         - [x] `apps/web/env.local.example` に `GOOGLE_CSE_API_KEY` / `GOOGLE_CSE_CX` が追記されている
-        - [ ] （可能なら）ローカルで疎通確認できている（キー値は表示しない）（人間がGoogle CSEセットアップ後に実施）
+        - [x] （可能なら）ローカルで疎通確認できている（キー値は表示しない）✅ - `{ ok: true, items: 10 }` で正常動作確認
       - **実行プロンプト案**:
         ```
         フェーズ9のタスク3として、Google Custom Search API（CSE）導入のために
@@ -168,8 +168,9 @@
       - 期待結果: 数字（total/with/without）が記録され、対象区（1区）が決定している ✅
 - [x] 確認2: タスク2の追記が2ファイルに入り、「検索API版（案）」として読めることを目視確認
       - 期待結果: クエリ例、判定ルール、あきらめ条件が1ドキュメント内で追える ✅
-- [ ] 確認3（任意）: タスク3の疎通確認コマンドを実行し、`{ ok: true, items: <number> }` が出る
-      - 期待結果: `ok: true`（errorが出ない）。キー値は出力されない
+- [x] 確認3（任意）: タスク3の疎通確認コマンドを実行し、`{ ok: true, items: <number> }` が出る
+      - 期待結果: `ok: true`（errorが出ない）。キー値は出力されない ✅
+      - 実際の結果: `{ ok: true, items: 10 }` - 正常に動作確認完了
 
 ---
 
@@ -224,6 +225,13 @@
     - `apps/web/env.local.example` にも同2変数を追加（値は空、注意事項コメント付き）
     - フェーズ9正本（`docs/05-09-instagram-account-url-coverage.md`）の進捗チェックリストを更新
       - タスク1〜3に完了日（2025-12-13）とdev-sessionリンクを反映
+  - **タスク3: Google CSE セットアップ（人間作業、完了）**
+    - 検索エンジンID（CX）を取得: `809cf95716c0d49d0` ✅
+    - APIキーの取得: 完了 ✅
+    - `apps/web/.env.local` に環境変数を設定: 完了 ✅
+    - 疎通確認: 成功 ✅
+      - 検索クエリ: `site:instagram.com みらい`
+      - 結果: `{ ok: true, items: 10 }` - 10件の検索結果を正常に取得
 
 ## 結果とふりかえり
 
@@ -231,9 +239,9 @@
   - [x] **タスク1**: 棚卸し完了。全体61件（登録済み17件、未登録44件）、区別集計完了。対象区を「東区」（未登録3件）に決定。
   - [x] **タスク2**: 検索API向けのクエリ設計・判定ルール・あきらめ条件を`03-design-decisions.md`と`05-instagram-account-search.md`に追記完了。東区の施設名を例にしたクエリ例も含む。
   - [x] **タスク3（AI側）**: 環境変数のドキュメント更新完了。`docs/04-development.md`と`apps/web/env.local.example`に`GOOGLE_CSE_API_KEY`/`GOOGLE_CSE_CX`を追加。
+  - [x] **タスク3（人間作業）**: Google CSE作成・APIキー取得・環境変数設定・疎通確認まで完了。検索エンジンID: `809cf95716c0d49d0`、疎通確認結果: `{ ok: true, items: 10 }`。
 - 未完了タスク / 想定外だったこと:
-  - [ ] **タスク3（人間作業）**: Google Programmable Search Engine（CSE）の作成とAPIキー/CX取得（進行中）
-  - [ ] **タスク3の疎通確認**: Google CSEセットアップ後に実施予定
+  - なし（すべてのタスクが完了しました）
 - 学び・次回改善したいこと:
   - 検索API版のクエリ設計で「スコアリング基準（5点以上）」を明文化できた。実測時に調整が必要になる可能性がある（特に「施設名の部分一致」の判定）。
   - 未特定の記録テンプレート（dev-sessionsやRunbookへの記録形式）は、次回の実測フェーズで具体化する。
