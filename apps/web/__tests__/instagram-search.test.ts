@@ -53,6 +53,18 @@ describe('generateSearchQueries', () => {
 		expect(queries[0]).toContain('site:instagram.com');
 		expect(queries[0]).toContain('"施設名（テスト）"');
 	});
+
+	// Given: 短い施設名（汎用名）
+	// When: generateSearchQueries を実行
+	// Then: 名古屋/区/子育て文脈を優先したクエリが生成される（誤検出抑制）
+	it('TC-B-07: 短い施設名は名古屋/区/子育てを優先してクエリ生成', () => {
+		const queries = generateSearchQueries('いずみ', '東区');
+		expect(queries).toHaveLength(4);
+		expect(queries[0]).toContain('site:instagram.com');
+		expect(queries[0]).toContain('名古屋');
+		expect(queries[0]).toContain('"東区"');
+		expect(queries[0]).toContain('子育て');
+	});
 });
 
 describe('normalizeInstagramUrl', () => {
@@ -176,6 +188,32 @@ describe('scoreCandidate', () => {
 		};
 		const { score } = scoreCandidate(item, 'あおぞらわらばぁ～', '東区');
 		expect(score).toBeLessThan(5);
+	});
+
+	// Given: 短い施設名（いずみ）で、別地域（札幌）キーワードが含まれる候補
+	// When: scoreCandidate を実行
+	// Then: 誤検出を抑えるため5点未満になる
+	it('TC-B-08: 短い施設名 + 別地域キーワードは5点未満（誤検出防止）', () => {
+		const item = {
+			link: 'https://www.instagram.com/testuser/',
+			title: '居酒屋ダイニングいずみの@札幌東区',
+			snippet: '普段東区来ない方もこの機会に',
+		};
+		const { score } = scoreCandidate(item, 'いずみ', '東区');
+		expect(score).toBeLessThan(5);
+	});
+
+	// Given: 短い施設名（いずみ）で、名古屋/子育て文脈が含まれる候補
+	// When: scoreCandidate を実行
+	// Then: 5点以上になり得る（採用候補になり得る）
+	it('TC-B-09: 短い施設名 + 名古屋/子育て文脈は5点以上になり得る', () => {
+		const item = {
+			link: 'https://www.instagram.com/testuser/',
+			title: 'いずみ',
+			snippet: '名古屋市東区の子育て支援施設',
+		};
+		const { score } = scoreCandidate(item, 'いずみ', '東区');
+		expect(score).toBeGreaterThanOrEqual(5);
 	});
 
 	// Given: 投稿URLを含む候補

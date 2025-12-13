@@ -45,23 +45,34 @@ export function generateSearchQueries(facilityName: string, wardName: string | n
 		normalizeFacilityNameForSearch(facilityName),
 	]);
 	const facilityTerm = buildOrQuotedTerm(facilityVariants);
+	const genericFacilityName = isGenericFacilityName(facilityName);
 
-	// 1. 最優先: site:instagram.com <施設名> instagram（Google検索の「施設名 instagram」に寄せる）
-	queries.push(`site:instagram.com ${facilityTerm} instagram`);
+	if (genericFacilityName) {
+		// 「いずみ」等の短い名称は誤検出が多いので、名古屋 + 区 + 子育て文脈を優先
+		if (wardName) {
+			queries.push(`site:instagram.com ${facilityTerm} 名古屋 "${wardName}" 子育て instagram`);
+			queries.push(`site:instagram.com ${facilityTerm} 名古屋 "${wardName}" instagram`);
+			queries.push(`site:instagram.com ${facilityTerm} "${wardName}" 子育て instagram`);
+		}
+		queries.push(`site:instagram.com ${facilityTerm} 名古屋 子育て instagram`);
+	} else {
+		// 1. 最優先: site:instagram.com <施設名> instagram（Google検索の「施設名 instagram」に寄せる）
+		queries.push(`site:instagram.com ${facilityTerm} instagram`);
 
-	// 2. 第2優先: site:instagram.com <施設名>
-	queries.push(`site:instagram.com ${facilityTerm}`);
+		// 2. 第2優先: site:instagram.com <施設名>
+		queries.push(`site:instagram.com ${facilityTerm}`);
 
-	// 3. 第3優先: site:instagram.com <施設名> "<区名>"（区名は補助）
-	if (wardName) {
-		queries.push(`site:instagram.com ${facilityTerm} "${wardName}"`);
+		// 3. 第3優先: site:instagram.com <施設名> "<区名>"（区名は補助）
+		if (wardName) {
+			queries.push(`site:instagram.com ${facilityTerm} "${wardName}"`);
+		}
+
+		// 4. 第4優先: <施設名> instagram（site 制約を外して拾う）
+		// 施設名は OR にせず、最初の表記をそのまま使う（クエリが長くなりすぎないように）
+		queries.push(`${facilityVariants[0]} instagram`);
 	}
 
-	// 4. 第4優先: <施設名> instagram（site 制約を外して拾う）
-	// 施設名は OR にせず、最初の表記をそのまま使う（クエリが長くなりすぎないように）
-	queries.push(`${facilityVariants[0]} instagram`);
-
-	return uniqueStrings(queries);
+	return uniqueStrings(queries).slice(0, 4);
 }
 
 function uniqueStrings(values: string[]): string[] {
@@ -101,6 +112,13 @@ function normalizeTextForMatch(text: string): string {
 		// 句読点・記号をある程度除去（マッチの取りこぼし防止）
 		.replace(/[・\s]+/g, ' ')
 		.trim();
+}
+
+function isGenericFacilityName(facilityName: string): boolean {
+	const normalized = normalizeFacilityNameForSearch(facilityName);
+	// 「いずみ」等、短い名称は誤検出しやすいので“汎用名”として扱う
+	if (normalized.length <= 3) return true;
+	return false;
 }
 
 /**
@@ -205,12 +223,13 @@ export function scoreCandidate(
 	const titleAndSnippet = normalizeTextForMatch(titleAndSnippetRaw);
 	const facilityVariants = uniqueStrings([facilityName, normalizeFacilityNameForSearch(facilityName)])
 		.map(v => normalizeTextForMatch(v));
+	const genericFacilityName = isGenericFacilityName(facilityName);
 
 	const hasFullMatch = facilityVariants.some(v => v.length >= 2 && titleAndSnippet.includes(v));
 	if (hasFullMatch) {
 		// 施設名一致を最重要視（取りこぼし防止）
-		score += 4;
-		reasons.push('施設名一致');
+		score += genericFacilityName ? 2 : 4;
+		reasons.push(genericFacilityName ? '施設名一致（短い名称のため低め）' : '施設名一致');
 	} else {
 		// 簡易: 施設名を分割して部分一致（例: 「子育て・支援拠点」等）
 		const facilityNameParts = normalizeTextForMatch(facilityName)
@@ -219,11 +238,11 @@ export function scoreCandidate(
 			.filter(s => s.length > 1);
 		const hasPartialMatch = facilityNameParts.some(part => titleAndSnippet.includes(part));
 		if (hasPartialMatch) {
-			score += 3;
+			score += genericFacilityName ? 1 : 3;
 			reasons.push('施設名部分一致');
 		} else {
 			// 施設名一致なしは誤検出の温床になるため減点
-			score -= 2;
+			score -= genericFacilityName ? 3 : 2;
 			reasons.push('施設名一致なし（減点）');
 		}
 	}
@@ -236,21 +255,44 @@ export function scoreCandidate(
 			reasons.push(`区名一致（${wardName}）`);
 		}
 	}
-	
-	if (titleAndSnippet.includes('名古屋')) {
+
+	// 2.5 名古屋（対象ドメインの地理的コンテキスト）
+	// NOTE: 本プロジェクトは名古屋市の施設が対象のため、短い施設名の誤検出抑制に使う
+	const nagoyaKeywords = ['名古屋市', '名古屋', '愛知'];
+	const hasNagoyaContext = nagoyaKeywords.some(k => titleAndSnippet.includes(k));
+	if (hasNagoyaContext) {
 		score += 1;
-		reasons.push('名古屋が含まれる');
+		reasons.push('名古屋/愛知が含まれる');
+	} else if (genericFacilityName && wardName) {
+		// 「いずみ」等の汎用名では、名古屋コンテキストがないと誤検出が多い
+		score -= 4;
+		reasons.push('名古屋/愛知がない（短い名称の誤検出抑制）');
+	}
+
+	// 2.6 明確に別地域っぽいキーワードは強く減点（誤検出抑制）
+	const otherAreaKeywords = ['札幌', '北海道', '東京', '大阪', '福岡', '沖縄'];
+	const hasOtherArea = otherAreaKeywords.some(k => titleAndSnippet.includes(k));
+	if (hasOtherArea && !hasNagoyaContext) {
+		score -= 4;
+		reasons.push('別地域キーワードが含まれる（減点）');
 	}
 	
 	// 3. 子育て拠点関連のワード
 	const childcareKeywords = ['子育て', '応援拠点', '支援拠点', '子育て応援', '地域子育て'];
+	let hasChildcareKeyword = false;
 	for (const keyword of childcareKeywords) {
 		if (titleAndSnippet.includes(keyword)) {
 			// 補助要素として扱う（施設名一致より弱め）
 			score += 1;
 			reasons.push(`子育て拠点関連ワード（${keyword}）`);
+			hasChildcareKeyword = true;
 			break; // 1つ見つかれば十分
 		}
+	}
+	if (genericFacilityName && !hasChildcareKeyword) {
+		// 短い名称は “子育て支援文脈” がないと誤検出しやすい
+		score -= 1;
+		reasons.push('子育て文脈がない（短い名称の誤検出抑制）');
 	}
 	
 	// 4. プロフィールURL形式の確認

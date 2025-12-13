@@ -92,7 +92,14 @@ export async function GET(request: NextRequest) {
 
 	// 各クエリを順番に試行し、候補を統合（取りこぼし防止）
 	const merged = new Map<string, Candidate>();
-	for (const query of queries) {
+	// コスト抑制: 施設名が短いほど誤検出が多く、追加クエリが必要になりやすい
+	const isGenericFacilityName = (targetFacilityName ?? '').trim().length <= 3;
+	const maxQueries = isGenericFacilityName ? 3 : 2;
+	// 十分に高信頼かつ2位と差が付いたら早期終了（クエリ回数=コスト削減）
+	const stopScore = 8;
+	const stopGap = 2;
+
+	for (const query of queries.slice(0, maxQueries)) {
 		try {
 			// Google Custom Search API を呼び出す
 			// 注意: URLに key= を含むため、フルURLをログ出力しない（ステータス/件数のみ）
@@ -140,6 +147,17 @@ export async function GET(request: NextRequest) {
 					if (!existing || c.score > existing.score) {
 						merged.set(c.link, c);
 					}
+				}
+			}
+
+			// コスト抑制: 十分に高信頼の候補が得られたら早期終了
+			const currentCandidates = Array.from(merged.values()).sort((a, b) => b.score - a.score);
+			if (currentCandidates.length > 0) {
+				const top = currentCandidates[0];
+				const second = currentCandidates[1];
+				const gap = second ? top.score - second.score : 999;
+				if (top.score >= stopScore && gap >= stopGap) {
+					break;
 				}
 			}
 
