@@ -23,8 +23,8 @@
 - [x] [タスク1: 現状の `instagram_url` カバレッジ棚卸しと対象スコープ決定](#task-1) - 2025-12-13 ([dev-session](../../dev-sessions/2025/12/20251213-01-phase9-instagram-account-url-coverage-ward-scope.md))
 - [x] [タスク2: Google Custom Search API 用クエリ設計 & 判定ルール整理](#task-2) - 2025-12-13 ([dev-session](../../dev-sessions/2025/12/20251213-01-phase9-instagram-account-url-coverage-ward-scope.md))
 - [x] [タスク3: Google Programmable Search Engine & 環境変数セットアップ](#task-3) - 2025-12-13（ドキュメント反映完了、Google CSE作成は人間作業で進行中） ([dev-session](../../dev-sessions/2025/12/20251213-01-phase9-instagram-account-url-coverage-ward-scope.md))
-- [x] [タスク4: Next.js サーバーサイド検索API（例 `/api/instagram-search`）のPoC実装](#task-4) - 2025-12-13（実装完了、動作確認要） ([dev-session](../../dev-sessions/2025/12/20251213-02-phase9-instagram-search-api-semi-auto-registration.md))
-- [x] [タスク5: 複数施設向け「半自動登録ツール」の設計・実装](#task-5) - 2025-12-13（実装完了、動作確認要） ([dev-session](../../dev-sessions/2025/12/20251213-02-phase9-instagram-search-api-semi-auto-registration.md))
+- [x] [タスク4: Next.js サーバーサイド検索API（例 `/api/instagram-search`）のPoC実装](#task-4) - 2025-12-13（実装・動作確認完了） ([dev-session](../../dev-sessions/2025/12/20251213-02-phase9-instagram-search-api-semi-auto-registration.md))
+- [x] [タスク5: 複数施設向け「半自動登録ツール」の設計・実装](#task-5) - 2025-12-13（実装・動作確認完了） ([dev-session](../../dev-sessions/2025/12/20251213-02-phase9-instagram-search-api-semi-auto-registration.md))
 - [ ] [タスク6: Runbook整備とデータ品質チェック](#task-6)
 
 ## 1. 概要
@@ -134,7 +134,7 @@
   - [x] 入力: `facilityId` または `facilityName` + `wardName` - 2025-12-13
   - [x] 出力: `[{ link, title, snippet, score }]` のような正規化済み候補リスト - 2025-12-13
   - [x] エラー時は統一フォーマット（400/500など）で返却 - 2025-12-13
-  - [ ] ローカル環境で `/api/instagram-search?facilityId=...` を叩くと、Google CSE 経由の結果がJSONで返る（動作確認要）
+  - [x] ローカル環境で `/api/instagram-search?facilityId=...` を叩くと、Google CSE 経由の結果がJSONで返る - 2025-12-13（動作確認完了）
 - **検証方法**:  
   - `mise exec -- pnpm --filter web dev` でローカル起動し、ブラウザ or `curl` で API を叩いてレスポンスを確認
   - ログ（コンソール or logger）で、実際に呼び出しているCSEクエリ文字列とレスポンスステータスを確認（**APIキーは絶対にログへ出さない**）

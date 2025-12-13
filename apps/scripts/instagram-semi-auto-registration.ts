@@ -153,27 +153,36 @@ async function promptForSelection(
 		console.log(`     スニペット: ${candidate.snippet.substring(0, 100)}...`);
 	});
 
-	const answer = await askQuestion(
-		rl,
-		`\n採用する候補の番号を入力（1-${candidates.length}）、または 's' でスキップ、'n' で未特定: `
-	);
+	try {
+		const answer = await askQuestion(
+			rl,
+			`\n採用する候補の番号を入力（1-${candidates.length}）、または 's' でスキップ、'n' で未特定: `
+		);
 
-	if (answer.toLowerCase() === 's' || answer.toLowerCase() === 'skip') {
+		if (answer.toLowerCase() === 's' || answer.toLowerCase() === 'skip') {
+			return 'skip';
+		}
+
+		if (answer.toLowerCase() === 'n' || answer.toLowerCase() === 'not_found') {
+			return 'not_found';
+		}
+
+		const index = parseInt(answer, 10) - 1;
+		if (index >= 0 && index < candidates.length) {
+			return 'adopt';
+		}
+
+		// 無効な入力の場合はスキップ
+		console.log('無効な入力です。スキップします。');
 		return 'skip';
+	} catch (error) {
+		// readlineが閉じられた場合（非対話環境など）は、最初の候補を自動的に採用候補として扱う
+		if (error instanceof Error && error.message.includes('closed')) {
+			console.log('\n[注意] 対話型入力が利用できないため、最初の候補（最高スコア）を採用候補として記録します。');
+			return 'adopt';
+		}
+		throw error;
 	}
-
-	if (answer.toLowerCase() === 'n' || answer.toLowerCase() === 'not_found') {
-		return 'not_found';
-	}
-
-	const index = parseInt(answer, 10) - 1;
-	if (index >= 0 && index < candidates.length) {
-		return 'adopt';
-	}
-
-	// 無効な入力の場合はスキップ
-	console.log('無効な入力です。スキップします。');
-	return 'skip';
 }
 
 /**
