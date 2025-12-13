@@ -89,8 +89,9 @@ export async function GET(request: NextRequest) {
 	// 検索クエリの生成（優先順位順）
 	const queries = generateSearchQueries(targetFacilityName, targetWardName);
 	const triedQueries: string[] = [];
-	
-	// 各クエリを順番に試行（最初に候補が見つかった時点で終了）
+
+	// 各クエリを順番に試行し、候補を統合（取りこぼし防止）
+	const merged = new Map<string, Candidate>();
 	for (const query of queries) {
 		try {
 			// Google Custom Search API を呼び出す
@@ -99,6 +100,9 @@ export async function GET(request: NextRequest) {
 			searchUrl.searchParams.set('key', apiKey);
 			searchUrl.searchParams.set('cx', cx);
 			searchUrl.searchParams.set('q', query);
+			searchUrl.searchParams.set('num', '10');
+			searchUrl.searchParams.set('hl', 'ja');
+			searchUrl.searchParams.set('gl', 'jp');
 			
 			const response = await fetch(searchUrl.toString(), {
 				method: 'GET',
@@ -128,27 +132,29 @@ export async function GET(request: NextRequest) {
 			const items = data.items || [];
 			triedQueries.push(query);
 			
+			// 候補が見つかった場合は正規化・スコアリングして統合
 			if (items.length > 0) {
-				// 候補が見つかった場合は正規化・スコアリングして返す
 				const candidates = processSearchResults(items, targetFacilityName, targetWardName);
-				
-				return NextResponse.json({
-					candidates,
-					triedQueries,
-				});
+				for (const c of candidates) {
+					const existing = merged.get(c.link);
+					if (!existing || c.score > existing.score) {
+						merged.set(c.link, c);
+					}
+				}
 			}
-			
-			// 候補が見つからなかった場合は次のクエリを試す
+
+			// 次のクエリも試す（クエリごとの偏りを吸収する）
 		} catch (error) {
 			// ネットワークエラーなどの場合は次のクエリを試す
 			triedQueries.push(query);
 			continue;
 		}
 	}
-	
-	// すべてのクエリを試しても候補が見つからなかった場合
+
+	// すべてのクエリを試した結果を返す
+	const candidates = Array.from(merged.values()).sort((a, b) => b.score - a.score);
 	return NextResponse.json({
-		candidates: [],
+		candidates,
 		triedQueries,
 	});
 

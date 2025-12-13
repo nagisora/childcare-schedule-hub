@@ -9,31 +9,37 @@ import {
 describe('generateSearchQueries', () => {
 	// Given: 正常な施設名・区名
 	// When: generateSearchQueries を実行
-	// Then: 4つの優先順位付きクエリが生成される
+	// Then: 4つの優先順位付きクエリが生成される（取りこぼし防止のため複数パターン）
 	it('TC-N-01: 正常な施設名・区名でクエリ生成', () => {
 		const queries = generateSearchQueries('あおぞらわらばぁ～', '東区');
 
 		expect(queries).toHaveLength(4);
+		expect(queries[0]).toContain('site:instagram.com');
+		expect(queries[0]).toContain('instagram');
+		// 波ダッシュの揺れ対策で OR を含む
 		expect(queries[0]).toContain('"あおぞらわらばぁ～"');
-		expect(queries[0]).toContain('"東区"');
-		expect(queries[0]).toContain('子育て');
+		expect(queries[0]).toContain('"あおぞらわらばぁ"');
+
+		expect(queries[1]).toContain('site:instagram.com');
 		expect(queries[1]).toContain('"あおぞらわらばぁ～"');
-		expect(queries[1]).toContain('"東区"');
-		expect(queries[2]).toContain('"あおぞらわらばぁ～"');
-		expect(queries[2]).toContain('名古屋');
-		expect(queries[3]).toContain('"あおぞらわらばぁ～"');
+
+		expect(queries[2]).toContain('site:instagram.com');
+		expect(queries[2]).toContain('"東区"');
+
+		expect(queries[3]).toContain('instagram');
 	});
 
 	// Given: 区名が null
 	// When: generateSearchQueries を実行
-	// Then: 区名を含むクエリは生成されず、施設名のみのクエリが生成される
+	// Then: 区名を含むクエリは生成されず、施設名中心のクエリが生成される
 	it('TC-N-02: 区名が null でクエリ生成', () => {
 		const queries = generateSearchQueries('あおぞらわらばぁ～', null);
 
-		expect(queries).toHaveLength(2);
-		expect(queries[0]).toContain('"あおぞらわらばぁ～"');
-		expect(queries[0]).toContain('名古屋');
-		expect(queries[1]).toContain('"あおぞらわらばぁ～"');
+		expect(queries).toHaveLength(3);
+		expect(queries[0]).toContain('site:instagram.com');
+		expect(queries[0]).toContain('instagram');
+		expect(queries[1]).toContain('site:instagram.com');
+		expect(queries[2]).toContain('instagram');
 		expect(queries.every(q => !q.includes('"東区"'))).toBe(true);
 	});
 
@@ -44,6 +50,7 @@ describe('generateSearchQueries', () => {
 		const queries = generateSearchQueries('施設名（テスト）', '東区');
 
 		expect(queries).toHaveLength(4);
+		expect(queries[0]).toContain('site:instagram.com');
 		expect(queries[0]).toContain('"施設名（テスト）"');
 	});
 });
@@ -132,29 +139,42 @@ describe('normalizeInstagramUrl', () => {
 });
 
 describe('scoreCandidate', () => {
-	// Given: 施設名完全一致（+3点）+ 区名一致（+2点）+ プロフィールURL（+1点）= 6点
+	// Given: 施設名一致（+4点）+ 区名一致（+2点）+ 子育て（+1点）+ プロフィールURL（+1点）= 8点
 	// When: scoreCandidate を実行
-	// Then: スコア6点が返される
-	it('TC-B-03: 施設名完全一致 + 区名一致 + プロフィールURL = 6点', () => {
+	// Then: スコア8点以上が返される
+	it('TC-B-03: 施設名一致 + 区名一致 + 子育て + プロフィールURL >= 8点', () => {
 		const item = {
 			link: 'https://www.instagram.com/testuser/',
 			title: 'あおぞらわらばぁ～',
 			snippet: '東区の子育て応援拠点',
 		};
 		const { score } = scoreCandidate(item, 'あおぞらわらばぁ～', '東区');
-		expect(score).toBeGreaterThanOrEqual(6);
+		expect(score).toBeGreaterThanOrEqual(8);
 	});
 
-	// Given: 施設名部分一致（+2点）+ 名古屋（+1点）+ プロフィールURL（+1点）= 4点
+	// Given: 施設名一致なし（-2点）+ 名古屋（+1点）+ プロフィールURL（+1点）= 0点
 	// When: scoreCandidate を実行
-	// Then: スコア4点が返される（5点未満）
-	it('TC-B-04: 施設名部分一致 + 名古屋 + プロフィールURL = 4点', () => {
+	// Then: スコア5点未満が返される
+	it('TC-B-04: 施設名一致なし + 名古屋 + プロフィールURL < 5点', () => {
 		const item = {
 			link: 'https://www.instagram.com/testuser/',
 			title: 'あおぞら',
 			snippet: '名古屋の施設',
 		};
 		const { score } = scoreCandidate(item, 'あおぞらわらばぁ～', null);
+		expect(score).toBeLessThan(5);
+	});
+
+	// Given: 施設名一致なしでも区名+子育て等でそれっぽく見える候補
+	// When: scoreCandidate を実行
+	// Then: 誤検出を抑えるため5点未満になる
+	it('TC-B-06: 施設名一致なしの候補は5点未満（誤検出防止）', () => {
+		const item = {
+			link: 'https://www.instagram.com/someother/',
+			title: '東区 子育て支援',
+			snippet: '名古屋 東区の子育て応援拠点',
+		};
+		const { score } = scoreCandidate(item, 'あおぞらわらばぁ～', '東区');
 		expect(score).toBeLessThan(5);
 	});
 

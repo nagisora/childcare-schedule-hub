@@ -35,29 +35,72 @@ interface GoogleCSEItem {
  * docs/instagram-integration/03-design-decisions.md の優先順位に従う
  */
 export function generateSearchQueries(facilityName: string, wardName: string | null): string[] {
+	// NOTE:
+	// - 施設名が「〜/～」等で揺れるケースがあるため、検索クエリには OR を含める
+	// - まずは施設名 + instagram を優先し、区名・子育て等で絞りすぎない（取りこぼし防止）
 	const queries: string[] = [];
-	
-	// 施設名と区名をエスケープ（特殊文字を含む可能性があるため）
-	const escapedFacilityName = `"${facilityName}"`;
-	const escapedWardName = wardName ? `"${wardName}"` : null;
-	
-	// 1. 最優先: site:instagram.com "<施設名>" "<区名>" 子育て
-	if (escapedWardName) {
-		queries.push(`site:instagram.com ${escapedFacilityName} ${escapedWardName} 子育て`);
+
+	const facilityVariants = uniqueStrings([
+		facilityName,
+		normalizeFacilityNameForSearch(facilityName),
+	]);
+	const facilityTerm = buildOrQuotedTerm(facilityVariants);
+
+	// 1. 最優先: site:instagram.com <施設名> instagram（Google検索の「施設名 instagram」に寄せる）
+	queries.push(`site:instagram.com ${facilityTerm} instagram`);
+
+	// 2. 第2優先: site:instagram.com <施設名>
+	queries.push(`site:instagram.com ${facilityTerm}`);
+
+	// 3. 第3優先: site:instagram.com <施設名> "<区名>"（区名は補助）
+	if (wardName) {
+		queries.push(`site:instagram.com ${facilityTerm} "${wardName}"`);
 	}
-	
-	// 2. 第2優先: site:instagram.com "<施設名>" "<区名>"
-	if (escapedWardName) {
-		queries.push(`site:instagram.com ${escapedFacilityName} ${escapedWardName}`);
+
+	// 4. 第4優先: <施設名> instagram（site 制約を外して拾う）
+	// 施設名は OR にせず、最初の表記をそのまま使う（クエリが長くなりすぎないように）
+	queries.push(`${facilityVariants[0]} instagram`);
+
+	return uniqueStrings(queries);
+}
+
+function uniqueStrings(values: string[]): string[] {
+	const out: string[] = [];
+	const seen = new Set<string>();
+	for (const v of values) {
+		const s = (v ?? '').trim();
+		if (!s) continue;
+		if (seen.has(s)) continue;
+		seen.add(s);
+		out.push(s);
 	}
-	
-	// 3. 第3優先: site:instagram.com "<施設名>" 名古屋
-	queries.push(`site:instagram.com ${escapedFacilityName} 名古屋`);
-	
-	// 4. 第4優先: site:instagram.com "<施設名>"
-	queries.push(`site:instagram.com ${escapedFacilityName}`);
-	
-	return queries;
+	return out;
+}
+
+function normalizeFacilityNameForSearch(name: string): string {
+	// 例: 「あおぞらわらばぁ～」→「あおぞらわらばぁ」
+	// - 波ダッシュ系の揺れを除去
+	// - 余分な空白を圧縮
+	return (name ?? '')
+		.replace(/[〜～]/g, '')
+		.replace(/\s+/g, ' ')
+		.trim();
+}
+
+function buildOrQuotedTerm(variants: string[]): string {
+	if (variants.length === 0) return '""';
+	if (variants.length === 1) return `"${variants[0]}"`;
+	return `(${variants.map(v => `"${v}"`).join(' OR ')})`;
+}
+
+function normalizeTextForMatch(text: string): string {
+	return (text ?? '')
+		.toLowerCase()
+		// 波ダッシュ系の揺れを統一
+		.replace(/[〜～]/g, '')
+		// 句読点・記号をある程度除去（マッチの取りこぼし防止）
+		.replace(/[・\s]+/g, ' ')
+		.trim();
 }
 
 /**
@@ -111,14 +154,27 @@ export function normalizeInstagramUrl(url: string): string | null {
 			urlObj.hostname = 'www.instagram.com';
 		}
 		
-		// パスが空または / のみの場合は / を付与
-		let path = urlObj.pathname;
-		if (!path || path === '/') {
-			path = '/';
-		} else if (!path.endsWith('/')) {
-			path += '/';
+		// プロフィールURLのみ許可（/p/, /reel/ 等は上で除外済み）
+		// - /<username>/ 形式（1セグメント）のみを許可
+		const rawPath = urlObj.pathname || '/';
+		const segments = rawPath.split('/').filter(Boolean);
+		if (segments.length !== 1) {
+			return null;
 		}
-		urlObj.pathname = path;
+		const username = segments[0];
+		// 一般的な非プロフィール系パスを除外
+		const disallowedFirstSegments = new Set([
+			'explore',
+			'about',
+			'accounts',
+			'direct',
+			'reels',
+			'stories',
+		]);
+		if (disallowedFirstSegments.has(username.toLowerCase())) {
+			return null;
+		}
+		urlObj.pathname = `/${username}/`;
 		
 		return urlObj.toString();
 	} catch {
@@ -145,27 +201,37 @@ export function scoreCandidate(
 	const reasons: string[] = [];
 	
 	// 1. 施設名の一致度
-	const titleAndSnippet = `${item.title} ${item.snippet}`.toLowerCase();
-	const facilityNameLower = facilityName.toLowerCase();
-	
-	if (titleAndSnippet.includes(facilityNameLower)) {
-		score += 3;
-		reasons.push('施設名完全一致または部分一致');
+	const titleAndSnippetRaw = `${item.title} ${item.snippet}`;
+	const titleAndSnippet = normalizeTextForMatch(titleAndSnippetRaw);
+	const facilityVariants = uniqueStrings([facilityName, normalizeFacilityNameForSearch(facilityName)])
+		.map(v => normalizeTextForMatch(v));
+
+	const hasFullMatch = facilityVariants.some(v => v.length >= 2 && titleAndSnippet.includes(v));
+	if (hasFullMatch) {
+		// 施設名一致を最重要視（取りこぼし防止）
+		score += 4;
+		reasons.push('施設名一致');
 	} else {
-		// 類似名称チェック（ひらがな/カタカナ/漢字の違いのみ）
-		// 簡易実装: 施設名の一部が含まれているか
-		const facilityNameParts = facilityNameLower.split(/[・\s]+/);
-		const hasPartialMatch = facilityNameParts.some(part => part.length > 1 && titleAndSnippet.includes(part));
+		// 簡易: 施設名を分割して部分一致（例: 「子育て・支援拠点」等）
+		const facilityNameParts = normalizeTextForMatch(facilityName)
+			.split(' ')
+			.map(s => s.trim())
+			.filter(s => s.length > 1);
+		const hasPartialMatch = facilityNameParts.some(part => titleAndSnippet.includes(part));
 		if (hasPartialMatch) {
-			score += 2;
-			reasons.push('施設名類似（部分一致）');
+			score += 3;
+			reasons.push('施設名部分一致');
+		} else {
+			// 施設名一致なしは誤検出の温床になるため減点
+			score -= 2;
+			reasons.push('施設名一致なし（減点）');
 		}
 	}
 	
 	// 2. エリア情報の一致
 	if (wardName) {
-		const wardNameLower = wardName.toLowerCase();
-		if (titleAndSnippet.includes(wardNameLower)) {
+		const wardNameLower = normalizeTextForMatch(wardName);
+		if (wardNameLower && titleAndSnippet.includes(wardNameLower)) {
 			score += 2;
 			reasons.push(`区名一致（${wardName}）`);
 		}
@@ -180,7 +246,8 @@ export function scoreCandidate(
 	const childcareKeywords = ['子育て', '応援拠点', '支援拠点', '子育て応援', '地域子育て'];
 	for (const keyword of childcareKeywords) {
 		if (titleAndSnippet.includes(keyword)) {
-			score += 2;
+			// 補助要素として扱う（施設名一致より弱め）
+			score += 1;
 			reasons.push(`子育て拠点関連ワード（${keyword}）`);
 			break; // 1つ見つかれば十分
 		}
