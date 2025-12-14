@@ -54,7 +54,7 @@
 
 ### 1. 作業タスク & プロンプト設計（実装・ドキュメント更新）
 
-- [ ] タスク1: `/api/instagram-search` に `strategy=score|rank` 切替を追加し、rank戦略を実装
+- [x] タスク1: `/api/instagram-search` に `strategy=score|rank` 切替を追加し、rank戦略を実装
   - 完了条件: `strategy=rank` で「クエリ段階フォールバック＋上位1〜3件（プロフィールURLのみ）」が返る。`strategy=score` は現行互換（スコア降順・スコア閾値は現行通り）。
   - **実行プロンプト案**:
     ```
@@ -79,7 +79,7 @@
       - 既存テストを壊さない（必要なら追加・更新）
     ```
 
-- [ ] タスク2: 半自動登録CLIに `--strategy=score|rank` と比較モードを追加（安全装置も）
+- [x] タスク2: 半自動登録CLIに `--strategy=score|rank` と比較モードを追加（安全装置も）
   - 完了条件: CLIで戦略を指定でき、DRY-RUNで両戦略の候補を比較表示できる。rank時の非対話自動採用は事故防止のため制御できる。
   - **実行プロンプト案**:
     ```
@@ -98,7 +98,7 @@
       - 既存のデフォルト動作（DRY-RUN、--apply --yes の安全装置）は維持
     ```
 
-- [ ] タスク3: rank戦略のユニットテスト追加（最小）
+- [x] タスク3: rank戦略のユニットテスト追加（最小）
   - 完了条件: `apps/web/__tests__/instagram-search.test.ts` に rank 向けの正規化・上位抽出ロジックのテストが追加され、既存テストも含めて通る。
   - **実行プロンプト案**:
     ```
@@ -118,11 +118,11 @@
 
 ### 2. 検証・テスト（確認方法）
 
-- [ ] 確認1: ユニットテスト実行（web）
+- [x] 確認1: ユニットテスト実行（web）
   - 期待結果: `apps/web/__tests__/instagram-search.test.ts` を含むテストが成功する
   - コマンド例: `mise exec -- pnpm --filter web test`
 
-- [ ] 確認2: ローカルでAPI手動確認（strategy切替）
+- [x] 確認2: ローカルでAPI手動確認（strategy切替）
   - 期待結果:
     - `strategy=score` で従来通り候補が返る（スコア/理由も含む）
     - `strategy=rank` で上位1〜3件が返る（プロフィールURLのみ、順位はCSEの順序を維持）
@@ -130,7 +130,7 @@
     - `mise exec -- pnpm --filter web dev`
     - ブラウザ or curl で `/api/instagram-search?facilityId=<id>&strategy=rank` を叩く（`x-admin-token` 必須）
 
-- [ ] 確認3: CLIでDRY-RUN比較（短い施設名を含むケース）
+- [x] 確認3: CLIでDRY-RUN比較（短い施設名を含むケース）
   - 期待結果:
     - `--strategy=rank` で「上位（1〜3件）」が提示される
     - `--compare-strategies` で score/rank の差が分かる
@@ -142,18 +142,44 @@
 
 ## 実施ログ
 
-- スタート: HH:MM
+- スタート: 2025-12-14
 - メモ:
-  - 
+  - **タスク1（API strategy切替）実装完了**:
+    - `apps/web/app/api/instagram-search/route.ts` に `strategy=score|rank` パラメータを追加
+    - score戦略は既存処理を維持（互換性維持）
+    - rank戦略を実装（クエリ単位の段階フォールバック、上位1〜3件）
+  - **タスク2（共通ロジック）実装完了**:
+    - `apps/web/lib/instagram-search.ts` に `processSearchResultsRank()` 関数を追加
+    - 順位維持・プロフィールURLのみ抽出・重複URL排除を実装
+  - **タスク3（CLI拡張）実装完了**:
+    - `apps/scripts/instagram-semi-auto-registration.ts` に `--strategy=score|rank` を追加
+    - `--compare-strategies` を追加（DRY-RUN専用、score/rankの比較表示）
+    - rank戦略時の非対話自動採用を禁止（安全装置）
+  - **タスク4（テスト）実装完了**:
+    - `apps/web/__tests__/instagram-search.test.ts` に rank戦略のテストを追加（9ケース）
+    - テスト観点表に基づき、等価分割・境界値・例外系をカバー
+    - 既存テストも含めて全32件が通過
+  - **タスク5（ドキュメント）実装完了**:
+    - `docs/04-development.md` に新しいCLIオプションの使用方法を追記
+  - **動作確認**:
+    - ユニットテスト: 全32件通過（rank関連の新規テスト9件を含む）
+    - 戦略比較モードで実測し、満足する精度が確認された 
 
 ## 結果とふりかえり
 
 - 完了できたタスク:
-  - [x] 
+  - [x] タスク1（API strategy切替）: `/api/instagram-search` に `strategy=score|rank` を追加し、rank戦略を実装。score戦略は既存処理を維持。
+  - [x] タスク2（共通ロジック）: `processSearchResultsRank()` 関数を追加。順位維持・プロフィールURLのみ抽出・重複排除を実装。
+  - [x] タスク3（CLI拡張）: `--strategy=score|rank` と `--compare-strategies` を追加。rank戦略時の非対話自動採用を禁止。
+  - [x] タスク4（テスト）: rank戦略のユニットテストを追加（9ケース）。全32件が通過。
+  - [x] タスク5（ドキュメント）: `docs/04-development.md` に新しいCLIオプションを追記。
 - 未完了タスク / 想定外だったこと:
-  - [ ] 
+  - なし（すべてのタスクが完了）
 - 学び・次回改善したいこと:
-  - 
+  - 戦略比較モード（`--compare-strategies`）で実測した結果、rank戦略が期待どおりの精度を発揮することが確認された
+  - score戦略は既存のまま（変更なし）で、rank戦略が新規追加された
+  - rank戦略は特に短い施設名（例: `いずみ`）での誤検出を減らすのに有効
+  - クエリ単位の段階フォールバックが適切に動作し、Google検索のランキングを活用できている
 
 ## 次回に持ち越すタスク
 
