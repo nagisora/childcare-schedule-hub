@@ -1,5 +1,7 @@
 # チェックリスト式実装計画書: YYYY-MM-DD
 
+> **セッションとは**: このプロジェクトにおける「セッションの定義」は `docs/dev-sessions/session-definition.md` を参照。
+>
 > **重要（AI作業時）**: このテンプレートからファイルを作成する際は、**必ず `date` コマンドを実行して現在日付を取得し、その日付を使用すること**。AIの内部的な日付認識に依存せず、システムの現在日付を確認すること。詳細は `docs/05-00-development-phases.md` の「dev-sessions ファイルの日付の付け方（AI作業時の標準フロー）」を参照（リンク: `../05-00-development-phases.md#dev-sessions-date`）。
 >
 > **必読**: セッション開始前に、対応フェーズの `docs/05-00-development-phases.md` と、該当する `docs/05-<フェーズ番号>-*.md`（存在する場合）を確認してから、このテンプレのチェックリストを作成する（運用ルール要点: `../05-00-development-phases.md#ops-rules`）。

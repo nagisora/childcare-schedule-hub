@@ -4,6 +4,8 @@
 
 関連: `docs/04-development.md`（日々の開発/運用ガイド）、`docs/dev-sessions/template-session.md`（作業テンプレ）
 
+**セッションとは**: このプロジェクトにおける「セッションの定義」は `docs/dev-sessions/session-definition.md` に集約する。
+
 ---
 
 ## 必読：運用ルール（要点）

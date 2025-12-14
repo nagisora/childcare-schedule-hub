@@ -15,6 +15,7 @@
 - 事前に、対象フェーズの詳細計画が `docs/05-<フェーズ番号>-*.md` として作成されていること
   - まだない場合は `docs/phase-planning/phase-planning.md`（作成ガイド）に従い、`docs/phase-planning/template-phase-detail.md` をコピーして作成する
   - フェーズ1〜8など、詳細ファイルが無い/作らない場合は `docs/05-00-development-phases.md` の該当フェーズ節を起点に、今回のタスクを選ぶ
+- セッションの定義（セッションとは）は `docs/dev-sessions/session-definition.md` に集約されている
 - dev-sessions の運用ルールは `docs/dev-sessions/README.md` に記載されている
 - 日付と連番の決め方は `docs/05-00-development-phases.md` の
   「dev-sessions ファイルの日付の付け方（AI作業時の標準フロー）」に従う
