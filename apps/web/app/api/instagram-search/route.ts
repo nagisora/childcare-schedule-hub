@@ -3,6 +3,7 @@ import { getFacilityById } from '../../../lib/facilities';
 import {
 	generateSearchQueries,
 	processSearchResults,
+	processSearchResultsRank,
 	type Candidate,
 } from '../../../lib/instagram-search';
 
@@ -42,6 +43,15 @@ export async function GET(request: NextRequest) {
 	const facilityId = searchParams.get('facilityId');
 	const facilityName = searchParams.get('facilityName');
 	const wardName = searchParams.get('wardName');
+	const strategy = searchParams.get('strategy') || 'score'; // デフォルトは score
+	
+	// strategy のバリデーション
+	if (strategy !== 'score' && strategy !== 'rank') {
+		return NextResponse.json(
+			{ error: { code: 'BAD_REQUEST', message: 'strategy must be "score" or "rank"' } },
+			{ status: 400 }
+		);
+	}
 	
 	// facilityId または facilityName + wardName のいずれかが必要
 	let targetFacilityName: string;
@@ -89,92 +99,142 @@ export async function GET(request: NextRequest) {
 	// 検索クエリの生成（優先順位順）
 	const queries = generateSearchQueries(targetFacilityName, targetWardName);
 	const triedQueries: string[] = [];
-
-	// 各クエリを順番に試行し、候補を統合（取りこぼし防止）
-	const merged = new Map<string, Candidate>();
+	
 	// コスト抑制: 施設名が短いほど誤検出が多く、追加クエリが必要になりやすい
 	const isGenericFacilityName = (targetFacilityName ?? '').trim().length <= 3;
 	const maxQueries = isGenericFacilityName ? 3 : 2;
-	// 十分に高信頼かつ2位と差が付いたら早期終了（クエリ回数=コスト削減）
-	const stopScore = 8;
-	const stopGap = 2;
 
-	for (const query of queries.slice(0, maxQueries)) {
-		try {
-			// Google Custom Search API を呼び出す
-			// 注意: URLに key= を含むため、フルURLをログ出力しない（ステータス/件数のみ）
-			const searchUrl = new URL('https://www.googleapis.com/customsearch/v1');
-			searchUrl.searchParams.set('key', apiKey);
-			searchUrl.searchParams.set('cx', cx);
-			searchUrl.searchParams.set('q', query);
-			searchUrl.searchParams.set('num', '10');
-			searchUrl.searchParams.set('hl', 'ja');
-			searchUrl.searchParams.set('gl', 'jp');
-			
-			const response = await fetch(searchUrl.toString(), {
-				method: 'GET',
-				headers: {
-					'User-Agent': 'ChildcareScheduleHub/1.0',
-				},
-			});
-			
-			if (!response.ok) {
-				// HTTPエラーの場合は次のクエリを試す
+	// strategy に応じて処理を分岐
+	if (strategy === 'score') {
+		// score戦略: 現行の処理（スコア方式・閾値・統合）
+		const merged = new Map<string, Candidate>();
+		const stopScore = 8;
+		const stopGap = 2;
+
+		for (const query of queries.slice(0, maxQueries)) {
+			try {
+				const searchUrl = new URL('https://www.googleapis.com/customsearch/v1');
+				searchUrl.searchParams.set('key', apiKey);
+				searchUrl.searchParams.set('cx', cx);
+				searchUrl.searchParams.set('q', query);
+				searchUrl.searchParams.set('num', '10');
+				searchUrl.searchParams.set('hl', 'ja');
+				searchUrl.searchParams.set('gl', 'jp');
+				
+				const response = await fetch(searchUrl.toString(), {
+					method: 'GET',
+					headers: {
+						'User-Agent': 'ChildcareScheduleHub/1.0',
+					},
+				});
+				
+				if (!response.ok) {
+					triedQueries.push(query);
+					continue;
+				}
+				
+				const data = await response.json();
+				
+				if (data.error) {
+					return NextResponse.json(
+						{ error: { code: 'CSE_ERROR', message: data.error.message || 'Google CSE API error' } },
+						{ status: 500 }
+					);
+				}
+				
+				const items = data.items || [];
+				triedQueries.push(query);
+				
+				if (items.length > 0) {
+					const candidates = processSearchResults(items, targetFacilityName, targetWardName);
+					for (const c of candidates) {
+						const existing = merged.get(c.link);
+						if (!existing || c.score > existing.score) {
+							merged.set(c.link, c);
+						}
+					}
+				}
+
+				// コスト抑制: 十分に高信頼の候補が得られたら早期終了
+				const currentCandidates = Array.from(merged.values()).sort((a, b) => b.score - a.score);
+				if (currentCandidates.length > 0) {
+					const top = currentCandidates[0];
+					const second = currentCandidates[1];
+					const gap = second ? top.score - second.score : 999;
+					if (top.score >= stopScore && gap >= stopGap) {
+						break;
+					}
+				}
+			} catch (error) {
 				triedQueries.push(query);
 				continue;
 			}
-			
-			const data = await response.json();
-			
-			// エラーレスポンスのチェック
-			if (data.error) {
-				// APIエラー（レート制限など）の場合はエラーを返す
-				return NextResponse.json(
-					{ error: { code: 'CSE_ERROR', message: data.error.message || 'Google CSE API error' } },
-					{ status: 500 }
-				);
-			}
-			
-			// 検索結果の処理
-			const items = data.items || [];
-			triedQueries.push(query);
-			
-			// 候補が見つかった場合は正規化・スコアリングして統合
-			if (items.length > 0) {
-				const candidates = processSearchResults(items, targetFacilityName, targetWardName);
-				for (const c of candidates) {
-					const existing = merged.get(c.link);
-					if (!existing || c.score > existing.score) {
-						merged.set(c.link, c);
+		}
+
+		const candidates = Array.from(merged.values()).sort((a, b) => b.score - a.score);
+		return NextResponse.json({
+			candidates,
+			triedQueries,
+		});
+	} else {
+		// rank戦略: クエリ単位の段階フォールバックで上位1〜3件
+		const candidates: Candidate[] = [];
+
+		for (const query of queries.slice(0, maxQueries)) {
+			try {
+				const searchUrl = new URL('https://www.googleapis.com/customsearch/v1');
+				searchUrl.searchParams.set('key', apiKey);
+				searchUrl.searchParams.set('cx', cx);
+				searchUrl.searchParams.set('q', query);
+				searchUrl.searchParams.set('num', '10');
+				searchUrl.searchParams.set('hl', 'ja');
+				searchUrl.searchParams.set('gl', 'jp');
+				
+				const response = await fetch(searchUrl.toString(), {
+					method: 'GET',
+					headers: {
+						'User-Agent': 'ChildcareScheduleHub/1.0',
+					},
+				});
+				
+				if (!response.ok) {
+					triedQueries.push(query);
+					continue;
+				}
+				
+				const data = await response.json();
+				
+				if (data.error) {
+					return NextResponse.json(
+						{ error: { code: 'CSE_ERROR', message: data.error.message || 'Google CSE API error' } },
+						{ status: 500 }
+					);
+				}
+				
+				const items = data.items || [];
+				triedQueries.push(query);
+				
+				if (items.length > 0) {
+					// rank戦略: 上位1〜3件を抽出（順位維持、プロフィールURLのみ）
+					const rankCandidates = processSearchResultsRank(items, targetFacilityName, targetWardName, 3);
+					candidates.push(...rankCandidates);
+					
+					// 候補が得られたら早期終了（クエリ横断で混ぜない）
+					if (candidates.length > 0) {
+						break;
 					}
 				}
+			} catch (error) {
+				triedQueries.push(query);
+				continue;
 			}
-
-			// コスト抑制: 十分に高信頼の候補が得られたら早期終了
-			const currentCandidates = Array.from(merged.values()).sort((a, b) => b.score - a.score);
-			if (currentCandidates.length > 0) {
-				const top = currentCandidates[0];
-				const second = currentCandidates[1];
-				const gap = second ? top.score - second.score : 999;
-				if (top.score >= stopScore && gap >= stopGap) {
-					break;
-				}
-			}
-
-			// 次のクエリも試す（クエリごとの偏りを吸収する）
-		} catch (error) {
-			// ネットワークエラーなどの場合は次のクエリを試す
-			triedQueries.push(query);
-			continue;
 		}
-	}
 
-	// すべてのクエリを試した結果を返す
-	const candidates = Array.from(merged.values()).sort((a, b) => b.score - a.score);
-	return NextResponse.json({
-		candidates,
-		triedQueries,
-	});
+		return NextResponse.json({
+			candidates,
+			triedQueries,
+		});
+	}
 
 }
 

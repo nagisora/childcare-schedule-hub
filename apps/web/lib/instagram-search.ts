@@ -354,3 +354,59 @@ export function processSearchResults(
 	return candidates;
 }
 
+/**
+ * rank戦略用: 検索結果からプロフィールURL候補を順位維持して抽出する
+ * 
+ * クエリ単位の順位を維持しつつ、プロフィールURLに正規化できるもののみを抽出する。
+ * 重複URLは最初の出現のみを採用する。
+ * 
+ * @param items Google CSE の検索結果配列（順位順）
+ * @param facilityName 施設名（スコア算出用）
+ * @param wardName 区名（null可、スコア算出用）
+ * @param limit 最大候補数（デフォルト: 3）
+ * @returns 正規化済み候補リスト（順位順、最大limit件）
+ */
+export function processSearchResultsRank(
+	items: GoogleCSEItem[],
+	facilityName: string,
+	wardName: string | null,
+	limit: number = 3
+): Candidate[] {
+	const candidates: Candidate[] = [];
+	const seenUrls = new Set<string>();
+	
+	for (const item of items) {
+		// すでにlimit件に達したら終了
+		if (candidates.length >= limit) {
+			break;
+		}
+		
+		// URL正規化（プロフィールURLのみ許可）
+		const normalizedUrl = normalizeInstagramUrl(item.link);
+		if (!normalizedUrl) {
+			// 除外パターン（投稿URL等）はスキップ
+			continue;
+		}
+		
+		// 重複チェック（同じURLは最初の出現のみ採用）
+		if (seenUrls.has(normalizedUrl)) {
+			continue;
+		}
+		seenUrls.add(normalizedUrl);
+		
+		// スコアも算出して含める（参考情報として。rankでは採用条件に使わない）
+		const { score, reasons } = scoreCandidate(item, facilityName, wardName);
+		
+		candidates.push({
+			link: normalizedUrl,
+			title: item.title,
+			snippet: item.snippet,
+			score,
+			reasons,
+		});
+	}
+	
+	// 順位順を維持（既にitemsの順序を保っているためソート不要）
+	return candidates;
+}
+
