@@ -168,20 +168,14 @@
 
 ## 次回に持ち越すタスク
 
-- [x] **検索戦略の切り替え機構を追加（スコア方式を残しつつ、ランキング方式を追加）** - 2025-12-14（[dev-session](./20251214-01-phase9-instagram-search-strategy-switch.md)）
-  - 目的: 短い施設名（例: `いずみ`）での誤検出を減らし、上位（1〜3件）から正しい候補を選びやすくする
-  - 追加したい戦略:
-    - **Strategy A（現行）**: 既存のスコアリングで候補を選別（説明可能・理由が出せる）
-    - **Strategy B（ランキング）**: 「適切なクエリで検索 → 上位1〜3件を候補として返す（または優先）」を実装
-  - 切り替え案:
-    - API: `/api/instagram-search?facilityId=...&strategy=score|rank` のようにパラメータで切替
-    - CLI: `--strategy=score|rank` を追加して切替（DRY-RUNで比較できるようにする）
-  - コスト抑制案（両戦略共通）:
-    - クエリ本数の上限を設ける（例: 短い施設名でも最大2〜3本まで）
-    - 十分高信頼（上位が明確）なら早期終了
-    - （将来）施設ID+クエリ結果をキャッシュして再検索を避ける
-- [ ] タスク5の「DB更新の安全装置（バックアップ/ロールバック/差分確認）」を強化して本運用へ
-- [ ] タスク6（Runbook整備とデータ品質チェック）を実施
+> 運用: 持ち越しタスクの正本は最新セッションに集約する。このセクションは当日のスナップショットとして残し、後日ここに追記して増やさない。
+
+- [x] 検索戦略の切り替え機構を追加（スコア方式を残しつつ、ランキング方式を追加） - 2025-12-14（[dev-session](./20251214-01-phase9-instagram-search-strategy-switch.md)）
+- [x] タスク5の「DB更新の安全装置（バックアップ/ロールバック/差分確認）」を強化して本運用へ（持ち越し済み → [dev-session](./20251214-01-phase9-instagram-search-strategy-switch.md)）
+- [x] タスク6（Runbook整備とデータ品質チェック）を実施（持ち越し済み → [dev-session](./20251214-01-phase9-instagram-search-strategy-switch.md)）
+- [x] 検索精度の実測を 10〜20件に拡大し、成功/失敗パターンを記録（短い施設名ケースを含める）（持ち越し済み → [dev-session](./20251214-01-phase9-instagram-search-strategy-switch.md)）
+- [x] 対象区（東区）を「処理済み」にする（採用/未特定（理由付き）を確定し、必要なら `--apply` でDB反映）（持ち越し済み → [dev-session](./20251214-01-phase9-instagram-search-strategy-switch.md)）
+- [x] 再検索抑制のためのキャッシュ（facilityId+query+results など）の設計・実装（持ち越し済み → [dev-session](./20251214-01-phase9-instagram-search-strategy-switch.md)）
 
 ***
 

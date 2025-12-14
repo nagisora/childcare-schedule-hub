@@ -14,6 +14,7 @@
 - [x] Google Programmable Search Engine（CSE）が `site:instagram.com` を中心に構成され、環境変数が設定・ドキュメント化されている - 2025-12-13（タスク3完了）
 - [x] Next.js サーバーサイドの検索API（例: `/api/instagram-search`）が PoC レベルで動作し、Google CSE から取得した結果を正規化して返却できる - 2025-12-13（タスク4完了）
 - [x] 複数施設向けの半自動登録フロー（候補提示→人間が採用/スキップを選ぶ）が用意され、`facilities.instagram_url` を安全に更新できる（DRY-RUN / 確認ステップを含む） - 2025-12-13（タスク5完了）
+- [x] 短い施設名など精度課題に備え、検索戦略を切り替えられる（`strategy=score|rank`） - 2025-12-14（タスク4追加完了）
 - [ ] Runbookに検索APIベースの標準フローと、フォールバックとしての手動ブラウザ検索フローが整理されている
 - [ ] データ品質チェック（Instagramドメイン以外・重複URLの検出）が1回以上実施され、dev-sessionsに記録されている
 - [ ] 対象施設が「処理済み」になっている（`instagram_url` が埋まった施設だけでなく、見つからない/判断不能な施設も「未特定（理由付き）」として一覧化されている）
@@ -22,9 +23,11 @@
 
 - [x] [タスク1: 現状の `instagram_url` カバレッジ棚卸しと対象スコープ決定](#task-1) - 2025-12-13 ([dev-session](../../dev-sessions/2025/12/20251213-01-phase9-instagram-account-url-coverage-ward-scope.md))
 - [x] [タスク2: Google Custom Search API 用クエリ設計 & 判定ルール整理](#task-2) - 2025-12-13 ([dev-session](../../dev-sessions/2025/12/20251213-01-phase9-instagram-account-url-coverage-ward-scope.md))
-- [x] [タスク3: Google Programmable Search Engine & 環境変数セットアップ](#task-3) - 2025-12-13（ドキュメント反映完了、Google CSE作成は人間作業で進行中） ([dev-session](../../dev-sessions/2025/12/20251213-01-phase9-instagram-account-url-coverage-ward-scope.md))
+- [x] [タスク3: Google Programmable Search Engine & 環境変数セットアップ](#task-3) - 2025-12-13（ドキュメント反映・CSE作成・疎通確認まで完了） ([dev-session](../../dev-sessions/2025/12/20251213-01-phase9-instagram-account-url-coverage-ward-scope.md))
 - [x] [タスク4: Next.js サーバーサイド検索API（例 `/api/instagram-search`）のPoC実装](#task-4) - 2025-12-13（実装・動作確認完了） ([dev-session](../../dev-sessions/2025/12/20251213-02-phase9-instagram-search-api-semi-auto-registration.md))
 - [x] [タスク5: 複数施設向け「半自動登録ツール」の設計・実装](#task-5) - 2025-12-13（実装・動作確認完了） ([dev-session](../../dev-sessions/2025/12/20251213-02-phase9-instagram-search-api-semi-auto-registration.md))
+- [x] タスク4追加: 検索戦略切替（`strategy=score|rank`）とCLI比較モード（`--compare-strategies`） - 2025-12-14 ([dev-session](../../dev-sessions/2025/12/20251214-01-phase9-instagram-search-strategy-switch.md))
+- [ ] タスク4追加: 再検索抑制キャッシュ（facilityId+query+results）を設計・実装
 - [ ] [タスク6: Runbook整備とデータ品質チェック](#task-6)
 
 ## 1. 概要
@@ -135,6 +138,8 @@
   - [x] 出力: `[{ link, title, snippet, score }]` のような正規化済み候補リスト - 2025-12-13
   - [x] エラー時は統一フォーマット（400/500など）で返却 - 2025-12-13
   - [x] ローカル環境で `/api/instagram-search?facilityId=...` を叩くと、Google CSE 経由の結果がJSONで返る - 2025-12-13（動作確認完了）
+  - [x] 公開悪用でクエリ枠を消費されないための最低限の防御（例: 管理トークン必須）が入っている - 2025-12-13（`ADMIN_API_TOKEN`）
+  - [x] 短い施設名など精度課題に備え、検索戦略を切り替えられる（`strategy=score|rank`） - 2025-12-14
 - **検証方法**:  
   - `mise exec -- pnpm --filter web dev` でローカル起動し、ブラウザ or `curl` で API を叩いてレスポンスを確認
   - ログ（コンソール or logger）で、実際に呼び出しているCSEクエリ文字列とレスポンスステータスを確認（**APIキーは絶対にログへ出さない**）
@@ -151,6 +156,9 @@
 - **チェックリスト（完了条件）**:
   - [x] `instagram_url IS NULL` の施設に対して、一覧から1件ずつ選び → `/api/instagram-search` を叩き → 上位候補を表示 → 人間が「採用 / スキップ」を選ぶフローを実現する簡易ツール（CLI or 管理用ページ）が存在する - 2025-12-13
   - [x] ツールは直接 `facilities.instagram_url` を更新するか、少なくとも「施設ID + 採用URL」をCSV/JSONとして出力できる - 2025-12-13
+  - [x] CLIで検索戦略を切り替えられる（`--strategy=score|rank`） - 2025-12-14
+  - [x] DRY-RUNで比較できる（`--compare-strategies`） - 2025-12-14
+  - [ ] 実データ更新（`--apply`）を「対象区1区ぶん」以上で実施し、更新証跡（バックアップ/ロールバック手順と結果）をdev-sessionsに残している
 - **検証方法**:  
   - テスト用に3〜5施設を選び、ツールを1回走らせて候補確認〜採用まで一通り通す
     - ツール実行時に各施設の候補（スコア5点以上、最大9点）が表示される

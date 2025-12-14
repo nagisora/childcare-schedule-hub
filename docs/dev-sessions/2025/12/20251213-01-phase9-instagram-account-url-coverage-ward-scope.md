@@ -248,9 +248,11 @@
 
 ## 次回に持ち越すタスク
 
-- [ ] タスク4: Next.js サーバーサイド検索API（例 `/api/instagram-search`）のPoC実装
-- [ ] タスク5: 半自動登録フロー（候補提示→採用/スキップ）の設計・実装
-- [ ] 対象区の施設に対して、検索APIで 10〜20件の精度測定（成功/失敗パターン記録）
+> 運用: 持ち越しタスクの正本は最新セッションに集約する。このセクションは当日のスナップショットとして残し、後日ここに追記して増やさない。
+
+- [x] タスク4: Next.js サーバーサイド検索API（例 `/api/instagram-search`）のPoC実装（持ち越し済み → [dev-session](./20251213-02-phase9-instagram-search-api-semi-auto-registration.md) / そこで完了）
+- [x] タスク5: 半自動登録フロー（候補提示→採用/スキップ）の設計・実装（持ち越し済み → [dev-session](./20251213-02-phase9-instagram-search-api-semi-auto-registration.md) / そこで完了）
+- [x] 対象区の施設に対して、検索APIで 10〜20件の精度測定（成功/失敗パターン記録）（持ち越し済み → [dev-session](./20251214-01-phase9-instagram-search-strategy-switch.md)）
 
 ***
 
