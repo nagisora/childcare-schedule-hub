@@ -17,7 +17,7 @@
 - [x] 短い施設名など精度課題に備え、検索戦略を切り替えられる（`strategy=score|rank`） - 2025-12-14（タスク4追加完了）
 - [ ] Runbookに検索APIベースの標準フローと、フォールバックとしての手動ブラウザ検索フローが整理されている
 - [ ] データ品質チェック（Instagramドメイン以外・重複URLの検出）が1回以上実施され、dev-sessionsに記録されている
-- [ ] 対象施設が「処理済み」になっている（`instagram_url` が埋まった施設だけでなく、見つからない/判断不能な施設も「未特定（理由付き）」として一覧化されている）
+- [x] 対象施設が「処理済み」になっている（`instagram_url` が埋まった施設だけでなく、見つからない/判断不能な施設も「未特定（理由付き）」として一覧化されている） - 2025-12-15（東区3件すべて更新完了、未特定1件は手動対応で更新済み）([dev-session](../../dev-sessions/2025/12/20251215-01-phase9-instagram-auto-adopt-review.md))
 
 ### 実装タスク（セッション粒度の進捗）
 
@@ -25,8 +25,9 @@
 - [x] [タスク2: Google Custom Search API 用クエリ設計 & 判定ルール整理](#task-2) - 2025-12-13 ([dev-session](../../dev-sessions/2025/12/20251213-01-phase9-instagram-account-url-coverage-ward-scope.md))
 - [x] [タスク3: Google Programmable Search Engine & 環境変数セットアップ](#task-3) - 2025-12-13（ドキュメント反映・CSE作成・疎通確認まで完了） ([dev-session](../../dev-sessions/2025/12/20251213-01-phase9-instagram-account-url-coverage-ward-scope.md))
 - [x] [タスク4: Next.js サーバーサイド検索API（例 `/api/instagram-search`）のPoC実装](#task-4) - 2025-12-13（実装・動作確認完了） ([dev-session](../../dev-sessions/2025/12/20251213-02-phase9-instagram-search-api-semi-auto-registration.md))
-- [x] [タスク5: 複数施設向け「半自動登録ツール」の設計・実装](#task-5) - 2025-12-13（実装・動作確認完了） ([dev-session](../../dev-sessions/2025/12/20251213-02-phase9-instagram-search-api-semi-auto-registration.md))
+- [x] [タスク5: 複数施設向け「半自動登録ツール」の設計・実装](#task-5) - 2025-12-15（実装・動作確認完了、東区3件すべて更新完了） ([dev-session](../../dev-sessions/2025/12/20251215-01-phase9-instagram-auto-adopt-review.md))
 - [x] タスク4追加: 検索戦略切替（`strategy=score|rank`）とCLI比較モード（`--compare-strategies`） - 2025-12-14 ([dev-session](../../dev-sessions/2025/12/20251214-01-phase9-instagram-search-strategy-switch.md))
+- [x] タスク5追加: 非対話環境での自動採用オプション（`--auto-adopt`）、レビュー用サマリファイル（JSON + Markdown）、logsクリーンナップ機能、検索クエリ改善 - 2025-12-15 ([dev-session](../../dev-sessions/2025/12/20251215-01-phase9-instagram-auto-adopt-review.md))
 - [ ] タスク4追加: 再検索抑制キャッシュ（facilityId+query+results）を設計・実装
 - [ ] [タスク6: Runbook整備とデータ品質チェック](#task-6)
 
@@ -160,7 +161,10 @@
   - [x] DRY-RUNで比較できる（`--compare-strategies`） - 2025-12-14
   - [x] 非対話環境でも安全にDB更新できる `--auto-adopt` オプションを追加（opt-in、候補1件のみ自動採用、複数候補は未特定として記録） - 2025-12-15
   - [x] 結果JSONの `reason` フィールドを機械可読なコードで統一（例: `auto_adopt_single_candidate`, `auto_adopt_blocked_multiple_candidates`, `user_skipped` など） - 2025-12-15
-  - [ ] 実データ更新（`--apply`）を「対象区1区ぶん」以上で実施し、更新証跡（バックアップ/ロールバック手順と結果）をdev-sessionsに残している
+  - [x] レビュー用サマリファイル（JSON + Markdown形式）を追加し、未特定施設を人間が読みやすい形で確認できる - 2025-12-15
+  - [x] logsディレクトリのクリーンナップ機能を追加（古いログファイルを自動削除、registration/review: 最新30件、backup: 最新50件を保持） - 2025-12-15
+  - [x] 検索クエリの改善: rank戦略で `子育て拠点` / `子育て` キーワードを追加（精度向上を目指す） - 2025-12-15
+  - [x] 実データ更新（`--apply`）を「対象区1区ぶん」以上で実施し、更新証跡（バックアップ/ロールバック手順と結果）をdev-sessionsに残している - 2025-12-15（東区3件すべて更新完了）([dev-session](../../dev-sessions/2025/12/20251215-01-phase9-instagram-auto-adopt-review.md))
 - **検証方法**:  
   - テスト用に3〜5施設を選び、ツールを1回走らせて候補確認〜採用まで一通り通す
     - ツール実行時に各施設の候補（スコア5点以上、最大9点、またはrank戦略では上位1〜3件）が表示される
@@ -169,7 +173,9 @@
     - 選択した候補が採用される（またはスキップ/未特定として記録される）
     - 結果JSONから、`reason` コードで未特定リストを抽出できる
   - 実行後に Supabase Studio で `instagram_url` が期待通り更新されていることを確認
-  - レビュー用サマリファイル（`instagram-review-<timestamp>.json`）から、未特定施設が人間に読みやすい形で確認できる
+  - レビュー用サマリファイル（`instagram-review-<timestamp>.json` および `.md`）から、未特定施設が人間に読みやすい形で確認できる
+    - JSON形式: 機械可読、プログラムから抽出しやすい
+    - Markdown形式: チェックボックス付きで人間が読みやすく、選択候補をマークできる
 - **dev-sessions粒度**:  
   - 2〜3セッション想定（UI設計 / PoC実装 / DB更新まわりの安全装置と検証）
 - **更新先ドキュメント**: 

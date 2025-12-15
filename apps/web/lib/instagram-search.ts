@@ -56,18 +56,21 @@ export function generateSearchQueries(facilityName: string, wardName: string | n
 		}
 		queries.push(`site:instagram.com ${facilityTerm} 名古屋 子育て instagram`);
 	} else {
-		// 1. 最優先: site:instagram.com <施設名> instagram（Google検索の「施設名 instagram」に寄せる）
-		queries.push(`site:instagram.com ${facilityTerm} instagram`);
+		// 1. 最優先: site:instagram.com <施設名> 子育て拠点（精度向上のため「子育て拠点」を追加）
+		queries.push(`site:instagram.com ${facilityTerm} 子育て拠点`);
 
-		// 2. 第2優先: site:instagram.com <施設名>
+		// 2. 第2優先: site:instagram.com <施設名> 子育て（フォールバック）
+		queries.push(`site:instagram.com ${facilityTerm} 子育て`);
+
+		// 3. 第3優先: site:instagram.com <施設名>（キーワードなし）
 		queries.push(`site:instagram.com ${facilityTerm}`);
 
-		// 3. 第3優先: site:instagram.com <施設名> "<区名>"（区名は補助）
+		// 4. 第4優先: site:instagram.com <施設名> "<区名>"（区名は補助）
 		if (wardName) {
 			queries.push(`site:instagram.com ${facilityTerm} "${wardName}"`);
 		}
 
-		// 4. 第4優先: <施設名> instagram（site 制約を外して拾う）
+		// 5. 第5優先: <施設名> instagram（site 制約を外して拾う）
 		// 施設名は OR にせず、最初の表記をそのまま使う（クエリが長くなりすぎないように）
 		queries.push(`${facilityVariants[0]} instagram`);
 	}

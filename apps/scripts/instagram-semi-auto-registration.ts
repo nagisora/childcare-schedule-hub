@@ -16,7 +16,7 @@ import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { mkdirSync, writeFileSync } from 'fs';
+import { mkdirSync, writeFileSync, readdirSync, statSync, unlinkSync } from 'fs';
 import * as readline from 'readline';
 
 // 環境変数の読み込み（.env.local から）
@@ -451,7 +451,7 @@ function writeResults(results: RegistrationResult[]): string {
 }
 
 /**
- * レビュー用サマリファイル（未特定のみ）を書き込む
+ * レビュー用サマリファイル（未特定のみ）を書き込む（JSON形式）
  */
 function writeReviewSummary(results: RegistrationResult[]): string {
 	const logsDir = join(__dirname, 'logs');
@@ -490,12 +490,198 @@ function writeReviewSummary(results: RegistrationResult[]): string {
 	try {
 		writeFileSync(reviewFilename, JSON.stringify(reviewData, null, 2), 'utf-8');
 		if (notFoundResults.length > 0) {
-			console.log(`[INFO] Review summary file written: ${reviewFilename} (${notFoundResults.length} facilities marked as not_found)`);
+			console.log(`[INFO] Review summary file (JSON) written: ${reviewFilename} (${notFoundResults.length} facilities marked as not_found)`);
 		}
 		return reviewFilename;
 	} catch (error) {
 		console.warn(`[WARN] Failed to write review summary file: ${error}`);
 		return '';
+	}
+}
+
+/**
+ * reasonコードを日本語メッセージに変換する
+ */
+function getReasonMessage(reason: string): string {
+	const reasonMap: Record<string, string> = {
+		'no_candidates': '候補が見つかりませんでした',
+		'user_skipped': 'ユーザーがスキップしました',
+		'user_marked_not_found': 'ユーザーが未特定としてマークしました',
+		'user_selected': 'ユーザーが選択しました',
+		'invalid_input': '無効な入力です',
+		'auto_adopt_disabled': '非対話環境では自動採用が無効です（--auto-adopt 未指定）',
+		'auto_adopt_single_candidate': '候補1件のみのため自動採用しました',
+		'auto_adopt_blocked_multiple_candidates': '候補が複数あるため',
+		'non_interactive_score_strategy': '非対話環境でのscore戦略により自動採用しました',
+		'error_api_failed': 'API呼び出しに失敗しました',
+		'unknown_condition': '不明な条件です',
+	};
+
+	const message = reasonMap[reason] || reason;
+	// 日本語メッセージ（英語コード）の形式で返す
+	return `${message}（${reason}）`;
+}
+
+/**
+ * レビュー用サマリファイル（未特定のみ）をMarkdown形式で書き込む
+ */
+function writeReviewSummaryMarkdown(results: RegistrationResult[]): string {
+	const logsDir = join(__dirname, 'logs');
+	try {
+		mkdirSync(logsDir, { recursive: true });
+	} catch (error) {
+		if (error && typeof error === 'object' && 'code' in error && error.code !== 'EEXIST') {
+			console.warn(`[WARN] Failed to create logs directory: ${error}`);
+			return '';
+		}
+	}
+
+	const timestamp = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '-').slice(0, -5);
+	const reviewMarkdownFilename = join(logsDir, `instagram-review-${timestamp}.md`);
+	
+	// action: not_found のみを抽出
+	const notFoundResults = results.filter(r => r.action === 'not_found');
+	
+	if (notFoundResults.length === 0) {
+		// 未特定施設がない場合はファイルを作成しない
+		return '';
+	}
+
+	const now = new Date();
+	const timestampStr = now.toISOString().replace('T', ' ').slice(0, -5);
+
+	// Markdown形式のコンテンツを生成
+	let markdown = `# Instagram URL 未特定施設一覧\n\n`;
+	markdown += `**実行日時:** ${timestampStr}\n`;
+	markdown += `**対象区:** ${targetWard}\n\n`;
+	markdown += `## 未特定施設 (${notFoundResults.length}件)\n\n`;
+
+	for (const result of notFoundResults) {
+		markdown += `### ${result.facilityName}\n`;
+		markdown += `- **理由:** ${result.reason ? getReasonMessage(result.reason) : '不明'}\n`;
+		markdown += `- **区名:** ${result.wardName || 'N/A'}\n`;
+		markdown += `- **施設ID:** ${result.facilityId}\n\n`;
+
+		if (result.candidates.length > 0) {
+			markdown += `#### 候補一覧 (${result.candidates.length}件)\n\n`;
+			markdown += `> **使い方:** 正しい候補のチェックボックス（\`- [ ]\`）に \`x\` を入れて（\`- [x]\`）保存してください。保存後、AIに「このMarkdownファイルのチェック済み候補をDB更新して」と依頼すると更新されます。\n\n`;
+			result.candidates.forEach((candidate, index) => {
+				markdown += `- [ ] **候補${index + 1}:** ${candidate.link}\n`;
+				markdown += `  - **タイトル:** ${candidate.title}\n`;
+				// スニペットは長い場合は最初の200文字程度に制限
+				const snippetPreview = candidate.snippet.length > 200 
+					? candidate.snippet.substring(0, 200) + '...'
+					: candidate.snippet;
+				markdown += `  - **スニペット:** ${snippetPreview}\n`;
+				if (candidate.reasons && candidate.reasons.length > 0) {
+					markdown += `  - **判定理由:** ${candidate.reasons.join(', ')}\n`;
+				}
+				markdown += `  - **スコア:** ${candidate.score}点\n\n`;
+			});
+		}
+
+		if (result.triedQueries && result.triedQueries.length > 0) {
+			markdown += `#### 試した検索クエリ\n`;
+			result.triedQueries.forEach(query => {
+				markdown += `- \`${query}\`\n`;
+			});
+			markdown += `\n`;
+		}
+
+		markdown += `---\n\n`;
+	}
+
+	markdown += `## 注意事項\n\n`;
+	markdown += `- このファイルは自動生成されたレビュー用サマリです\n`;
+	markdown += `- 各候補を確認し、正しいInstagram URLのチェックボックスにチェック（\`- [x]\`）を入れて保存してください\n`;
+	markdown += `- チェック済みの候補は、AIに「このMarkdownファイルのチェック済み候補をDB更新して」と依頼すると更新されます\n`;
+
+	try {
+		writeFileSync(reviewMarkdownFilename, markdown, 'utf-8');
+		console.log(`[INFO] Review summary file (Markdown) written: ${reviewMarkdownFilename}`);
+		return reviewMarkdownFilename;
+	} catch (error) {
+		console.warn(`[WARN] Failed to write review summary Markdown file: ${error}`);
+		return '';
+	}
+}
+
+/**
+ * logsディレクトリの古いファイルをクリーンナップする
+ * - 各タイプ（registration, review, backup）ごとに最新N件を保持
+ * - バックアップファイルは少し長めに保持（重要度が高いため）
+ */
+function cleanupOldLogFiles() {
+	const logsDir = join(__dirname, 'logs');
+	
+	try {
+		const files = readdirSync(logsDir);
+		
+		// ファイルタイプごとにグループ化
+		const fileGroups: Record<string, Array<{ name: string; path: string; mtime: Date }>> = {
+			registration: [],
+			review: [],
+			backup: [],
+		};
+		
+		for (const file of files) {
+			const filePath = join(logsDir, file);
+			try {
+				const stats = statSync(filePath);
+				if (!stats.isFile()) continue;
+				
+				if (file.startsWith('instagram-registration-') && file.endsWith('.json')) {
+					fileGroups.registration.push({ name: file, path: filePath, mtime: stats.mtime });
+				} else if (file.startsWith('instagram-review-')) {
+					if (file.endsWith('.json')) {
+						fileGroups.review.push({ name: file, path: filePath, mtime: stats.mtime });
+					} else if (file.endsWith('.md')) {
+						fileGroups.review.push({ name: file, path: filePath, mtime: stats.mtime });
+					}
+				} else if (file.startsWith('instagram-backup-') && file.endsWith('.json')) {
+					fileGroups.backup.push({ name: file, path: filePath, mtime: stats.mtime });
+				}
+			} catch (error) {
+				// ファイルが削除されたなどでアクセスできない場合はスキップ
+				continue;
+			}
+		}
+		
+		// 各グループを更新日時でソート（新しい順）
+		for (const groupKey of Object.keys(fileGroups)) {
+			fileGroups[groupKey].sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
+		}
+		
+		// 保持件数の設定
+		const keepCounts = {
+			registration: 30, // 最新30件のregistrationファイルを保持
+			review: 30,       // 最新30件のreviewファイルを保持（JSON + MD 合わせて）
+			backup: 50,       // 最新50件のbackupファイルを保持（重要度が高いため）
+		};
+		
+		// 古いファイルを削除
+		let deletedCount = 0;
+		for (const [groupKey, groupFiles] of Object.entries(fileGroups)) {
+			const keepCount = keepCounts[groupKey as keyof typeof keepCounts];
+			const toDelete = groupFiles.slice(keepCount);
+			
+			for (const file of toDelete) {
+				try {
+					unlinkSync(file.path);
+					deletedCount++;
+				} catch (error) {
+					// 削除に失敗しても続行（ログだけ出力）
+					console.warn(`[WARN] Failed to delete old log file: ${file.name}`);
+				}
+			}
+		}
+		
+		if (deletedCount > 0) {
+			console.log(`[INFO] Cleaned up ${deletedCount} old log files`);
+		}
+	} catch (error) {
+		// クリーンナップに失敗しても処理は続行
+		console.warn(`[WARN] Failed to cleanup old log files: ${error}`);
 	}
 }
 
@@ -553,6 +739,8 @@ async function main() {
 
 		if (facilities.length === 0) {
 			logger.info('No facilities to process. Exiting.');
+			// 対象施設がなくても、クリーンナップは実行する
+			cleanupOldLogFiles();
 			return;
 		}
 
@@ -669,11 +857,20 @@ async function main() {
 		// 結果をファイルに保存
 		const resultFilename = writeResults(results);
 		
-		// レビュー用サマリ（未特定のみ）を書き込む
+		// レビュー用サマリ（未特定のみ）を書き込む（JSON形式）
 		const reviewFilename = writeReviewSummary(results);
 		if (reviewFilename) {
-			logger.info(`Review summary (not_found only): ${reviewFilename}`);
+			logger.info(`Review summary (JSON, not_found only): ${reviewFilename}`);
 		}
+		
+		// レビュー用サマリ（未特定のみ）をMarkdown形式で書き込む
+		const reviewMarkdownFilename = writeReviewSummaryMarkdown(results);
+		if (reviewMarkdownFilename) {
+			logger.info(`Review summary (Markdown, not_found only): ${reviewMarkdownFilename}`);
+		}
+
+		// 古いログファイルをクリーンナップ（保持: registration/review 30件、backup 50件）
+		cleanupOldLogFiles();
 
 		// サマリーを表示
 		const adopted = results.filter(r => r.action === 'adopted').length;
