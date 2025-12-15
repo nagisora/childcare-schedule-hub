@@ -1,6 +1,6 @@
 # チェックリスト式実装計画書: 2025-12-14
 
-> **重要（AI作業時）**: このファイルは `date +%Y%m%d` の結果（`20251214`）に基づいて作成している。  
+> **重要（AI作業時）**: このファイルは `date +%Y%m%d` の結果（`20251215`）に基づいて作成している。  
 > ルール: `docs/dev-sessions/README.md` / `docs/05-00-development-phases.md#dev-sessions-date`
 
 ## セッション概要とゴール
@@ -11,7 +11,7 @@
 - 対応フェーズ: フェーズ9
 - セッション種別: 実装 + 運用整備
 - 影響範囲: フェーズ9（InstagramアカウントURL全面カバー）/ `apps/scripts` / `docs/04-development.md` / `docs/05-09-instagram-account-url-coverage.md`
-- 日付: 2025-12-14
+- 日付: 2025-12-15
 - 想定所要時間: 90〜150 分（重いので途中で分割してOK）
 
 ### ゴール
@@ -50,11 +50,12 @@
 
 ### 1. 作業タスク & プロンプト設計（実装・ドキュメント更新）
 
-- [ ] タスク1: CLIに「rank非対話での自動採用許可（B案）」と「迷ったら未特定ログ」を実装する
+- [x] タスク1: CLIに「rank非対話での自動採用許可（B案）」と「迷ったら未特定ログ」を実装する - 2025-12-15
   - 完了条件:
-    - `--strategy=rank` かつ 非対話環境でも、**明示的なフラグ指定がある場合のみ**自動採用できる
-    - 自動採用できない（= 迷う）ケースは `action: not_found` で記録され、`reason` が機械可読（例: `auto_adopt_blocked_multiple_candidates` 等）
-    - 結果JSON（`apps/scripts/logs/instagram-registration-<timestamp>.json`）から、未特定リストが抽出できる
+    - [x] `--strategy=rank` かつ 非対話環境でも、**明示的なフラグ指定がある場合のみ**自動採用できる
+    - [x] 自動採用できない（= 迷う）ケースは `action: not_found` で記録され、`reason` が機械可読（例: `auto_adopt_blocked_multiple_candidates` 等）
+    - [x] 結果JSON（`apps/scripts/logs/instagram-registration-<timestamp>.json`）から、未特定リストが抽出できる
+    - [x] レビュー用サマリファイル（`instagram-review-<timestamp>.json`）を追加し、`action: not_found` のみを抽出できる
   - **実行プロンプト案**:
     ```
     フェーズ9の半自動登録CLIを、Cursor Agent（非対話環境）でも安全にDB更新できるよう拡張してください。
@@ -78,10 +79,10 @@
       - 既存の対話実行のUXは壊さない
     ```
 
-- [ ] タスク2: 運用ドキュメントを更新する（「半自動」→「自動採用オプション付き」に）
+- [x] タスク2: 運用ドキュメントを更新する（「半自動」→「自動採用オプション付き」に） - 2025-12-15
   - 完了条件:
-    - `docs/04-development.md` 9.5.3 に `--auto-adopt` の使い方と注意（事故防止・未特定の扱い）が追記されている
-    - `docs/05-09-instagram-account-url-coverage.md` タスク5の説明が「半自動（デフォルト） + 自動採用（opt-in）」として整合している
+    - [x] `docs/04-development.md` 9.5.3 に `--auto-adopt` の使い方と注意（事故防止・未特定の扱い）が追記されている
+    - [x] `docs/05-09-instagram-account-url-coverage.md` タスク5の説明が「半自動（デフォルト） + 自動採用（opt-in）」として整合している
   - **実行プロンプト案**:
     ```
     フェーズ9のInstagram URL登録CLIに自動採用オプションを追加したので、運用ドキュメントも整合するよう更新してください。
@@ -103,6 +104,7 @@
     - `--strategy=rank --auto-adopt --apply --yes --ward=東区` でDB更新が行われる（少なくとも候補1件の施設は更新）
     - 迷ったものがあれば not_found としてログに残り、人間が後で判断できる
     - 更新後SQLで東区の `instagram_url IS NULL` が減っている
+  - **状態**: 実装は完了したが、実際の実行・検証は未実施（次回セッションで実施予定）
   - **実行プロンプト案**:
     ```
     自動採用オプションを実装したので、東区（3施設）を対象に apply を実行してDB更新まで完結させたいです。
@@ -121,39 +123,72 @@
 ### 2. 検証・テスト（確認方法）
 
 - [ ] 確認1: `--auto-adopt` 未指定で rank を非対話実行した場合、従来どおりスキップされる
-      - 期待結果: DB更新されず、結果JSONに `action: skipped` が残る（安全装置）
+      - 期待結果: DB更新されず、結果JSONに `action: skipped`, `reason: auto_adopt_disabled` が残る（安全装置）
+      - **状態**: 実装完了、実際の実行は未実施
 - [ ] 確認2: `--auto-adopt` 指定で rank を非対話実行した場合、候補1件の施設は自動採用される
-      - 期待結果: apply時に `facilities.instagram_url` が更新される
+      - 期待結果: apply時に `facilities.instagram_url` が更新され、結果JSONに `action: adopted`, `reason: auto_adopt_single_candidate` が残る
+      - **状態**: 実装完了、実際の実行は未実施
 - [ ] 確認3: 候補が複数のケースは「未特定」として残る
-      - 期待結果: `action: not_found` になり、`reason` が `auto_adopt_blocked_*` で機械可読
+      - 期待結果: `action: not_found` になり、`reason` が `auto_adopt_blocked_multiple_candidates` で機械可読、`candidates` 配列も記録される
+      - **状態**: 実装完了、実際の実行は未実施
 - [ ] 確認4: 結果ファイルで「未特定一覧」が人間に読める
-      - 期待結果: 結果JSON（必要なら reviewファイル）から、施設名/ID/候補/理由が追える
+      - 期待結果: 結果JSON（`instagram-registration-*.json`）とレビュー用サマリ（`instagram-review-*.json`）から、施設名/ID/候補/理由が追える
+      - **状態**: 実装完了（`writeReviewSummary()` 関数を追加）、実際の実行は未実施
 
 ---
 
 ## 実施ログ
 
-- スタート: HH:MM
+- スタート: 2025-12-15（実装完了）
 - メモ:
-  - 
+  - 実装完了: `apps/scripts/instagram-semi-auto-registration.ts` に `--auto-adopt` フラグを追加
+  - 選択ロジックを純粋関数 `decideAction()` に分離し、reasonコードを統一（`user_skipped`, `auto_adopt_single_candidate`, `auto_adopt_blocked_multiple_candidates` など）
+  - 非対話環境での `strategy=rank` の挙動をB案に更新（`--auto-adopt` opt-in で自動採用、複数候補は `not_found` で記録）
+  - レビュー用サマリ出力機能（`writeReviewSummary()`）を追加し、`action: not_found` のみを抽出した `instagram-review-*.json` を出力
+  - ドキュメント更新: `docs/04-development.md` 9.5.3 と `docs/05-09-instagram-account-url-coverage.md` タスク5を新仕様に整合
+  - 実装されたreasonコード一覧:
+    - `no_candidates`: 候補が0件
+    - `user_skipped`: ユーザーがスキップを選択
+    - `user_marked_not_found`: ユーザーが未特定としてマーク
+    - `user_selected`: ユーザーが候補番号を選択
+    - `invalid_input`: 無効な入力
+    - `auto_adopt_disabled`: `--auto-adopt` 未指定で非対話環境（安全装置）
+    - `auto_adopt_single_candidate`: `--auto-adopt` 指定時、候補1件で自動採用
+    - `auto_adopt_blocked_multiple_candidates`: `--auto-adopt` 指定時、候補2件以上で未特定として記録
+    - `non_interactive_score_strategy`: 非対話環境での score 戦略（従来通り）
+    - `error_api_failed`: API呼び出し失敗
 
 ## 結果とふりかえり
 
 - 完了できたタスク:
-  - [ ] タスク1（自動採用opt-in + 未特定ログ）
-  - [ ] タスク2（docs整合）
-  - [ ] タスク3（東区 apply 完結）
+  - [x] タスク1（自動採用opt-in + 未特定ログ）: 実装完了
+    - `--auto-adopt` フラグを追加し、非対話環境での rank 戦略の自動採用を opt-in で許可
+    - 選択ロジックを `decideAction()` 純粋関数に分離し、reasonコードを機械可読に統一
+    - レビュー用サマリ出力機能（`instagram-review-*.json`）を追加
+  - [x] タスク2（docs整合）: 実装完了
+    - `docs/04-development.md` 9.5.3 に `--auto-adopt` の説明、挙動、注意事項を追記
+    - `docs/05-09-instagram-account-url-coverage.md` タスク5を新仕様に整合
+  - [ ] タスク3（東区 apply 完結）: 実装は完了したが、実際の実行・検証は未実施
 - 未完了タスク / 想定外だったこと:
-  - 
+  - タスク3の実際の実行・検証は次回セッションで実施予定（実装は完了しているため、実行環境で検証が必要）
 - 学び・次回改善したいこと:
-  - 
+  - 選択ロジックを純粋関数に分離したことで、テストしやすくなり、reasonコードの一貫性も保たれた
+  - `--auto-adopt` は opt-in で安全装置を維持しつつ、非対話環境でのDB更新を可能にした
+  - 複数候補のケースは `not_found` として記録することで、誤登録を防ぎつつ人間が後で判断できる設計に
+  - レビュー用サマリファイルを追加することで、未特定施設の抽出・レビューが容易になった
 
 ## 次回に持ち越すタスク
 
 > **このリストが持ち越しの正本（最新）**。前回までのセッションは「持ち越し済み」でクローズし、ここだけ見れば良い状態にする。
 > もし過去に「漏れていたタスク」に気づいた場合は、ここ（最新）にだけ追記し、行末に `（漏れていたため追加: YYYY-MM-DD）` を付ける。
 
-- [ ] （このセッションで未完了があればここに追記）
+- [ ] タスク3: 東区（3施設）をこの仕組みで「処理済み」にして証跡を残す（実装完了、実行・検証は次回実施）
+  - 手順:
+    1. web dev server起動: `mise exec -- pnpm --filter web dev`
+    2. DRY-RUNで結果確認: `cd apps/scripts && pnpm tsx instagram-semi-auto-registration.ts --ward=東区 --strategy=rank --auto-adopt`
+    3. apply実行: `cd apps/scripts && pnpm tsx instagram-semi-auto-registration.ts --ward=東区 --strategy=rank --auto-adopt --apply --yes`
+    4. SQLで更新結果確認（東区の `instagram_url IS NULL` 件数、一覧）
+    5. 結果JSON（`instagram-registration-*.json`）とレビュー用サマリ（`instagram-review-*.json`）を確認し、ファイル名を dev-session に記録
 
 ### 繰り越し（20251214-02 からの持ち越し）
 

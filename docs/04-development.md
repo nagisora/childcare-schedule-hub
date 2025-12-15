@@ -431,15 +431,35 @@ Supabase CLI を使ったローカル開発環境やマイグレーション管�
    - 同一施設に対して score/rank の両方の戦略で検索し、結果を比較表示する
    - `--apply` と同時指定は不可（DRY-RUN専用のため）
 
+6. **自動採用オプション（非対話環境での rank 戦略用）**:
+   ```bash
+   # DRY-RUN モードで自動採用の挙動を確認
+   pnpm tsx instagram-semi-auto-registration.ts --ward=東区 --strategy=rank --auto-adopt
+   
+   # 更新モードで自動採用を実行（候補1件のみ自動採用、複数候補は未特定として記録）
+   pnpm tsx instagram-semi-auto-registration.ts --ward=東区 --strategy=rank --auto-adopt --apply --yes
+   ```
+   - `--auto-adopt`: 非対話環境でも `--strategy=rank` の自動採用を許可（opt-in）
+   - **デフォルト動作（`--auto-adopt` 未指定）**: 非対話環境では rank 戦略の自動採用を行わない（安全装置）
+   - `--auto-adopt` 指定時の挙動:
+     - 候補0件: `action: not_found`, `reason: no_candidates`
+     - 候補1件: `action: adopted`, `reason: auto_adopt_single_candidate`（`--apply` ならDB更新）
+     - 候補2件以上: `action: not_found`, `reason: auto_adopt_blocked_multiple_candidates`（候補は結果JSONに記録され、人間が後で判断できる）
+   - **事故防止**: 迷うケース（複数候補）は必ず未特定として記録し、誤登録を防ぐ
+
 **出力ファイル**:
-- `apps/scripts/logs/instagram-registration-<timestamp>.json`: 処理結果（採用/スキップ/未特定の記録）
+- `apps/scripts/logs/instagram-registration-<timestamp>.json`: 処理結果（採用/スキップ/未特定の記録、実行時のフラグ情報も含む）
 - `apps/scripts/logs/instagram-backup-<timestamp>.json`: 更新前のバックアップ（`--apply` 時のみ）
+- `apps/scripts/logs/instagram-review-<timestamp>.json`: レビュー用サマリ（`action: not_found` のみを抽出、人間レビューが容易）
 
 **注意事項**:
 - APIキー等のシークレットは表示・保存されない
 - DRY-RUN モードを推奨（誤登録を防ぐため）
 - 更新モードを使用する場合は、必ずバックアップを確認してから実行すること
-- `--strategy=rank` を使用する場合、非対話環境（readline closed等）では自動採用を行わない（安全装置）
+- `--strategy=rank` を非対話環境で使用する場合:
+  - `--auto-adopt` 未指定: 自動採用を行わず、すべてスキップされる（安全装置）
+  - `--auto-adopt` 指定: 候補1件のみ自動採用、複数候補は未特定として記録（誤登録防止）
+- 結果JSONの `reason` フィールドは機械可読なコード（例: `auto_adopt_single_candidate`, `auto_adopt_blocked_multiple_candidates`, `user_skipped` など）で記録され、後から抽出・分析が容易
 
 **参照**: `docs/05-09-instagram-account-url-coverage.md`（タスク5）
 

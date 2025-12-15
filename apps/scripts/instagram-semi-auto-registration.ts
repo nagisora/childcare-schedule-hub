@@ -31,6 +31,7 @@ const isYes = args.includes('--yes');
 const targetWard = args.find(arg => arg.startsWith('--ward='))?.split('=')[1] || '東区'; // デフォルトは東区
 const strategy = args.find(arg => arg.startsWith('--strategy='))?.split('=')[1] || 'score'; // デフォルトは score
 const compareStrategies = args.includes('--compare-strategies');
+const autoAdopt = args.includes('--auto-adopt');
 
 // 型定義
 interface Facility {
@@ -62,6 +63,117 @@ interface RegistrationResult {
 	candidates: Candidate[];
 	triedQueries: string[];
 	reason?: string;
+	selectedIndex?: number; // 採用した候補のインデックス（0始まり）
+}
+
+/**
+ * 決定アクションの結果
+ */
+interface DecisionResult {
+	action: 'adopt' | 'skip' | 'not_found';
+	selectedIndex?: number; // 採用する候補のインデックス（0始まり）
+	reason: string; // 機械可読なreasonコード
+}
+
+/**
+ * 選択/自動採用の判定ロジック（純粋関数）
+ */
+function decideAction(params: {
+	candidates: Candidate[];
+	strategy: string;
+	isInteractive: boolean;
+	autoAdopt: boolean;
+	userInput?: string; // 対話モードの場合のユーザー入力（'1', 's', 'n'など）
+}): DecisionResult {
+	const { candidates, strategy, isInteractive, autoAdopt, userInput } = params;
+
+	// 候補が0件の場合
+	if (candidates.length === 0) {
+		return {
+			action: 'not_found',
+			reason: 'no_candidates',
+		};
+	}
+
+	// 対話モードの場合
+	if (isInteractive && userInput !== undefined) {
+		const input = userInput.trim().toLowerCase();
+
+		// スキップ
+		if (input === 's' || input === 'skip') {
+			return {
+				action: 'skip',
+				reason: 'user_skipped',
+			};
+		}
+
+		// 未特定としてマーク
+		if (input === 'n' || input === 'not_found') {
+			return {
+				action: 'not_found',
+				reason: 'user_marked_not_found',
+			};
+		}
+
+		// 候補番号の入力
+		const index = parseInt(input, 10) - 1;
+		if (index >= 0 && index < candidates.length) {
+			return {
+				action: 'adopt',
+				selectedIndex: index,
+				reason: 'user_selected',
+			};
+		}
+
+		// 無効な入力の場合はスキップ
+		return {
+			action: 'skip',
+			reason: 'invalid_input',
+		};
+	}
+
+	// 非対話モードの場合
+	if (!isInteractive) {
+		// strategy=rank の場合
+		if (strategy === 'rank') {
+			if (!autoAdopt) {
+				// --auto-adopt が指定されていない場合はスキップ
+				return {
+					action: 'skip',
+					reason: 'auto_adopt_disabled',
+				};
+			}
+
+			// --auto-adopt が指定されている場合
+			if (candidates.length === 1) {
+				// 候補1件のみの場合は自動採用
+				return {
+					action: 'adopt',
+					selectedIndex: 0,
+					reason: 'auto_adopt_single_candidate',
+				};
+			} else {
+				// 候補が2件以上の場合は未特定として記録
+				return {
+					action: 'not_found',
+					reason: 'auto_adopt_blocked_multiple_candidates',
+				};
+			}
+		} else {
+			// strategy=score の場合は従来通り最初の候補を採用
+			return {
+				action: 'adopt',
+				selectedIndex: 0,
+				reason: 'non_interactive_score_strategy',
+			};
+		}
+	}
+
+	// 通常はここには到達しないが、念のため
+	return {
+		action: 'not_found',
+		reason: 'unknown_condition',
+	};
 }
 
 /**
@@ -132,17 +244,20 @@ async function searchInstagramAccount(facilityId: string, searchStrategy: string
 }
 
 /**
- * 候補を表示してユーザーに選択を求める
+ * 候補を表示してユーザーに選択を求める（対話モード）
  */
 async function promptForSelection(
 	rl: readline.Interface,
 	facilityName: string,
 	candidates: Candidate[],
 	searchStrategy: string = 'score'
-): Promise<'adopt' | 'skip' | 'not_found'> {
+): Promise<DecisionResult> {
 	if (candidates.length === 0) {
 		console.log(`\n[${facilityName}] 候補が見つかりませんでした。`);
-		return 'not_found';
+		return {
+			action: 'not_found',
+			reason: 'no_candidates',
+		};
 	}
 
 	if (searchStrategy === 'rank') {
@@ -170,34 +285,38 @@ async function promptForSelection(
 			`\n採用する候補の番号を入力（1-${candidates.length}）、または 's' でスキップ、'n' で未特定: `
 		);
 
-		if (answer.toLowerCase() === 's' || answer.toLowerCase() === 'skip') {
-			return 'skip';
-		}
-
-		if (answer.toLowerCase() === 'n' || answer.toLowerCase() === 'not_found') {
-			return 'not_found';
-		}
-
-		const index = parseInt(answer, 10) - 1;
-		if (index >= 0 && index < candidates.length) {
-			return 'adopt';
-		}
-
-		// 無効な入力の場合はスキップ
-		console.log('無効な入力です。スキップします。');
-		return 'skip';
+		return decideAction({
+			candidates,
+			strategy: searchStrategy,
+			isInteractive: true,
+			autoAdopt: false, // 対話モードでは autoAdopt は使用しない
+			userInput: answer,
+		});
 	} catch (error) {
 		// readlineが閉じられた場合（非対話環境など）の処理
 		if (error instanceof Error && error.message.includes('closed')) {
+			// 非対話環境の場合は decideAction を直接呼び出す
+			const result = decideAction({
+				candidates,
+				strategy: searchStrategy,
+				isInteractive: false,
+				autoAdopt: autoAdopt, // グローバル変数を参照
+			});
+
+			// ログメッセージを出力
 			if (searchStrategy === 'rank') {
-				// rank戦略の場合は自動採用を禁止（安全装置）
-				console.log('\n[注意] 非対話環境では rank 戦略の自動採用を行いません。スキップします。');
-				return 'skip';
+				if (!autoAdopt) {
+					console.log('\n[注意] 非対話環境では rank 戦略の自動採用を行いません。スキップします。');
+				} else if (result.action === 'adopt') {
+					console.log('\n[注意] 対話型入力が利用できないため、候補1件を自動採用します。');
+				} else if (result.action === 'not_found' && result.reason === 'auto_adopt_blocked_multiple_candidates') {
+					console.log('\n[注意] 候補が複数あるため、未特定として記録します。');
+				}
 			} else {
-				// score戦略の場合は従来通り自動採用候補として扱う
 				console.log('\n[注意] 対話型入力が利用できないため、最初の候補（最高スコア）を採用候補として記録します。');
-				return 'adopt';
 			}
+
+			return result;
 		}
 		throw error;
 	}
@@ -316,6 +435,8 @@ function writeResults(results: RegistrationResult[]): string {
 		timestamp: new Date().toISOString(),
 		targetWard,
 		isDryRun: !isApply,
+		strategy,
+		autoAdopt,
 		results,
 	};
 
@@ -325,6 +446,55 @@ function writeResults(results: RegistrationResult[]): string {
 		return resultFilename;
 	} catch (error) {
 		console.warn(`[WARN] Failed to write result file: ${error}`);
+		return '';
+	}
+}
+
+/**
+ * レビュー用サマリファイル（未特定のみ）を書き込む
+ */
+function writeReviewSummary(results: RegistrationResult[]): string {
+	const logsDir = join(__dirname, 'logs');
+	try {
+		mkdirSync(logsDir, { recursive: true });
+	} catch (error) {
+		if (error && typeof error === 'object' && 'code' in error && error.code !== 'EEXIST') {
+			console.warn(`[WARN] Failed to create logs directory: ${error}`);
+			return '';
+		}
+	}
+
+	const timestamp = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '-').slice(0, -5);
+	const reviewFilename = join(logsDir, `instagram-review-${timestamp}.json`);
+	
+	// action: not_found のみを抽出
+	const notFoundResults = results.filter(r => r.action === 'not_found');
+	
+	const reviewData = {
+		timestamp: new Date().toISOString(),
+		targetWard,
+		summary: {
+			total: results.length,
+			notFound: notFoundResults.length,
+		},
+		notFoundFacilities: notFoundResults.map(r => ({
+			facilityId: r.facilityId,
+			facilityName: r.facilityName,
+			wardName: r.wardName,
+			reason: r.reason,
+			candidateLinks: r.candidates.map(c => c.link),
+			triedQueries: r.triedQueries,
+		})),
+	};
+
+	try {
+		writeFileSync(reviewFilename, JSON.stringify(reviewData, null, 2), 'utf-8');
+		if (notFoundResults.length > 0) {
+			console.log(`[INFO] Review summary file written: ${reviewFilename} (${notFoundResults.length} facilities marked as not_found)`);
+		}
+		return reviewFilename;
+	} catch (error) {
+		console.warn(`[WARN] Failed to write review summary file: ${error}`);
 		return '';
 	}
 }
@@ -347,6 +517,9 @@ async function main() {
 			logger.info(`Target ward: ${targetWard}`);
 			logger.info(`Mode: ${isApply ? 'APPLY' : 'DRY-RUN'}`);
 			logger.info(`Strategy: ${strategy}`);
+			if (autoAdopt) {
+				logger.info('Auto-adopt: enabled (non-interactive rank strategy will adopt single candidate)');
+			}
 			if (compareStrategies) {
 				logger.info('Compare strategies: enabled (DRY-RUN only)');
 			}
@@ -423,13 +596,13 @@ async function main() {
 				
 				logger.info(`  Tried queries: ${searchResult.triedQueries.length}`);
 
-				// 候補を提示して選択を求める
-				const selection = await promptForSelection(rl, facility.name, searchResult.candidates, strategy);
+				// 候補を提示して選択を求める（対話/非対話の判定は promptForSelection 内で行う）
+				const decision = await promptForSelection(rl, facility.name, searchResult.candidates, strategy);
 
 				let result: RegistrationResult;
-				if (selection === 'adopt' && searchResult.candidates.length > 0) {
-					// 最初の候補（最高スコア）を採用
-					const selectedCandidate = searchResult.candidates[0];
+				if (decision.action === 'adopt' && decision.selectedIndex !== undefined && searchResult.candidates.length > 0) {
+					// 選択された候補を採用
+					const selectedCandidate = searchResult.candidates[decision.selectedIndex];
 					result = {
 						facilityId: facility.id,
 						facilityName: facility.name,
@@ -438,6 +611,8 @@ async function main() {
 						instagramUrl: selectedCandidate.link,
 						candidates: searchResult.candidates,
 						triedQueries: searchResult.triedQueries,
+						reason: decision.reason,
+						selectedIndex: decision.selectedIndex,
 					};
 
 					// 更新モードの場合、実際に更新
@@ -447,7 +622,7 @@ async function main() {
 					} else {
 						logger.info(`  [DRY-RUN] Would update: ${selectedCandidate.link}`);
 					}
-				} else if (selection === 'skip') {
+				} else if (decision.action === 'skip') {
 					result = {
 						facilityId: facility.id,
 						facilityName: facility.name,
@@ -456,9 +631,9 @@ async function main() {
 						instagramUrl: null,
 						candidates: searchResult.candidates,
 						triedQueries: searchResult.triedQueries,
-						reason: 'User skipped',
+						reason: decision.reason,
 					};
-					logger.info('  Skipped');
+					logger.info(`  Skipped (reason: ${decision.reason})`);
 				} else {
 					result = {
 						facilityId: facility.id,
@@ -468,9 +643,9 @@ async function main() {
 						instagramUrl: null,
 						candidates: searchResult.candidates,
 						triedQueries: searchResult.triedQueries,
-						reason: 'No candidates found or user marked as not found',
+						reason: decision.reason,
 					};
-					logger.info('  Not found');
+					logger.info(`  Not found (reason: ${decision.reason})`);
 				}
 
 				results.push(result);
@@ -484,7 +659,7 @@ async function main() {
 					instagramUrl: null,
 					candidates: [],
 					triedQueries: [],
-					reason: error instanceof Error ? error.message : String(error),
+					reason: `error_api_failed: ${error instanceof Error ? error.message : String(error)}`,
 				});
 			}
 		}
@@ -492,7 +667,13 @@ async function main() {
 		rl.close();
 
 		// 結果をファイルに保存
-		writeResults(results);
+		const resultFilename = writeResults(results);
+		
+		// レビュー用サマリ（未特定のみ）を書き込む
+		const reviewFilename = writeReviewSummary(results);
+		if (reviewFilename) {
+			logger.info(`Review summary (not_found only): ${reviewFilename}`);
+		}
 
 		// サマリーを表示
 		const adopted = results.filter(r => r.action === 'adopted').length;
