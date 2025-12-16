@@ -51,13 +51,29 @@ describe('generateSearchQueries', () => {
 
 	// Given: 特殊文字（括弧・記号）を含む施設名
 	// When: generateSearchQueries を実行
-	// Then: エスケープされたクエリが生成される
+	// Then: 括弧付き表記を保持しつつ、括弧除去（ベース名）も含めて取りこぼしを防ぐ
 	it('TC-N-06: 特殊文字（括弧・記号）を含む施設名でクエリ生成', () => {
 		const queries = generateSearchQueries('施設名（テスト）', '東区');
 
 		expect(queries).toHaveLength(4);
 		expect(queries[0]).toContain('site:instagram.com');
 		expect(queries[0]).toContain('"施設名（テスト）"');
+		// 括弧内を落としたベース名も含める（no_candidates対策）
+		expect(queries[0]).toContain('"施設名"');
+	});
+
+	// Given: 括弧が複数回登場する施設名（実測で no_candidates が出たパターン）
+	// When: generateSearchQueries を実行
+	// Then: ベース名（括弧ごと削除）を含めてクエリが生成される
+	it('TC-N-08: 括弧が複数ある施設名はベース名も含めてクエリ生成（no_candidates対策）', () => {
+		const queries = generateSearchQueries('おやこっこみなと（福田）（出張ひろば）', '港区');
+
+		expect(queries).toHaveLength(4);
+		expect(queries[0]).toContain('site:instagram.com');
+		// 元の表記は保持
+		expect(queries[0]).toContain('"おやこっこみなと（福田）（出張ひろば）"');
+		// ベース名を含める（括弧内を落とす）
+		expect(queries[0]).toContain('"おやこっこみなと"');
 	});
 
 	// Given: 短い施設名（汎用名）

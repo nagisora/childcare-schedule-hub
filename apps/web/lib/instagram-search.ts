@@ -40,10 +40,7 @@ export function generateSearchQueries(facilityName: string, wardName: string | n
 	// - まずは施設名 + instagram を優先し、区名・子育て等で絞りすぎない（取りこぼし防止）
 	const queries: string[] = [];
 
-	const facilityVariants = uniqueStrings([
-		facilityName,
-		normalizeFacilityNameForSearch(facilityName),
-	]);
+	const facilityVariants = uniqueStrings(buildFacilityNameVariantsForSearch(facilityName));
 	const facilityTerm = buildOrQuotedTerm(facilityVariants);
 	const genericFacilityName = isGenericFacilityName(facilityName);
 
@@ -91,12 +88,51 @@ function uniqueStrings(values: string[]): string[] {
 	return out;
 }
 
+function buildFacilityNameVariantsForSearch(name: string): string[] {
+	// 例:
+	// - 「あおぞらわらばぁ～」→「あおぞらわらばぁ」
+	// - 「おやこっこみなと（福田）（出張ひろば）」→「おやこっこみなと」「おやこっこみなと 福田 出張ひろば」
+	const raw = (name ?? '').trim();
+	if (!raw) return [];
+
+	const normalized = normalizeFacilityNameForSearch(raw);
+	const withoutParenContent = normalizeFacilityNameDropParentheticalContent(normalized);
+	const expandedParenContent = normalizeFacilityNameExpandParentheticalContent(normalized);
+
+	// クエリが長くなりすぎないよう、最大3つ程度に抑える
+	return uniqueStrings([
+		raw,
+		normalized,
+		withoutParenContent,
+		expandedParenContent,
+	]).slice(0, 3);
+}
+
 function normalizeFacilityNameForSearch(name: string): string {
 	// 例: 「あおぞらわらばぁ～」→「あおぞらわらばぁ」
 	// - 波ダッシュ系の揺れを除去
 	// - 余分な空白を圧縮
 	return (name ?? '')
 		.replace(/[〜～]/g, '')
+		.replace(/\s+/g, ' ')
+		.trim();
+}
+
+function normalizeFacilityNameDropParentheticalContent(name: string): string {
+	// 例: 「おやこっこみなと（福田）（出張ひろば）」→「おやこっこみなと」
+	return (name ?? '')
+		// 全角括弧（...）の中身ごと削除
+		.replace(/（[^）]*）/g, ' ')
+		// 半角括弧(...)の中身ごと削除
+		.replace(/\([^)]*\)/g, ' ')
+		.replace(/\s+/g, ' ')
+		.trim();
+}
+
+function normalizeFacilityNameExpandParentheticalContent(name: string): string {
+	// 例: 「おやこっこみなと（福田）（出張ひろば）」→「おやこっこみなと 福田 出張ひろば」
+	return (name ?? '')
+		.replace(/[（）()]/g, ' ')
 		.replace(/\s+/g, ' ')
 		.trim();
 }

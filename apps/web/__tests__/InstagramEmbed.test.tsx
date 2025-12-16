@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, act } from '@testing-library/react';
 import { InstagramEmbed } from '../components/InstagramEmbed';
 
 // Instagram SDK のモック
@@ -12,16 +12,23 @@ const mockInstgrm = {
 
 describe('InstagramEmbed', () => {
 	beforeEach(() => {
-		// window.instgrm をモック
-		(global as any).window = {
-			...global.window,
-			instgrm: mockInstgrm,
-		};
+		// window オブジェクト自体は jsdom が提供するものを維持し、
+		// 追加プロパティ（instgrm）だけを差し込む（window丸ごと置換するとReactが壊れる）
+		Object.defineProperty(window, 'instgrm', {
+			value: mockInstgrm,
+			writable: true,
+			configurable: true,
+		});
 		vi.clearAllMocks();
 	});
 
 	afterEach(() => {
 		vi.restoreAllMocks();
+		cleanup();
+		vi.useRealTimers();
+		// 次のテストへ副作用を持ち越さない
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		delete (window as any).instgrm;
 	});
 
 	// Given: 有効なInstagram投稿URL
@@ -58,6 +65,7 @@ describe('InstagramEmbed', () => {
 		expect(screen.getByText(/無効なInstagram投稿URLです/i)).toBeInTheDocument();
 		const fallbackLink = screen.getByRole('link', { name: /Instagramで開く/i });
 		expect(fallbackLink).toBeInTheDocument();
+		expect(fallbackLink).toHaveAttribute('href', 'https://www.instagram.com/');
 	});
 
 	// Given: 有効なURLだが、埋め込み処理が失敗
@@ -68,41 +76,30 @@ describe('InstagramEmbed', () => {
 		const postUrl = 'https://www.instagram.com/p/ABC123/';
 		mockInstgrm.Embeds.process.mockReturnValue(false);
 		// window.instgrm を undefined にして、SDK未読み込み状態をシミュレート
-		Object.defineProperty(global, 'window', {
-			value: {
-				...global.window,
-				instgrm: undefined,
-			},
-			writable: true,
-		});
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		delete (window as any).instgrm;
 
 		render(<InstagramEmbed postUrl={postUrl} />);
 
 		// タイムアウトまで待機（10秒 + ポーリング時間）
-		vi.advanceTimersByTime(11000);
-
-		await waitFor(() => {
-			expect(screen.getByText(/Instagram投稿の埋め込みに失敗しました/i)).toBeInTheDocument();
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(11000);
 		});
+
+		expect(screen.getByText(/Instagram投稿の埋め込みに失敗しました/i)).toBeInTheDocument();
 
 		const fallbackLink = screen.getByRole('link', { name: /Instagram投稿を新しいタブで開く/i });
 		expect(fallbackLink).toBeInTheDocument();
 		expect(fallbackLink).toHaveAttribute('href', postUrl);
 
-		vi.useRealTimers();
-	});
+	}, 10000);
 
 	// Given: 有効なURL
 	// When: Instagram SDKが読み込まれていない状態でレンダリング
 	// Then: blockquote要素は表示されるが、埋め込み処理は後で実行される
 	it('TC-N-02: Instagram SDKが未読み込みでもblockquote要素を表示する', () => {
-		Object.defineProperty(global, 'window', {
-			value: {
-				...global.window,
-				instgrm: undefined,
-			},
-			writable: true,
-		});
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		delete (window as any).instgrm;
 		const postUrl = 'https://www.instagram.com/p/ABC123/';
 		render(<InstagramEmbed postUrl={postUrl} />);
 
