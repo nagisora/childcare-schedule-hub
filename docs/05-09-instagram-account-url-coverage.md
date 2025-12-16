@@ -18,6 +18,7 @@
 - [ ] Runbookに検索APIベースの標準フローと、フォールバックとしての手動ブラウザ検索フローが整理されている
 - [ ] データ品質チェック（Instagramドメイン以外・重複URLの検出）が1回以上実施され、dev-sessionsに記録されている
 - [x] 対象施設が「処理済み」になっている（`instagram_url` が埋まった施設だけでなく、見つからない/判断不能な施設も「未特定（理由付き）」として一覧化されている） - 2025-12-15（東区3件すべて更新完了、未特定1件は手動対応で更新済み）([dev-session](../../dev-sessions/2025/12/20251215-01-phase9-instagram-auto-adopt-review.md))
+- [ ] リファクタリングで壊れないよう、フェーズ9の主要ロジックに対する自動テストが整備されている（少なくとも `apps/web` で `mise exec -- pnpm --filter web test` が通る）
 
 ### 実装タスク（セッション粒度の進捗）
 
@@ -31,6 +32,7 @@
 - [x] タスク4追加: hybrid戦略（`strategy=hybrid`、rank主経路+score再評価）の追加と実測 - 2025-12-16 ([dev-session](../../dev-sessions/2025/12/20251216-01-phase9-instagram-search-hybrid-strategy.md))
 - [ ] タスク4追加: 再検索抑制キャッシュ（facilityId+query+results）を設計・実装
 - [ ] [タスク6: Runbook整備とデータ品質チェック](#task-6)
+- [ ] [タスク7: 自動テスト整備（フェーズ9回帰防止）](#task-7)
 
 ## 1. 概要
 
@@ -202,6 +204,31 @@
   - `docs/instagram-integration/05-instagram-account-search.md`
   - `docs/04-development.md`（必要に応じてRunbookへの参照を追加）
   - `docs/dev-sessions/` 配下（データ品質チェック結果の記録）
+
+<a id="task-7"></a>
+### タスク7: 自動テスト整備（フェーズ9回帰防止）
+
+- **目的**:
+  - リファクタリングで壊れがちな箇所（検索クエリ生成/URL正規化/候補抽出/戦略切替/API Route/半自動登録ツール）を自動テストで回帰検知できる状態にする
+- **チェックリスト（完了条件）**:
+  - [ ] 既存テスト（例: `apps/web/__tests__/instagram-search.test.ts`）のカバー範囲を棚卸しし、観点表（等価分割・境界値）として dev-sessions に記録している
+  - [ ] `apps/web/lib/instagram-search.ts` の主要分岐（`strategy=score|rank|hybrid`、URL正規化、候補抽出、重複除外、閾値/limit、例外系）をユニットテストでカバーしている
+  - [ ] `apps/web/app/api/instagram-search/route.ts` を、外部依存（Google CSE）をモックしたテストでカバーしている（正常系 / 400系 / 401系 / 500系の少なくとも主要経路）
+  - [ ] `apps/scripts/instagram-semi-auto-registration.ts` の主要判断（`--auto-adopt`、`reason` コード、サマリ出力）について、テスト可能な形に切り出したうえで自動テストを用意している（`apps/web` 側でのテストでも、`apps/scripts` 側にテストランナーを導入してもよい）
+  - [ ] `mise exec -- pnpm --filter web test` が安定して通る
+  - [ ] カバレッジを取得でき、結果（要約）を dev-sessions に残している（例: `mise exec -- pnpm --filter web test:coverage`）
+- **検証方法**:
+  - `mise exec -- pnpm --filter web test`
+  - `mise exec -- pnpm --filter web test:coverage`
+  - （必要に応じて）`mise exec -- pnpm --filter web typecheck` で型チェックも併用
+- **dev-sessions粒度**:
+  - 1〜2セッション（①棚卸しと観点表作成、②不足テストの追加と安定化）
+- **更新先ドキュメント**:
+  - `docs/dev-sessions/` 配下（観点表・カバレッジ要約・実行コマンド）
+- **更新先コード**:
+  - `apps/web/__tests__/`（不足テストの追加）
+  - `apps/web/app/api/instagram-search/route.ts`（テストしやすい構造へ必要なら軽微リファクタ）
+  - `apps/scripts/instagram-semi-auto-registration.ts`（テスト容易性のための切り出し、必要なら）
 
 ## 4. 品質チェック
 
