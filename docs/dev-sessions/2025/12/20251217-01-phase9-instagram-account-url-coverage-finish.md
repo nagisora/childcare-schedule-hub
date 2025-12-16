@@ -31,7 +31,7 @@
 
 - 参照: `docs/05-09-instagram-account-url-coverage.md`（フェーズ9の正本）
 - 参照: `docs/dev-sessions/2025/12/20251216-02-phase9-instagram-search-hybrid-more-measurements.md`（直近の実測・仮説・修正点）
-- 参照: `docs/instagram-integration/01-investigation.md`（`detail_page_url` の存在と取得元ページ）
+- 参照: `docs/instagram-integration/01-investigation.md`（自治体サイトの拠点詳細ページURLと、その取得元ページ）
 - 参照: `apps/scripts/instagram-semi-auto-registration.ts`（更新CLI）
 - 参照: `apps/web/app/api/instagram-search/route.ts`（検索API）
 - 参照: `apps/web/lib/instagram-search.ts`（クエリ生成・スコア）
@@ -40,7 +40,10 @@
 
 - 今日のセッションで前提とする方針:
   - 速度優先で「終わらせる」ことを最優先（無料枠超過は許容、ただし無駄は減らす）
-  - まず **名古屋市サイトの詳細ページ（`detail_page_url`）からInstagram URLを抽出**し、取れるものはそれを正としてDB更新する（Google検索より精度が高く無駄が少ない）
+  - まず **名古屋市サイトの拠点詳細ページ（DBカラム: `facilities.detail_page_url`）からInstagram URLを抽出**し、取れるものはそれを正としてDB更新する（Google検索より精度が高く無駄が少ない）
+    - **重要**: 名古屋市サイトの詳細ページURLは `https://www.kosodate.city.nagoya.jp/play/...` が正で、`/play/` 抜けのURLは開くと **404 (Not Found)** になることがある
+      - 例: 正しいURLは `https://www.kosodate.city.nagoya.jp/play/supportbases34.html`
+    - そのため、詳細ページ巡回の前に `facilities.detail_page_url` の正規化（`/play/` 抜け補完）を必ず実施する
   - 更新は「自動で安全にできる範囲（候補1件）」を最大化し、複数候補は人間レビューに回す
   - `no_candidates` はクエリ側（括弧/揺れ・フォールバック本数）をまず疑い、それでもダメなら手動検索フォールバック
 - 保留中の論点 / 今回は触らないと決めたこと:
@@ -52,17 +55,34 @@
 
 ### 1. 作業タスク & 実行内容（実装・運用・ドキュメント更新）
 
-- [ ] タスク1: 公式サイト詳細ページから Instagram URL を一括抽出し、取れるものはDB更新する（一次ソース優先）
+- [ ] タスク1: `facilities.detail_page_url` の `/play/` 抜けを修正して 404 を解消する（一次ソース抽出の前提整備）
   - 完了条件:
-    - [ ] `detail_page_url` を持つ施設を対象に、Instagram URL が記載されているものを抽出できている（ログ/サマリが残る）
+    - [ ] `https://www.kosodate.city.nagoya.jp/` 配下で `/play/` が欠けている `detail_page_url` を検出できている
+    - [ ] 必要なレコードについて、`/play/` を補完して正しいURLに更新できている（ログ/根拠が残る）
+  - **AIが実行する内容（手順/プロンプト/操作メモ）**:
+    ```
+    - 参照ファイル:
+      - apps/scripts/fetch-nagoya-childcare-bases.ts（拠点詳細ページURL / `facilities.detail_page_url` の取得方法）
+      - docs/instagram-integration/01-investigation.md（URL体系の調査結果）
+    - やりたいこと:
+      - `detail_page_url` の `https://www.kosodate.city.nagoya.jp/(supportbases|ouenkyoten)` 系を `.../play/...` に正規化（404回避）
+      - 取得スクリプト側が `/play/` を落としているなら、まずそこを修正して再取り込みの方針を決める（DB直接更新 vs 再import）
+    - 制約・注意点:
+      - DB更新は影響が大きいので、対象件数・サンプルを確認してから実行する
+      - 変更したURLは、数件は実際に開いて 404 でないことを確認する
+    ```
+
+- [ ] タスク2: 公式サイト詳細ページから Instagram URL を一括抽出し、取れるものはDB更新する（一次ソース優先）
+  - 完了条件:
+    - [ ] 拠点詳細ページURL（DB: `facilities.detail_page_url`）を持つ施設を対象に、Instagram URL が記載されているものを抽出できている（ログ/サマリが残る）
     - [ ] 記載があった施設は `instagram_url` を更新できている（`--apply --yes`）
   - **AIが実行する内容（手順/プロンプト/操作メモ）**:
     ```
     - 参照ファイル:
-      - apps/scripts/fetch-nagoya-childcare-bases.ts（detail_page_url の取得方法）
+      - apps/scripts/fetch-nagoya-childcare-bases.ts（拠点詳細ページURL / `facilities.detail_page_url` の取得方法）
       - docs/instagram-integration/01-investigation.md（取得元ページ）
     - やりたいこと:
-      - facilities.detail_page_url を使って詳細ページを巡回し、Instagramリンク（プロフィールURL）を抽出
+      - 拠点詳細ページURL（`facilities.detail_page_url`）を使って詳細ページを巡回し、Instagramリンク（プロフィールURL）を抽出
       - 抽出できたものは正規化して facilities.instagram_url を更新
       - 抽出できない/複数ある/不正形式はレビュー用に残す
     - 制約・注意点:
@@ -70,7 +90,7 @@
       - シークレットを出さない
     ```
 
-- [ ] タスク2: `no_candidates` 削減のための検索クエリ改善（括弧/揺れ・必要ならフォールバック本数）を仕上げる（一次ソースで埋まらない分の補完）
+- [ ] タスク3: `no_candidates` 削減のための検索クエリ改善（括弧/揺れ・必要ならフォールバック本数）を仕上げる（一次ソースで埋まらない分の補完）
   - 完了条件:
     - [ ] 直近で `no_candidates` だった施設（複数件）をDRY-RUNで再実行し、改善の有無を確認できる
   - **AIが実行する内容（手順/プロンプト/操作メモ）**:
@@ -87,7 +107,7 @@
       - シークレットを出さない
     ```
 
-- [ ] タスク3: CLIで「自動更新できるものは更新」し、複数候補/未特定をレビューに回して全体を完走する
+- [ ] タスク4: CLIで「自動更新できるものは更新」し、複数候補/未特定をレビューに回して全体を完走する
   - 完了条件:
     - [ ] 対象全施設を実行し、`apps/scripts/logs` に実行ログ・レビューサマリが残っている
     - [ ] `--apply --yes` による更新が完了し、必要ならバックアップからロールバック可能
@@ -105,7 +125,7 @@
       - 途中で止まっても再開できるようログを残す
     ```
 
-- [ ] タスク4: フェーズ9の進捗・Runbook・品質チェックを更新してクローズ条件に近づける
+- [ ] タスク5: フェーズ9の進捗・Runbook・品質チェックを更新してクローズ条件に近づける
   - 完了条件:
     - [ ] `docs/05-09-instagram-account-url-coverage.md` の進捗が更新され、証跡リンクが貼られている
     - [ ] データ品質チェック（重複URL/ドメイン/投稿URL混入など）が1回以上実施され、結果が記録されている

@@ -24,7 +24,8 @@ Instagram連携によるスケジュールURL取得・管理の運用手順を�
 - **結果（更新）**:
   - 一覧ページ（テーブル）にはInstagramリンクが含まれていない
   - ただし詳細ページ（`detail_page_url`）にInstagram URLが明示されているケースがあるため、**この方法は「部分的に有効」**
-    - 例: `supportbases10.html` に `https://www.instagram.com/oyakokko_minato/` の記載
+    - 例: `https://www.kosodate.city.nagoya.jp/play/supportbases10.html` に `https://www.instagram.com/oyakokko_minato/` の記載
+    - 注意: 詳細ページURLは `.../play/...` が正で、`/play/` 抜けは 404 になることがある
 - **運用**:
   - まず詳細ページを確認（または一括抽出）し、見つからない分だけ検索に回す
 
