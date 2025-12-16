@@ -215,6 +215,8 @@
 
 - **問題**: `no_candidates` になった施設の `triedQueries` が `"おやこっこみなと（福田）（出張ひろば）"` のように **括弧込み完全一致**で、取りこぼしが起きやすい。
 - **対応**: `generateSearchQueries()` の施設名 variants に **括弧内削除（ベース名）** と **括弧展開（括弧文字をスペース化）** を追加し、OR条件で拾える幅を広げた（ただしクエリ肥大を避けるため variants は最大3つに制限）。
+- **補足（重要）**: 施設名そのもの（自動取得名称）をそのままInstagram検索に使うのは限界があるため、将来的には「自動取得名称」と通称/別名（例: `おやこっこみなと 福田`）を分けて保持するのが筋。ただしこれは将来対応に回す。
+  - なお、名古屋市サイトの詳細ページによっては **Instagram URL が明示されている**ケースが見つかった（例: `supportbases10.html` に `https://www.instagram.com/oyakokko_minato/` の記載）。この場合、**検索よりも「公式ページの記載」を正**として取得する方が速くて確実。
 - **変更箇所**:
   - `apps/web/lib/instagram-search.ts`
   - `apps/web/__tests__/instagram-search.test.ts`（実測名を含むテストを追加）
