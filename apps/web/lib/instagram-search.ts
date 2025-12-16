@@ -413,3 +413,63 @@ export function processSearchResultsRank(
 	return candidates;
 }
 
+/**
+ * hybrid戦略用: 検索結果からプロフィールURL候補を抽出し、scoreで再評価して並べ替える
+ * 
+ * rankと同様に「最初に候補が得られたクエリ1本」を採用し、そのクエリの結果から
+ * プロフィールURL候補を上位から多めに抽出（例: 上位10件）。
+ * 抽出した候補に対して scoreCandidate を算出し、スコア降順で並べ替えて返す。
+ * 
+ * @param items Google CSE の検索結果配列（順位順）
+ * @param facilityName 施設名（スコア算出用）
+ * @param wardName 区名（null可、スコア算出用）
+ * @param limit 最大候補抽出数（デフォルト: 10。scoreで再評価する前の抽出数）
+ * @returns 正規化済み候補リスト（スコア降順、reasons含む）
+ */
+export function processSearchResultsHybrid(
+	items: GoogleCSEItem[],
+	facilityName: string,
+	wardName: string | null,
+	limit: number = 10
+): Candidate[] {
+	const candidates: Candidate[] = [];
+	const seenUrls = new Set<string>();
+	
+	// rankと同様に、プロフィールURL候補を上位から多めに抽出（limit件まで）
+	for (const item of items) {
+		// すでにlimit件に達したら終了
+		if (candidates.length >= limit) {
+			break;
+		}
+		
+		// URL正規化（プロフィールURLのみ許可）
+		const normalizedUrl = normalizeInstagramUrl(item.link);
+		if (!normalizedUrl) {
+			// 除外パターン（投稿URL等）はスキップ
+			continue;
+		}
+		
+		// 重複チェック（同じURLは最初の出現のみ採用）
+		if (seenUrls.has(normalizedUrl)) {
+			continue;
+		}
+		seenUrls.add(normalizedUrl);
+		
+		// スコアを算出（hybridでは並べ替えに使用）
+		const { score, reasons } = scoreCandidate(item, facilityName, wardName);
+		
+		candidates.push({
+			link: normalizedUrl,
+			title: item.title,
+			snippet: item.snippet,
+			score,
+			reasons,
+		});
+	}
+	
+	// スコア降順で並べ替え（hybrid戦略の特徴）
+	candidates.sort((a, b) => b.score - a.score);
+	
+	return candidates;
+}
+

@@ -4,6 +4,7 @@ import {
 	generateSearchQueries,
 	processSearchResults,
 	processSearchResultsRank,
+	processSearchResultsHybrid,
 	type Candidate,
 } from '../../../lib/instagram-search';
 
@@ -46,9 +47,9 @@ export async function GET(request: NextRequest) {
 	const strategy = searchParams.get('strategy') || 'score'; // デフォルトは score
 	
 	// strategy のバリデーション
-	if (strategy !== 'score' && strategy !== 'rank') {
+	if (strategy !== 'score' && strategy !== 'rank' && strategy !== 'hybrid') {
 		return NextResponse.json(
-			{ error: { code: 'BAD_REQUEST', message: 'strategy must be "score" or "rank"' } },
+			{ error: { code: 'BAD_REQUEST', message: 'strategy must be "score", "rank", or "hybrid"' } },
 			{ status: 400 }
 		);
 	}
@@ -176,7 +177,7 @@ export async function GET(request: NextRequest) {
 			candidates,
 			triedQueries,
 		});
-	} else {
+	} else if (strategy === 'rank') {
 		// rank戦略: クエリ単位の段階フォールバックで上位1〜3件
 		const candidates: Candidate[] = [];
 
@@ -220,6 +221,64 @@ export async function GET(request: NextRequest) {
 					candidates.push(...rankCandidates);
 					
 					// 候補が得られたら早期終了（クエリ横断で混ぜない）
+					if (candidates.length > 0) {
+						break;
+					}
+				}
+			} catch (error) {
+				triedQueries.push(query);
+				continue;
+			}
+		}
+
+		return NextResponse.json({
+			candidates,
+			triedQueries,
+		});
+	} else {
+		// hybrid戦略: rank主経路（最初に候補が得られたクエリ1本）で候補を抽出し、scoreで再評価して並べ替え
+		const candidates: Candidate[] = [];
+
+		for (const query of queries.slice(0, maxQueries)) {
+			try {
+				const searchUrl = new URL('https://www.googleapis.com/customsearch/v1');
+				searchUrl.searchParams.set('key', apiKey);
+				searchUrl.searchParams.set('cx', cx);
+				searchUrl.searchParams.set('q', query);
+				searchUrl.searchParams.set('num', '10');
+				searchUrl.searchParams.set('hl', 'ja');
+				searchUrl.searchParams.set('gl', 'jp');
+				
+				const response = await fetch(searchUrl.toString(), {
+					method: 'GET',
+					headers: {
+						'User-Agent': 'ChildcareScheduleHub/1.0',
+					},
+				});
+				
+				if (!response.ok) {
+					triedQueries.push(query);
+					continue;
+				}
+				
+				const data = await response.json();
+				
+				if (data.error) {
+					return NextResponse.json(
+						{ error: { code: 'CSE_ERROR', message: data.error.message || 'Google CSE API error' } },
+						{ status: 500 }
+					);
+				}
+				
+				const items = data.items || [];
+				triedQueries.push(query);
+				
+				if (items.length > 0) {
+					// hybrid戦略: 上位10件を抽出し、scoreで再評価して並べ替え
+					const hybridCandidates = processSearchResultsHybrid(items, targetFacilityName, targetWardName, 10);
+					candidates.push(...hybridCandidates);
+					
+					// 候補が得られたら早期終了（クエリ横断で混ぜない。rank主経路を維持）
 					if (candidates.length > 0) {
 						break;
 					}

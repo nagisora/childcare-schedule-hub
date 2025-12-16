@@ -1,6 +1,6 @@
-# チェックリスト式実装計画書: 2025-12-15
+# チェックリスト式実装計画書: 2025-12-16
 
-> **重要（AI作業時）**: このファイルは `date +%Y%m%d` の結果（`20251215`）に基づいて作成している。  
+> **重要（AI作業時）**: このファイルは `date +%Y%m%d` の結果（`20251216`）に基づいて作成している。  
 > ルール: `docs/dev-sessions/README.md` / `docs/05-00-development-phases.md#dev-sessions-date`
 
 ## セッション概要とゴール
@@ -11,7 +11,7 @@
 - 対応フェーズ: フェーズ9
 - セッション種別: 実装 + 検証 + ドキュメント整備
 - 影響範囲: `apps/web/app/api/instagram-search/route.ts` / `apps/web/lib/instagram-search.ts` / `apps/web/__tests__/instagram-search.test.ts` / `apps/scripts/instagram-semi-auto-registration.ts` / `docs/dev-sessions` / `docs/05-09-instagram-account-url-coverage.md`
-- 日付: 2025-12-15
+- 日付: 2025-12-16
 - 想定所要時間: 90〜180 分（実装＋実測。途中で分割してOK）
 
 ### ゴール

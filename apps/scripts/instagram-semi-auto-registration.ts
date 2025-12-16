@@ -134,8 +134,8 @@ function decideAction(params: {
 
 	// 非対話モードの場合
 	if (!isInteractive) {
-		// strategy=rank の場合
-		if (strategy === 'rank') {
+		// strategy=rank または strategy=hybrid の場合
+		if (strategy === 'rank' || strategy === 'hybrid') {
 			if (!autoAdopt) {
 				// --auto-adopt が指定されていない場合はスキップ
 				return {
@@ -262,6 +262,8 @@ async function promptForSelection(
 
 	if (searchStrategy === 'rank') {
 		console.log(`\n[${facilityName}] 候補が見つかりました（rank戦略: 上位1〜3件）:`);
+	} else if (searchStrategy === 'hybrid') {
+		console.log(`\n[${facilityName}] 候補が見つかりました（hybrid戦略: rank主経路+score再評価）:`);
 	} else {
 		console.log(`\n[${facilityName}] 候補が見つかりました（スコア5点以上、最大9点）:`);
 	}
@@ -269,6 +271,8 @@ async function promptForSelection(
 		console.log(`  ${index + 1}. ${candidate.link}`);
 		if (searchStrategy === 'rank') {
 			console.log(`     スコア: ${candidate.score}点（参考情報）`);
+		} else if (searchStrategy === 'hybrid') {
+			console.log(`     スコア: ${candidate.score}点（score降順で並べ替え済み）`);
 		} else {
 			console.log(`     スコア: ${candidate.score}点 / 最大9点`);
 		}
@@ -304,9 +308,9 @@ async function promptForSelection(
 			});
 
 			// ログメッセージを出力
-			if (searchStrategy === 'rank') {
+			if (searchStrategy === 'rank' || searchStrategy === 'hybrid') {
 				if (!autoAdopt) {
-					console.log('\n[注意] 非対話環境では rank 戦略の自動採用を行いません。スキップします。');
+					console.log(`\n[注意] 非対話環境では ${searchStrategy} 戦略の自動採用を行いません。スキップします。`);
 				} else if (result.action === 'adopt') {
 					console.log('\n[注意] 対話型入力が利用できないため、候補1件を自動採用します。');
 				} else if (result.action === 'not_found' && result.reason === 'auto_adopt_blocked_multiple_candidates') {
@@ -323,28 +327,14 @@ async function promptForSelection(
 }
 
 /**
- * 候補を比較表示する（score/rankの両方を表示）
+ * 候補を比較表示する（rank/hybridの両方を表示）
  */
 function displayComparison(
 	facilityName: string,
-	scoreResult: SearchResult,
-	rankResult: SearchResult
+	rankResult: SearchResult,
+	hybridResult: SearchResult
 ): void {
 	console.log(`\n[${facilityName}] 戦略比較:`);
-	
-	console.log('\n--- Strategy: score ---');
-	if (scoreResult.candidates.length === 0) {
-		console.log('  候補なし');
-	} else {
-		scoreResult.candidates.forEach((candidate, index) => {
-			console.log(`  ${index + 1}. ${candidate.link}`);
-			console.log(`     スコア: ${candidate.score}点`);
-			if (candidate.reasons && candidate.reasons.length > 0) {
-				console.log(`     理由: ${candidate.reasons.join(', ')}`);
-			}
-		});
-	}
-	console.log(`  試したクエリ: ${scoreResult.triedQueries.length}件`);
 	
 	console.log('\n--- Strategy: rank ---');
 	if (rankResult.candidates.length === 0) {
@@ -359,6 +349,20 @@ function displayComparison(
 		});
 	}
 	console.log(`  試したクエリ: ${rankResult.triedQueries.length}件`);
+	
+	console.log('\n--- Strategy: hybrid ---');
+	if (hybridResult.candidates.length === 0) {
+		console.log('  候補なし');
+	} else {
+		hybridResult.candidates.forEach((candidate, index) => {
+			console.log(`  ${index + 1}. ${candidate.link}`);
+			console.log(`     スコア: ${candidate.score}点（score降順で並べ替え済み）`);
+			if (candidate.reasons && candidate.reasons.length > 0) {
+				console.log(`     理由: ${candidate.reasons.join(', ')}`);
+			}
+		});
+	}
+	console.log(`  試したクエリ: ${hybridResult.triedQueries.length}件`);
 }
 
 /**
@@ -717,8 +721,8 @@ async function main() {
 			}
 			
 			// strategy のバリデーション
-			if (strategy !== 'score' && strategy !== 'rank') {
-				logger.error(`Invalid strategy: ${strategy}. Must be "score" or "rank"`);
+			if (strategy !== 'score' && strategy !== 'rank' && strategy !== 'hybrid') {
+				logger.error(`Invalid strategy: ${strategy}. Must be "score", "rank", or "hybrid"`);
 				process.exit(1);
 			}
 
@@ -767,16 +771,16 @@ async function main() {
 				let searchResult: SearchResult;
 				
 				if (compareStrategies) {
-					// 比較モード: score/rank の両方を取得して表示
-					const [scoreResult, rankResult] = await Promise.all([
-						searchInstagramAccount(facility.id, 'score'),
+					// 比較モード: rank/hybrid の両方を取得して表示（rank主経路を維持するため）
+					const [rankResult, hybridResult] = await Promise.all([
 						searchInstagramAccount(facility.id, 'rank'),
+						searchInstagramAccount(facility.id, 'hybrid'),
 					]);
 					
-					displayComparison(facility.name, scoreResult, rankResult);
+					displayComparison(facility.name, rankResult, hybridResult);
 					
-					// 比較モードでは score の結果を使って選択を求める
-					searchResult = scoreResult;
+					// 比較モードでは rank の結果を使って選択を求める（rank主経路を維持）
+					searchResult = rankResult;
 				} else {
 					// 通常モード: 指定された strategy で検索
 					searchResult = await searchInstagramAccount(facility.id, strategy);

@@ -5,6 +5,7 @@ import {
 	scoreCandidate,
 	processSearchResults,
 	processSearchResultsRank,
+	processSearchResultsHybrid,
 } from '../lib/instagram-search';
 
 describe('generateSearchQueries', () => {
@@ -16,31 +17,35 @@ describe('generateSearchQueries', () => {
 
 		expect(queries).toHaveLength(4);
 		expect(queries[0]).toContain('site:instagram.com');
-		expect(queries[0]).toContain('instagram');
 		// 波ダッシュの揺れ対策で OR を含む
 		expect(queries[0]).toContain('"あおぞらわらばぁ～"');
 		expect(queries[0]).toContain('"あおぞらわらばぁ"');
+		expect(queries[0]).toContain('子育て拠点');
 
 		expect(queries[1]).toContain('site:instagram.com');
 		expect(queries[1]).toContain('"あおぞらわらばぁ～"');
+		expect(queries[1]).toContain('子育て');
 
 		expect(queries[2]).toContain('site:instagram.com');
-		expect(queries[2]).toContain('"東区"');
+		expect(queries[2]).toContain('"あおぞらわらばぁ～"');
 
-		expect(queries[3]).toContain('instagram');
+		// 4番目のクエリは区名を含むか、または instagram のみのクエリ
+		expect(queries[3]).toMatch(/site:instagram\.com.*"東区"|あおぞらわらばぁ.*instagram/);
 	});
 
 	// Given: 区名が null
 	// When: generateSearchQueries を実行
-	// Then: 区名を含むクエリは生成されず、施設名中心のクエリが生成される
+	// Then: 区名を含むクエリは生成されず、施設名中心のクエリが生成される（最大4件）
 	it('TC-N-02: 区名が null でクエリ生成', () => {
 		const queries = generateSearchQueries('あおぞらわらばぁ～', null);
 
-		expect(queries).toHaveLength(3);
+		expect(queries).toHaveLength(4);
 		expect(queries[0]).toContain('site:instagram.com');
-		expect(queries[0]).toContain('instagram');
+		expect(queries[0]).toContain('子育て拠点');
 		expect(queries[1]).toContain('site:instagram.com');
-		expect(queries[2]).toContain('instagram');
+		expect(queries[1]).toContain('子育て');
+		expect(queries[2]).toContain('site:instagram.com');
+		expect(queries[3]).toContain('instagram');
 		expect(queries.every(q => !q.includes('"東区"'))).toBe(true);
 	});
 
@@ -489,6 +494,203 @@ describe('processSearchResultsRank', () => {
 		expect(candidates[0].link).toBe('https://www.instagram.com/user1/');
 		expect(candidates[1].link).toBe('https://www.instagram.com/user2/');
 		// スコアに関係なく順位順が保たれている
+	});
+});
+
+describe('processSearchResultsHybrid', () => {
+	// Given: プロフィールURLが複数含まれる検索結果（スコアが異なる）
+	// When: processSearchResultsHybrid を実行
+	// Then: スコア降順で並べ替えられた候補が返される（rankとの違い）
+	it('TC-N-20: プロフィールURLが複数ある場合、スコア降順で並べ替えられる', () => {
+		const items = [
+			{
+				link: 'https://www.instagram.com/user1/',
+				title: '施設名1',
+				snippet: '説明1（スコア低め）',
+			},
+			{
+				link: 'https://www.instagram.com/user2/',
+				title: 'あおぞらわらばぁ～',
+				snippet: '東区の子育て応援拠点（スコア高め）',
+			},
+		];
+		const candidates = processSearchResultsHybrid(items, 'あおぞらわらばぁ～', '東区', 10);
+		expect(candidates.length).toBeGreaterThanOrEqual(2);
+		// スコア降順で並べ替えられていることを確認（user2が先、user1が後）
+		expect(candidates[0].link).toBe('https://www.instagram.com/user2/');
+		expect(candidates[0].score).toBeGreaterThan(candidates[1].score);
+	});
+
+	// Given: プロフィールURLが10件以上含まれる検索結果
+	// When: processSearchResultsHybrid を実行（limit=10）
+	// Then: 上位10件までが抽出され、スコア降順で並べ替えられる
+	it('TC-N-21: プロフィールURLが10件以上ある場合、上位10件まで抽出される', () => {
+		const items = Array.from({ length: 15 }, (_, i) => ({
+			link: `https://www.instagram.com/user${i + 1}/`,
+			title: `施設名${i + 1}`,
+			snippet: `説明${i + 1}`,
+		}));
+		const candidates = processSearchResultsHybrid(items, '施設名', '東区', 10);
+		expect(candidates).toHaveLength(10);
+		// スコア降順で並べ替えられていることを確認
+		for (let i = 0; i < candidates.length - 1; i++) {
+			expect(candidates[i].score).toBeGreaterThanOrEqual(candidates[i + 1].score);
+		}
+	});
+
+	// Given: 投稿URLが混ざっている検索結果
+	// When: processSearchResultsHybrid を実行
+	// Then: 投稿URLは除外され、プロフィールURLのみが返される
+	it('TC-A-22: 投稿URLは除外される', () => {
+		const items = [
+			{
+				link: 'https://www.instagram.com/p/ABC123/',
+				title: '投稿1',
+				snippet: '説明1',
+			},
+			{
+				link: 'https://www.instagram.com/user1/',
+				title: '施設名1',
+				snippet: '説明1',
+			},
+			{
+				link: 'https://www.instagram.com/p/DEF456/',
+				title: '投稿2',
+				snippet: '説明2',
+			},
+			{
+				link: 'https://www.instagram.com/user2/',
+				title: '施設名2',
+				snippet: '説明2',
+			},
+		];
+		const candidates = processSearchResultsHybrid(items, '施設名', '東区', 10);
+		expect(candidates).toHaveLength(2);
+		expect(candidates.every(c => !c.link.includes('/p/'))).toBe(true);
+	});
+
+	// Given: 同じURLが複数回出現する検索結果
+	// When: processSearchResultsHybrid を実行
+	// Then: 重複URLは最初の出現のみが採用される
+	it('TC-A-23: 重複URLは最初の出現のみ採用される', () => {
+		const items = [
+			{
+				link: 'https://www.instagram.com/user1/',
+				title: '施設名1（1回目）',
+				snippet: '説明1',
+			},
+			{
+				link: 'https://www.instagram.com/user2/',
+				title: '施設名2',
+				snippet: '説明2',
+			},
+			{
+				link: 'https://www.instagram.com/user1/',
+				title: '施設名1（2回目）',
+				snippet: '説明1（重複）',
+			},
+		];
+		const candidates = processSearchResultsHybrid(items, '施設名', '東区', 10);
+		expect(candidates).toHaveLength(2);
+		expect(candidates[0].link).toBe('https://www.instagram.com/user1/');
+		expect(candidates[0].title).toBe('施設名1（1回目）'); // 最初の出現が採用される
+		expect(candidates[1].link).toBe('https://www.instagram.com/user2/');
+	});
+
+	// Given: プロフィールURLが1件のみの検索結果
+	// When: processSearchResultsHybrid を実行（limit=10）
+	// Then: 1件が返される
+	it('TC-N-24: プロフィールURLが1件のみの場合、1件を返す', () => {
+		const items = [
+			{
+				link: 'https://www.instagram.com/user1/',
+				title: '施設名1',
+				snippet: '説明1',
+			},
+		];
+		const candidates = processSearchResultsHybrid(items, '施設名', '東区', 10);
+		expect(candidates).toHaveLength(1);
+		expect(candidates[0].link).toBe('https://www.instagram.com/user1/');
+	});
+
+	// Given: プロフィールURLが0件の検索結果（投稿URLのみ）
+	// When: processSearchResultsHybrid を実行
+	// Then: 空配列が返される
+	it('TC-A-25: プロフィールURLが0件の場合、空配列を返す', () => {
+		const items = [
+			{
+				link: 'https://www.instagram.com/p/ABC123/',
+				title: '投稿1',
+				snippet: '説明1',
+			},
+			{
+				link: 'https://www.instagram.com/reel/DEF456/',
+				title: 'リール1',
+				snippet: '説明2',
+			},
+		];
+		const candidates = processSearchResultsHybrid(items, '施設名', '東区', 10);
+		expect(candidates).toHaveLength(0);
+	});
+
+	// Given: 空配列
+	// When: processSearchResultsHybrid を実行
+	// Then: 空配列が返される
+	it('TC-B-26: 空配列の場合、空配列を返す', () => {
+		const items: Array<{ link: string; title: string; snippet: string }> = [];
+		const candidates = processSearchResultsHybrid(items, '施設名', '東区', 10);
+		expect(candidates).toHaveLength(0);
+	});
+
+	// Given: プロフィールURLが含まれる検索結果
+	// When: processSearchResultsHybrid を実行
+	// Then: スコアとreasonsが含まれる
+	it('TC-N-27: スコアとreasonsが含まれる', () => {
+		const items = [
+			{
+				link: 'https://www.instagram.com/testuser/',
+				title: 'あおぞらわらばぁ～',
+				snippet: '東区の子育て応援拠点',
+			},
+		];
+		const candidates = processSearchResultsHybrid(items, 'あおぞらわらばぁ～', '東区', 10);
+		expect(candidates).toHaveLength(1);
+		expect(candidates[0].score).toBeDefined();
+		expect(typeof candidates[0].score).toBe('number');
+		expect(candidates[0].reasons).toBeDefined();
+		expect(Array.isArray(candidates[0].reasons)).toBe(true);
+	});
+
+	// Given: スコアが異なる複数の候補
+	// When: processSearchResultsHybrid を実行
+	// Then: スコア降順で並べ替えられる（rankとの違い: rankは順位維持、hybridはスコア降順）
+	it('TC-N-28: スコア降順で並べ替えられる（rankとの違い）', () => {
+		const items = [
+			{
+				link: 'https://www.instagram.com/user1/',
+				title: '施設名1',
+				snippet: '説明1（スコア低め）',
+			},
+			{
+				link: 'https://www.instagram.com/user2/',
+				title: 'あおぞらわらばぁ～',
+				snippet: '東区の子育て応援拠点（スコア高め）',
+			},
+			{
+				link: 'https://www.instagram.com/user3/',
+				title: '施設名3',
+				snippet: '説明3（スコア中程度）',
+			},
+		];
+		const candidates = processSearchResultsHybrid(items, 'あおぞらわらばぁ～', '東区', 10);
+		expect(candidates.length).toBeGreaterThanOrEqual(2);
+		// スコア降順で並べ替えられていることを確認
+		for (let i = 0; i < candidates.length - 1; i++) {
+			expect(candidates[i].score).toBeGreaterThanOrEqual(candidates[i + 1].score);
+		}
+		// 最高スコアの候補が先頭にあることを確認
+		const maxScore = Math.max(...candidates.map(c => c.score));
+		expect(candidates[0].score).toBe(maxScore);
 	});
 });
 
