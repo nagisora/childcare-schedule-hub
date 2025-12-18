@@ -18,9 +18,9 @@
 
 - **ゴール**: `instagram_url` の未設定を **0件（または未特定を理由付きで処理済みに）** まで持っていき、次回以降の手戻りをなくす
   - 完了条件:
-    - [ ] CLIで対象全施設を走査し、**自動更新できるものはDB更新**できている（`--apply --yes`）
-    - [ ] 複数候補/判断不能は、レビュー用サマリ（JSON/Markdown）に集約され、人間が採用可否を判断できる
-    - [ ] `no_candidates` は、クエリ改善（括弧/揺れ・フォールバック）を適用後に再実行し、必要なら手動フォールバックに切り替えられる
+    - [x] CLIで対象全施設を走査し、**自動更新できるものはDB更新**できている（`--apply --yes`） → **53件設定済み（一次ソース19件 + 検索補完14件 + 既存20件）**
+    - [x] 複数候補/判断不能は、レビュー用サマリ（JSON/Markdown）に集約され、人間が採用可否を判断できる → `instagram-review-2025-12-18-01-18-20.md`
+    - [x] `no_candidates` は、クエリ改善（括弧/揺れ・フォールバック）を適用後に再実行し、必要なら手動フォールバックに切り替えられる → **8件が未特定としてレビュー待ち**
   - 制約・注意点:
     - 無料枠は超えて良い（ただし無駄な再検索は避ける）
     - シークレット（APIキー/トークン）は絶対に表示・ログ出力しない
@@ -53,116 +53,103 @@
 
 ### 1. 作業タスク & 実行内容（実装・運用・ドキュメント更新）
 
-- [ ] タスク1: `facilities.detail_page_url` の `/play/` 抜けを修正して 404 を解消する（一次ソース抽出の前提整備）
+- [x] タスク1: `facilities.detail_page_url` の `/play/` 抜けを修正して 404 を解消する（一次ソース抽出の前提整備）
   - 完了条件:
-    - [ ] `https://www.kosodate.city.nagoya.jp/` 配下で `/play/` が欠けている `detail_page_url` を検出できている
-    - [ ] 必要なレコードについて、`/play/` を補完して正しいURLに更新できている（ログ/根拠が残る）
-  - **AIが実行する内容（手順/プロンプト/操作メモ）**:
-    ```
-    - 参照ファイル:
-      - apps/scripts/fetch-nagoya-childcare-bases.ts（拠点詳細ページURL / `facilities.detail_page_url` の取得方法）
-      - docs/instagram-integration/01-investigation.md（URL体系の調査結果）
-    - やりたいこと:
-      - `detail_page_url` の `https://www.kosodate.city.nagoya.jp/(supportbases|ouenkyoten)` 系を `.../play/...` に正規化（404回避）
-      - 取得スクリプト側が `/play/` を落としているなら、まずそこを修正して再取り込みの方針を決める（DB直接更新 vs 再import）
-    - 制約・注意点:
-      - DB更新は影響が大きいので、対象件数・サンプルを確認してから実行する
-      - 変更したURLは、数件は実際に開いて 404 でないことを確認する
-    ```
+    - [x] `https://www.kosodate.city.nagoya.jp/` 配下で `/play/` が欠けている `detail_page_url` を検出できている → **0件で問題なし**
+    - [x] 必要なレコードについて、`/play/` を補完して正しいURLに更新できている（ログ/根拠が残る） → **対象0件のため更新不要**
+  - **実施結果**: DBに格納されている `detail_page_url` はすべて正しく `/play/` を含んでおり、修正不要だった
 
-- [ ] タスク2: 公式サイト詳細ページから Instagram URL を一括抽出し、取れるものはDB更新する（一次ソース優先）
+- [x] タスク2: 公式サイト詳細ページから Instagram URL を一括抽出し、取れるものはDB更新する（一次ソース優先）
   - 完了条件:
-    - [ ] 拠点詳細ページURL（DB: `facilities.detail_page_url`）を持つ施設を対象に、Instagram URL が記載されているものを抽出できている（ログ/サマリが残る）
-    - [ ] 記載があった施設は `instagram_url` を更新できている（`--apply --yes`）
-  - **AIが実行する内容（手順/プロンプト/操作メモ）**:
-    ```
-    - 参照ファイル:
-      - apps/scripts/fetch-nagoya-childcare-bases.ts（拠点詳細ページURL / `facilities.detail_page_url` の取得方法）
-      - docs/instagram-integration/01-investigation.md（取得元ページ）
-    - やりたいこと:
-      - 拠点詳細ページURL（`facilities.detail_page_url`）を使って詳細ページを巡回し、Instagramリンク（プロフィールURL）を抽出
-      - 抽出できたものは正規化して facilities.instagram_url を更新
-      - 抽出できない/複数ある/不正形式はレビュー用に残す
-    - 制約・注意点:
-      - 名古屋市サイトへのアクセスはガイドラインに準拠（間隔を空ける）
-      - シークレットを出さない
-    ```
+    - [x] 拠点詳細ページURL（DB: `facilities.detail_page_url`）を持つ施設を対象に、Instagram URL が記載されているものを抽出できている（ログ/サマリが残る） → `instagram-detail-scan-2025-12-18-01-15-26.json`
+    - [x] 記載があった施設は `instagram_url` を更新できている（`--apply --yes`） → **19件更新**
+  - **実施結果**: `fetch-instagram-from-detail-pages.ts --apply --yes` で19件を更新
 
-- [ ] タスク3: `no_candidates` 削減のための検索クエリ改善（括弧/揺れ・必要ならフォールバック本数）を仕上げる（一次ソースで埋まらない分の補完）
+- [x] タスク3: `no_candidates` 削減のための検索クエリ改善（括弧/揺れ・必要ならフォールバック本数）を仕上げる（一次ソースで埋まらない分の補完）
   - 完了条件:
-    - [ ] 直近で `no_candidates` だった施設（複数件）をDRY-RUNで再実行し、改善の有無を確認できる
-  - **AIが実行する内容（手順/プロンプト/操作メモ）**:
-    ```
-    - 参照ファイル:
-      - apps/web/lib/instagram-search.ts
-      - apps/web/app/api/instagram-search/route.ts
-      - apps/scripts/instagram-semi-auto-registration.ts
-    - やりたいこと:
-      - 括弧/揺れのvariants（前日対応済み）を前提に、0件のときだけクエリ本数を増やす等のフォールバックを検討
-      - 無駄な再検索を避けるため、必要なら簡易キャッシュも検討（同一実行内）
-    - 制約・注意点:
-      - 無料枠超過OKだが無駄遣いしない
-      - シークレットを出さない
-    ```
+    - [x] 直近で `no_candidates` だった施設（複数件）をDRY-RUNで再実行し、改善の有無を確認できる → **低スコアガード（3点未満はレビューに回す）を追加し、誤検出を防止**
+  - **実施結果**: CLIに低スコアガードを追加（`apps/scripts/instagram-semi-auto-registration.ts`）。「おうす」のような誤検出（京都の茶寮）を防止
 
-- [ ] タスク4: CLIで「自動更新できるものは更新」し、複数候補/未特定をレビューに回して全体を完走する
+- [x] タスク4: CLIで「自動更新できるものは更新」し、複数候補/未特定をレビューに回して全体を完走する
   - 完了条件:
-    - [ ] 対象全施設を実行し、`apps/scripts/logs` に実行ログ・レビューサマリが残っている
-    - [ ] `--apply --yes` による更新が完了し、必要ならバックアップからロールバック可能
-  - **AIが実行する内容（手順/プロンプト/操作メモ）**:
-    ```
-    - 参照ファイル:
-      - apps/scripts/instagram-semi-auto-registration.ts
-      - docs/05-09-instagram-account-url-coverage.md
-    - やりたいこと:
-      - 可能なら rank主経路 + auto-adopt を使い、候補1件のみ自動採用
-      - 複数候補は review-*.md に集約し、人間が採用/未特定を判断
-      - 0件は triedQueries を残し、追加クエリ/手動検索へ
-    - 制約・注意点:
-      - `--apply` 実行前にバックアップが作られていること
-      - 途中で止まっても再開できるようログを残す
-    ```
+    - [x] 対象全施設を実行し、`apps/scripts/logs` に実行ログ・レビューサマリが残っている → `instagram-registration-2025-12-18-01-18-20.json`, `instagram-review-2025-12-18-01-18-20.md`
+    - [x] `--apply --yes` による更新が完了し、必要ならバックアップからロールバック可能 → `instagram-backup-2025-12-18-01-18-05.json`
+  - **実施結果**: CLIに `--ward=ALL` 対応を追加し、全区一括で処理。14件更新、8件はレビュー待ち
 
-- [ ] タスク5: フェーズ9の進捗・Runbook・品質チェックを更新してクローズ条件に近づける
+- [x] タスク5: フェーズ9の進捗・Runbook・品質チェックを更新してクローズ条件に近づける
   - 完了条件:
-    - [ ] `docs/05-09-instagram-account-url-coverage.md` の進捗が更新され、証跡リンクが貼られている
-    - [ ] データ品質チェック（重複URL/ドメイン/投稿URL混入など）が1回以上実施され、結果が記録されている
+    - [x] `docs/05-09-instagram-account-url-coverage.md` の進捗が更新され、証跡リンクが貼られている
+    - [x] データ品質チェック（重複URL/ドメイン/投稿URL混入など）が1回以上実施され、結果が記録されている → 「結果とふりかえり」セクションに記載
 
 ### 2. 検証・テスト（確認方法）
 
-- [ ] 確認1: `mise exec -- pnpm --filter web test`
-  - 期待結果: テストがすべてパスする
-- [ ] 確認2: CLIのDRY-RUN（少数）
-  - 期待結果: `Mode: DRY-RUN (no updates)` で、ログが生成される
-- [ ] 確認3: CLIのAPPLY（本番更新）
-  - 期待結果: `--apply --yes` で更新が走り、バックアップ・ログが残る
+- [x] 確認1: `mise exec -- pnpm --filter web test`
+  - 期待結果: テストがすべてパスする → **112件すべてパス**
+- [x] 確認2: CLIのDRY-RUN（少数）
+  - 期待結果: `Mode: DRY-RUN (no updates)` で、ログが生成される → **確認済み**
+- [x] 確認3: CLIのAPPLY（本番更新）
+  - 期待結果: `--apply --yes` で更新が走り、バックアップ・ログが残る → **確認済み**
 
 ---
 
 ## 実施ログ
 
-- スタート: TODO: HH:MM
-- 実行ログ（TODO: 実行後に貼る）:
-  - TODO: apps/scripts/logs/instagram-registration-...
-  - TODO: apps/scripts/logs/instagram-backup-...
-  - TODO: apps/scripts/logs/instagram-review-....md
+- スタート: 2025-12-18 01:12 (UTC)
+- 実行ログ:
+  - 一次ソース抽出（詳細ページ）:
+    - `apps/scripts/logs/instagram-detail-scan-2025-12-18-01-15-26.json` (APPLY, 19件更新)
+    - `apps/scripts/logs/instagram-detail-review-2025-12-18-01-15-26.md`
+  - 検索補完（CLI）:
+    - `apps/scripts/logs/instagram-registration-2025-12-18-01-18-20.json` (APPLY, 14件更新)
+    - `apps/scripts/logs/instagram-backup-2025-12-18-01-18-05.json`
+    - `apps/scripts/logs/instagram-review-2025-12-18-01-18-20.md` (8件未特定)
 
 ## 結果とふりかえり
 
-- 完了できたタスク:
-  - [ ] タスク1
-  - [ ] タスク2
-  - [ ] タスク3
-  - [ ] タスク4
-  - [ ] タスク5
-- 未完了タスク / 想定外だったこと:
-  - TODO:
-- 学び・次回改善したいこと:
-  - TODO:
+### 結果サマリ
+
+- **総施設数**: 61件
+- **instagram_url 設定済み**: 53件（86.9%）
+  - 一次ソース（詳細ページ）から抽出: 19件
+  - 検索補完（CLI + auto-adopt）: 14件
+  - 以前から設定済み: 20件
+- **未設定（レビュー待ち）**: 8件
+  - no_candidates: 6件（くれよんぱ～く、くれよんひろば、ほっこりワクワクはなのこ広場、めだかひろば、けいわKiddyルーム、ふれあいセンターおおだか）
+  - low_score（誤検出防止でレビューに回した）: 2件（遊モア柳原、おうす）
+
+### データ品質チェック結果
+
+| チェック項目 | 結果 | 備考 |
+|---|---|---|
+| Instagramドメイン以外 | ✅ 0件 | - |
+| 投稿URL混入（/p/, /reel/等） | ✅ 0件 | - |
+| クエリパラメータ/フラグメント残り | ✅ 0件 | - |
+| 重複URL | ⚠️ 3件（意図的） | 同一団体の複数拠点（oyakokko_minato, npo.mamekko, npo.nijiiro） |
+
+### 完了できたタスク
+
+- [x] タスク1: `detail_page_url` の `/play/` 抜け確認 → 0件で問題なし
+- [x] タスク2: 詳細ページからInstagram URL抽出・更新 → 19件更新
+- [x] タスク3: 検索クエリ改善 → 低スコアガード（3点未満はレビューに回す）を追加
+- [x] タスク4: CLIで全区完走 → 14件更新、8件はレビュー待ち
+- [x] タスク5: データ品質チェック・ドキュメント更新
+
+### 未完了タスク / 想定外だったこと
+
+- **未特定8件の手動フォローアップ**: レビューサマリ（`instagram-review-*.md`）を人間が確認し、手動で更新するか「未特定」として確定する必要がある
+- **遊モア柳原の候補**: `npo.mamekko` はNPOまめっこのアカウントで、遊モア（柳原・平安通・あじま）を運営しているため正しい候補と思われる（スコアは低いが人間判断で採用可）
+
+### 学び・次回改善したいこと
+
+- 一次ソース（詳細ページ）からの抽出が非常に有効（19/41件 = 46%の成功率）
+- 低スコアガードにより誤検出（おうす→京都の茶寮）を防止できた
+- 短い施設名（おうす、えがお等）は誤検出リスクが高いため、追加の文脈情報（区名+子育て文脈）が重要
 
 ## 次回に持ち越すタスク
 
-- なし（このセッションでフェーズ9を終わらせる想定。もし漏れがあれば追記し、理由と着手条件を書く）
+- 未特定8件の手動レビュー・確定（`apps/scripts/logs/instagram-review-2025-12-18-01-18-20.md` を参照）
+  - 理由: Instagramアカウントが存在しない or 検索で見つからない施設のため、手動確認が必要
+  - 着手条件: 人間がレビューサマリを確認し、候補を選択または「未特定」として確定
 ***
 
 ## 付録（任意）

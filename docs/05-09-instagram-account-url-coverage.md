@@ -16,9 +16,9 @@
 - [x] 複数施設向けの半自動登録フロー（候補提示→人間が採用/スキップを選ぶ）が用意され、`facilities.instagram_url` を安全に更新できる（DRY-RUN / 確認ステップを含む） - 2025-12-13（タスク5完了）
 - [x] 短い施設名など精度課題に備え、検索戦略を切り替えられる（`strategy=score|rank`） - 2025-12-14（タスク4追加完了）
 - [ ] Runbookに検索APIベースの標準フローと、フォールバックとしての手動ブラウザ検索フローが整理されている
-- [ ] データ品質チェック（Instagramドメイン以外・重複URLの検出）が1回以上実施され、dev-sessionsに記録されている
-- [x] 対象施設が「処理済み」になっている（`instagram_url` が埋まった施設だけでなく、見つからない/判断不能な施設も「未特定（理由付き）」として一覧化されている） - 2025-12-15（東区3件すべて更新完了、未特定1件は手動対応で更新済み）([dev-session](../../dev-sessions/2025/12/20251215-01-phase9-instagram-auto-adopt-review.md))
-- [ ] リファクタリングで壊れないよう、フェーズ9の主要ロジックに対する自動テストが整備されている（少なくとも `apps/web` で `mise exec -- pnpm --filter web test` が通る）
+- [x] データ品質チェック（Instagramドメイン以外・重複URLの検出）が1回以上実施され、dev-sessionsに記録されている - 2025-12-18（全項目チェック完了、重複3件は意図的）([dev-session](../../dev-sessions/2025/12/20251218-01-phase9-instagram-account-url-coverage-finish.md))
+- [x] 対象施設が「処理済み」になっている（`instagram_url` が埋まった施設だけでなく、見つからない/判断不能な施設も「未特定（理由付き）」として一覧化されている） - 2025-12-18（61施設中53件設定済み、8件は未特定としてレビューサマリに記録）([dev-session](../../dev-sessions/2025/12/20251218-01-phase9-instagram-account-url-coverage-finish.md))
+- [x] リファクタリングで壊れないよう、フェーズ9の主要ロジックに対する自動テストが整備されている（少なくとも `apps/web` で `mise exec -- pnpm --filter web test` が通る） - 2025-12-18（112件すべてパス）([dev-session](../../dev-sessions/2025/12/20251218-01-phase9-instagram-account-url-coverage-finish.md))
 
 ### 実装タスク（セッション粒度の進捗）
 

@@ -146,7 +146,15 @@ function decideAction(params: {
 
 			// --auto-adopt が指定されている場合
 			if (candidates.length === 1) {
-				// 候補1件のみの場合は自動採用
+				// 候補1件のみの場合は自動採用（ただしスコアが低い場合はレビューに回す）
+				const candidate = candidates[0];
+				const minScoreForAutoAdopt = 3; // 3点未満はレビューに回す
+				if (candidate.score < minScoreForAutoAdopt) {
+					return {
+						action: 'not_found',
+						reason: 'auto_adopt_blocked_low_score',
+					};
+				}
 				return {
 					action: 'adopt',
 					selectedIndex: 0,
@@ -199,14 +207,22 @@ function askQuestion(rl: readline.Interface, question: string): Promise<string> 
 
 /**
  * Supabase から対象施設を取得
+ * targetWard が 'ALL' の場合は全区を対象にする
  */
 async function fetchTargetFacilities(supabase: ReturnType<typeof createClient>): Promise<Facility[]> {
-	const { data, error } = await supabase
+	let query = supabase
 		.from('facilities')
 		.select('id,name,ward_name,instagram_url')
-		.eq('ward_name', targetWard)
 		.is('instagram_url', null)
+		.order('ward_name', { ascending: true })
 		.order('name', { ascending: true });
+
+	// 'ALL' でなければ指定区のみに絞り込む
+	if (targetWard !== 'ALL') {
+		query = query.eq('ward_name', targetWard);
+	}
+
+	const { data, error } = await query;
 
 	if (error) {
 		throw new Error(`Failed to fetch facilities: ${error.message}`);
@@ -516,6 +532,7 @@ function getReasonMessage(reason: string): string {
 		'auto_adopt_disabled': '非対話環境では自動採用が無効です（--auto-adopt 未指定）',
 		'auto_adopt_single_candidate': '候補1件のみのため自動採用しました',
 		'auto_adopt_blocked_multiple_candidates': '候補が複数あるため',
+		'auto_adopt_blocked_low_score': 'スコアが低いためレビューに回しました',
 		'non_interactive_score_strategy': '非対話環境でのscore戦略により自動採用しました',
 		'error_api_failed': 'API呼び出しに失敗しました',
 		'unknown_condition': '不明な条件です',

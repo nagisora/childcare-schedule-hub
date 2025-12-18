@@ -173,11 +173,13 @@ function extractWardName(address: string): { wardName: string | null; wardCode: 
 
 /**
  * テーブル行から施設情報を抽出する
+ * @param listingPageUrl 一覧ページのURL（相対リンク解決のベースに使用）
  */
 function extractFacilityFromRow(
   $: cheerio.CheerioAPI,
   $row: cheerio.Cheerio<cheerio.Element>,
-  facilityType: typeof FACILITY_TYPES.OUEN | typeof FACILITY_TYPES.SHIEN
+  facilityType: typeof FACILITY_TYPES.OUEN | typeof FACILITY_TYPES.SHIEN,
+  listingPageUrl: string
 ): FacilityRaw | null {
   const cells = $row.find('td').toArray();
   if (cells.length < 3) {
@@ -195,12 +197,18 @@ function extractFacilityFromRow(
   const rawName = nameLink.text().trim() || nameCell.text().trim();
   const name = normalizeNagoyaFacilityName(rawName);
   const detailPageUrl = nameLink.attr('href') || null;
-  // 相対URLの場合は絶対URLに変換
-  const absoluteDetailPageUrl = detailPageUrl
-    ? detailPageUrl.startsWith('http')
-      ? detailPageUrl
-      : `https://www.kosodate.city.nagoya.jp${detailPageUrl.startsWith('/') ? '' : '/'}${detailPageUrl}`
-    : null;
+  // 相対URLの場合は一覧ページをベースに絶対URLへ解決（/play/抜け防止）
+  let absoluteDetailPageUrl: string | null = null;
+  if (detailPageUrl) {
+    try {
+      absoluteDetailPageUrl = new URL(detailPageUrl, listingPageUrl).toString();
+    } catch {
+      // URL解析失敗時はフォールバック（従来ロジック）
+      absoluteDetailPageUrl = detailPageUrl.startsWith('http')
+        ? detailPageUrl
+        : `https://www.kosodate.city.nagoya.jp${detailPageUrl.startsWith('/') ? '' : '/'}${detailPageUrl}`;
+    }
+  }
 
   // セルの内容を確認して適切にマッピング
   // cells[1]とcells[2]のどちらが住所かを判定
@@ -271,7 +279,7 @@ async function fetchFacilitiesFromPage(
   for (const table of tables) {
     const rows = $(table).find('tbody tr, tr').toArray();
     for (const row of rows) {
-      const facility = extractFacilityFromRow($, $(row), facilityType);
+      const facility = extractFacilityFromRow($, $(row), facilityType, url);
       if (facility) {
         facilities.push(facility);
       }

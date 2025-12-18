@@ -25,7 +25,40 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { mkdirSync, writeFileSync } from 'fs';
 
-import { normalizeInstagramUrl } from '../web/lib/instagram-search';
+/**
+ * Instagram URLを正規化する（apps/web/lib/instagram-search.ts からコピー）
+ * - http → https
+ * - m.instagram.com → www.instagram.com
+ * - 末尾に / を付与
+ * - クエリパラメータ・フラグメントを除去
+ */
+function normalizeInstagramUrl(url: string): string | null {
+	if (!url || typeof url !== 'string') {
+		return null;
+	}
+	const excludedPatterns = [/\/p\//, /\/reel\//, /\/tv\//, /\/stories\//];
+	for (const pattern of excludedPatterns) {
+		if (pattern.test(url)) return null;
+	}
+	try {
+		const urlObj = new URL(url);
+		if (!urlObj.hostname.includes('instagram.com')) return null;
+		urlObj.search = '';
+		urlObj.hash = '';
+		if (urlObj.protocol === 'http:') urlObj.protocol = 'https:';
+		if (urlObj.hostname === 'm.instagram.com') urlObj.hostname = 'www.instagram.com';
+		const rawPath = urlObj.pathname || '/';
+		const segments = rawPath.split('/').filter(Boolean);
+		if (segments.length !== 1) return null;
+		const username = segments[0];
+		const disallowedFirstSegments = new Set(['explore', 'about', 'accounts', 'direct', 'reels', 'stories']);
+		if (disallowedFirstSegments.has(username.toLowerCase())) return null;
+		urlObj.pathname = `/${username}/`;
+		return urlObj.toString();
+	} catch {
+		return null;
+	}
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
