@@ -273,12 +273,14 @@
 
 最終的に `docs/04-development.md` に落とすべき運用手順のチェックリスト：
 
-- [ ] 環境変数の設定手順（`docs/04-development.md` の環境変数セクション） - タスク3完了後にチェック
-- [ ] API呼び出しの標準フロー（`docs/instagram-integration/04-runbook.md` に記載） - タスク6完了後にチェック
-- [ ] フォールバック手順（標準フローが失敗した場合の代替手段） - タスク6完了後にチェック
-- [ ] エラーハンドリング方針（エラー時のログ・通知・リトライ方針） - タスク4/6完了後にチェック
-- [ ] データ更新フロー（手動・自動の更新手順） - タスク5/6完了後にチェック
-- [ ] トラブルシューティング手順（よくある問題と対処法） - タスク6完了後にチェック
+- [x] 環境変数の設定手順（`docs/04-development.md` の環境変数セクション） - 2025-12-13（タスク3完了、3.1節に `GOOGLE_CSE_API_KEY` と `GOOGLE_CSE_CX` を追加）
+- [x] API呼び出しの標準フロー（`docs/instagram-integration/04-runbook.md` に記載） - 2025-12-19（タスク6完了、`docs/04-development.md` 9.5.3節にCLIツールの使用方法を記載、`docs/instagram-integration/04-runbook.md` と `05-instagram-account-search.md` に標準フローを整理）
+- [x] フォールバック手順（標準フローが失敗した場合の代替手段） - 2025-12-19（タスク6完了、`docs/instagram-integration/04-runbook.md` と `05-instagram-account-search.md` にフォールバック手順を整理、`docs/04-development.md` 9.6.2節に手動検索手順を記載）
+- [x] エラーハンドリング方針（エラー時のログ・通知・リトライ方針） - 2025-12-19（タスク6完了、`docs/04-development.md` 9.5.3節に注意事項を記載、`docs/instagram-integration/04-runbook.md` にエラー対応を整理）
+- [x] データ更新フロー（手動・自動の更新手順） - 2025-12-19（タスク6完了、`docs/04-development.md` 9.5.3節にCLIツールの使用方法を記載、`docs/instagram-integration/04-runbook.md` にデータ更新フローを整理）
+- [x] トラブルシューティング手順（よくある問題と対処法） - 2025-12-19（タスク6完了、`docs/04-development.md` 9.6.4節にトラブルシューティングを記載、`docs/instagram-integration/04-runbook.md` にエラー対応を整理）
+
+**補足**: 詳細な運用手順は `docs/instagram-integration/04-runbook.md` と `05-instagram-account-search.md` に整理されており、`docs/04-development.md` から参照可能な状態になっている。
 
 ## 6. リスク・撤退条件・ロールバック
 

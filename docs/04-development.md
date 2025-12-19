@@ -575,7 +575,11 @@ name,facility_type,prefecture_code,municipality_code,ward_code,postal_code,prefe
 
 #### 1. InstagramアカウントURLの確認
 
-**方法: 手動でWeb検索・Instagram検索を実施**（推奨）
+**標準フロー: Google Custom Search API を使った半自動登録（推奨）**
+
+詳細は [`docs/instagram-integration/04-runbook.md`](./instagram-integration/04-runbook.md) の「方法A: Google Custom Search API を使った半自動登録」を参照。
+
+**フォールバック: 手動でWeb検索・Instagram検索を実施**
 
 1. 施設名を確認（`facilities` テーブルから取得、または名古屋市サイトから確認）
 2. 検索エンジンで以下のキーワードで検索:
@@ -587,7 +591,10 @@ name,facility_type,prefecture_code,municipality_code,ward_code,postal_code,prefe
 5. アカウントURLを控える（例: `https://www.instagram.com/account_name/`）
 6. `facilities.instagram_url` に登録（Supabase Studio または SQL）
 
-**注意**: 名古屋市サイト（一覧ページ・詳細ページ）にはInstagramリンクが含まれていないため、手動調査が必須。
+**注意**: 
+- 標準フロー（Google Custom Search API）が使えない場合のみ、このフォールバック手順を使用する
+- 詳細な手順と判断基準は [`docs/instagram-integration/05-instagram-account-search.md`](./instagram-integration/05-instagram-account-search.md) を参照
+- 名古屋市サイト（一覧ページ・詳細ページ）にはInstagramリンクが含まれていないため、手動調査が必須
 
 #### 2. スケジュールURLの確認
 
