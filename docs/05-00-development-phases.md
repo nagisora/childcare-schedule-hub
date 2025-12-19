@@ -217,14 +217,50 @@
   - 詳細計画: [`05-09-instagram-account-url-coverage.md`](./05-09-instagram-account-url-coverage.md)
 
 ## フェーズ10: スケジュールURLの全面カバー
-- 目的: 一部の施設のみの状態から、全施設の**月間スケジュール参照情報**（基本は Instagram 投稿URL）を対象としたデータ投入・更新フローを確立する
-- 主に触るドキュメント: `02` / `03` / `04`
-- 完了条件:
-  - 対象施設（MVP: `facilities.instagram_url IS NOT NULL`）について、対象月のスケジュール参照情報が可能な限り特定され、`schedules` に登録されている（登録できない場合は「未特定/対象外（理由付き）」として一覧化されている）
-  - 「どのパターンをどのカラムに登録するか」（例: `schedules.instagram_post_url` / `image_url` / `notes`）と、月次更新の手順が `docs/04-development.md` に Runbook としてまとまっている
-  - データ品質チェック（`published_month` の整合、重複、URL形式、更新漏れの確認）が1回以上実施され、dev-sessionsに記録されている
-- **対象範囲の制約**:
-  - MVP では取得経路を Instagram ベースに限定しているため、`facilities.instagram_url IS NULL` の施設は対象外とする（将来: `website_url` や自治体サイト等の別経路で回収する）
+- 目的: 各施設が Instagram に投稿している**月間スケジュール（当月）を自動で特定**し、MVPで表示できる参照情報（基本は Instagram 投稿URL）として `schedules` に反映できる状態にする
+- 主に触るドキュメント: `02` / `03` / `dev-sessions`（**MVPでは `docs/04-development.md` へのRunbook整備は後回し可**）
+- **対象範囲（MVP）**:
+  - 対象施設: `facilities.instagram_url IS NOT NULL`
+  - 対象月: 原則「**現在月**」を対象（`published_month` は対象月の1日で統一。例: `2025-02-01`）
+    - 補足: 取得できる場合は「翌月」も同時に登録してよい（ただしMVPの完了ラインは「現在月」を満たせばOK）
+- **対象外（MVP）**:
+  - `facilities.instagram_url IS NULL`（将来: `website_url` / 自治体サイト / PDF / Googleカレンダー等の別経路で回収する）
+- **処理済みの定義（施設×対象月）**:
+  - **登録済み**: `schedules` に該当行が存在し、`instagram_post_url` が設定されている（MVPでは `image_url` はダミー可）
+  - **未特定確定**: 自動取得（後述）を実行しても採用可能な候補が特定できない。理由コード付きで一覧化し「処理済み」として扱う（DBに無理にNULL行を作らず、ログ/JSON/CSV/Markdownで管理してよい）
+  - **対象外**: Instagram上に月間スケジュールが存在しない/参照できない等で、InstagramベースのMVPでは追えない。理由コード付きで一覧化
+- **未特定理由（例: 理由コード）**:
+  - `not_found`: 候補が見つからない
+  - `ambiguous`: 候補が複数あり自動で1件に絞れない
+  - `not_monthly_schedule`: スケジュールっぽいが月間スケジュールと断定できない
+  - `story_or_highlight_only`: ストーリー/ハイライトのみで、投稿URL（permalink）として特定できない
+  - `account_private_or_unavailable`: 非公開/停止等で参照できない
+- **自動取得の方針（MVP）**:
+  - **第一候補: フェーズ9の Google CSE を流用**し、`site:instagram.com` 検索で「投稿URL候補」を収集・スコアリングして採用する（可能なものは `--auto-adopt` で自動採用、迷うものは未特定として残す）
+    - ねらい: **実ブラウザで投稿を1件ずつ開く前に**、候補の母集団を作り、機械的に“勝てるケース”を自動化する
+    - 例（クエリ方針）:
+      - `site:instagram.com/p <instagram username> (スケジュール OR カレンダー OR 予定) (2025年2月 OR 2月)`
+      - `site:instagram.com <施設名> (スケジュール OR カレンダー) (当月表現)`
+  - **ピン留め/固定投稿の考慮**: 施設によってはスケジュール投稿が固定されているため、検索結果で上位に出る傾向を利用する（固定だからという理由だけで採用せず、月間スケジュールの根拠が取れる場合のみ採用）
+  - **ハイライトの考慮**: 「スケジュールがハイライトにある」ケースは、MVPでは投稿URLに落とし込めないことがある（`story_or_highlight_only` として未特定/対象外に分類し、`notes` に状況を残す）
+  - **フォールバック（半自動）**: 最新投稿から一定件数まで遡り、キャプション/テキスト断片（検索スニペット等）から「○月のスケジュール/カレンダー」らしさで候補提示する
+    - 注意: Instagram の利用規約に抵触し得るスクレイピング前提の実装は避け、MVPでは「候補URLの列挙と人間レビュー」を基本とする
+- **データ登録パターン（MVP）**（`docs/02-design.md` / `docs/03-api.md` と整合）:
+  - `schedules.instagram_post_url`: 月間スケジュールが掲載された Instagram 投稿の permalink（例: `https://www.instagram.com/p/.../`）
+  - `schedules.image_url`: DB必須カラムのため **ダミーURL可**（MVP UIでは表示に使用しない）
+  - `schedules.notes`: 取得根拠・判断メモ（例: 「固定投稿」「キャプションに外部URLあり」等）、未特定理由コード、外部参照URL（Google Drive等）があればここに記録
+- **完了条件（MVP）**:
+  - 対象施設について、対象月の `schedules` が「登録済み / 未特定確定 / 対象外」のいずれかに分類され、**処理済み**になっている
+    - 登録済みは `schedules` に反映
+    - 未特定確定/対象外は dev-sessions に「理由コード付き一覧（JSON/CSV/Markdown）」として証跡が残っている
+  - **自動取得をCLIで実装**し、フェーズ9同様に AI が CLI を自動実行してカバーできた範囲をもってMVPとして完了できる（= 手動でしか取れないものをMVP完了の必須条件にしない）
+  - データ品質チェック（`published_month` の整合、重複、URL形式）が1回以上実施され、dev-sessionsに記録されている
+- 代表タスク例:
+  - フェーズ9の仕組み（Google CSE / 検索戦略 / `--auto-adopt`）を流用し、「スケジュール投稿URL候補」を返す検索/採用ロジックの設計
+  - 施設×対象月の処理ループ（登録済みスキップ、候補探索、採用/未特定/対象外の記録）を行う CLI の実装
+  - 未特定理由コードの設計と、レビューしやすいサマリ（Markdown/JSON）の出力
+  - 品質チェック用のSQL（重複、URL形式、`published_month` 1日固定）を用意し、1回実行して結果を dev-sessions に残す
+  - 詳細計画: （フェーズ10着手時に `docs/05-10-*.md` を作成しリンクを追加）
 
 ## フェーズ11: デザイン / UX 仕上げ & リリース準備
 - 目的: 実データを踏まえて UI / UX を本番さながらのクオリティに高め、公開できる状態に仕上げる
