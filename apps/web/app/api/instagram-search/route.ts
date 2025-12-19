@@ -8,24 +8,11 @@ import {
 	type Candidate,
 } from '../../../lib/instagram-search';
 
-/**
- * Instagram検索API（サーバーサイド）
- * Google Custom Search API を使用してInstagramアカウントを検索し、候補を返す
- * 
- * 参照: docs/05-09-instagram-account-url-coverage.md（タスク4）
- * 参照: docs/instagram-integration/03-design-decisions.md（検索クエリ設計と判定ルール）
- * 
- * 認証: x-admin-token ヘッダーで ADMIN_API_TOKEN を検証（必須）
- * 入力: facilityId（優先）または facilityName + wardName
- * 出力: { candidates: Candidate[], triedQueries: string[] } または { error: { code, message } }
- */
 export async function GET(request: NextRequest) {
-	// 認証チェック: x-admin-token ヘッダー
 	const adminToken = request.headers.get('x-admin-token');
 	const expectedToken = process.env.ADMIN_API_TOKEN;
 	
 	if (!expectedToken) {
-		// 環境変数が未設定の場合は500を返す（設定ミスを明示）
 		return NextResponse.json(
 			{ error: { code: 'CONFIG_ERROR', message: 'ADMIN_API_TOKEN is not configured' } },
 			{ status: 500 }
@@ -39,14 +26,12 @@ export async function GET(request: NextRequest) {
 		);
 	}
 	
-	// 入力パラメータの取得
 	const searchParams = request.nextUrl.searchParams;
 	const facilityId = searchParams.get('facilityId');
 	const facilityName = searchParams.get('facilityName');
 	const wardName = searchParams.get('wardName');
-	const strategy = searchParams.get('strategy') || 'score'; // デフォルトは score
+	const strategy = searchParams.get('strategy') || 'score';
 	
-	// strategy のバリデーション
 	if (strategy !== 'score' && strategy !== 'rank' && strategy !== 'hybrid') {
 		return NextResponse.json(
 			{ error: { code: 'BAD_REQUEST', message: 'strategy must be "score", "rank", or "hybrid"' } },
@@ -54,12 +39,10 @@ export async function GET(request: NextRequest) {
 		);
 	}
 	
-	// facilityId または facilityName + wardName のいずれかが必要
 	let targetFacilityName: string;
 	let targetWardName: string | null;
 	
 	if (facilityId) {
-		// facilityId から施設情報を取得
 		try {
 			const facility = await getFacilityById(facilityId);
 			if (!facility) {
@@ -86,7 +69,6 @@ export async function GET(request: NextRequest) {
 		);
 	}
 	
-	// Google CSE の環境変数チェック
 	const apiKey = process.env.GOOGLE_CSE_API_KEY;
 	const cx = process.env.GOOGLE_CSE_CX;
 	
@@ -97,17 +79,13 @@ export async function GET(request: NextRequest) {
 		);
 	}
 	
-	// 検索クエリの生成（優先順位順）
 	const queries = generateSearchQueries(targetFacilityName, targetWardName);
 	const triedQueries: string[] = [];
 	
-	// コスト抑制: 施設名が短いほど誤検出が多く、追加クエリが必要になりやすい
 	const isGenericFacilityName = (targetFacilityName ?? '').trim().length <= 3;
 	const maxQueries = isGenericFacilityName ? 3 : 2;
 
-	// strategy に応じて処理を分岐
 	if (strategy === 'score') {
-		// score戦略: 現行の処理（スコア方式・閾値・統合）
 		const merged = new Map<string, Candidate>();
 		const stopScore = 8;
 		const stopGap = 2;
@@ -156,7 +134,6 @@ export async function GET(request: NextRequest) {
 					}
 				}
 
-				// コスト抑制: 十分に高信頼の候補が得られたら早期終了
 				const currentCandidates = Array.from(merged.values()).sort((a, b) => b.score - a.score);
 				if (currentCandidates.length > 0) {
 					const top = currentCandidates[0];
@@ -178,7 +155,6 @@ export async function GET(request: NextRequest) {
 			triedQueries,
 		});
 	} else if (strategy === 'rank') {
-		// rank戦略: クエリ単位の段階フォールバックで上位1〜3件
 		const candidates: Candidate[] = [];
 
 		for (const query of queries.slice(0, maxQueries)) {
@@ -216,11 +192,9 @@ export async function GET(request: NextRequest) {
 				triedQueries.push(query);
 				
 				if (items.length > 0) {
-					// rank戦略: 上位1〜3件を抽出（順位維持、プロフィールURLのみ）
 					const rankCandidates = processSearchResultsRank(items, targetFacilityName, targetWardName, 3);
 					candidates.push(...rankCandidates);
 					
-					// 候補が得られたら早期終了（クエリ横断で混ぜない）
 					if (candidates.length > 0) {
 						break;
 					}
@@ -236,7 +210,6 @@ export async function GET(request: NextRequest) {
 			triedQueries,
 		});
 	} else {
-		// hybrid戦略: rank主経路（最初に候補が得られたクエリ1本）で候補を抽出し、scoreで再評価して並べ替え
 		const candidates: Candidate[] = [];
 
 		for (const query of queries.slice(0, maxQueries)) {
@@ -274,11 +247,9 @@ export async function GET(request: NextRequest) {
 				triedQueries.push(query);
 				
 				if (items.length > 0) {
-					// hybrid戦略: 上位10件を抽出し、scoreで再評価して並べ替え
 					const hybridCandidates = processSearchResultsHybrid(items, targetFacilityName, targetWardName, 10);
 					candidates.push(...hybridCandidates);
 					
-					// 候補が得られたら早期終了（クエリ横断で混ぜない。rank主経路を維持）
 					if (candidates.length > 0) {
 						break;
 					}

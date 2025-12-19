@@ -1,9 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// NOTE:
-// Next.js の NextRequest をテスト側で厳密に生成しなくても、
-// Route Handler が参照するのは request.headers / request.nextUrl だけなので、
-// 最小限の shape を持つ疑似 request を渡して分岐テストする。
+// NextRequest を厳密に生成せず、必要最小限（headers/nextUrl）の疑似 request を渡す。
 
 vi.mock('../lib/facilities', () => {
 	return {
