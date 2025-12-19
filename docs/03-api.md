@@ -125,11 +125,11 @@ Supabase は PostgreSQL に対して自動生成された REST エンドポイ�
 | --- | --- | --- | --- |
 | id | string (UUID) | ✔ | スケジュール ID |
 | facility_id | string (UUID) | ✔ | 拠点 ID |
-| image_url | string | ✔ | 公開画像 URL |
-| instagram_post_url | string | ✖ | oEmbed 対象の投稿 URL |
+| image_url | string | ✔ | 公開画像 URL（DB必須、ダミーURL可。**MVP UIでは表示に使用しない**） |
+| instagram_post_url | string | ✖ | Instagram投稿URL（MVPでは埋め込み表示に使用） |
 | published_month | string (ISO-8601 `YYYY-MM-DD`) | ✔ | 対象月（1 日固定） |
 | status | string | ✔ | `published` / `draft` / `archived` |
-| embed_html | string | ✖ | サニタイズ済み埋め込み HTML（存在する場合） |
+| embed_html | string | ✖ | サニタイズ済み埋め込み HTML（ポストMVPで oEmbed API 経由のキャッシュ機能導入時に使用予定） |
 | notes | string | ✖ | 運用メモ |
 
 #### API 利用ガイド
@@ -194,23 +194,33 @@ Supabase は PostgreSQL に対して自動生成された REST エンドポイ�
 - パブリックエンドポイントへのアクセスは IP 単位でレート制限（例: 100 req/10min）を設け、429 発生時には `Retry-After` を返す。
 
 ## 3. Instagram Embed API
-Instagram 埋め込みは oEmbed を利用してサーバー側で安全に処理する。
+Instagram 埋め込みは、Instagram公式の blockquote 埋め込み方式（`embed.js`）を使用してクライアント側で処理する。
 
-### 3.1 認証・前提条件
-- エンドポイント: `https://graph.facebook.com/v17.0/instagram_oembed?url={POST_URL}` [[1]](#ref1)
-- Facebook アプリのアクセストークンが必要。環境変数は `INSTAGRAM_OEMBED_TOKEN` としてサーバーサイドに保持し、クライアントへ露出させない（[04 開発ガイド](./04-development.md) で設定手順を管理）。
-- oEmbed レスポンスから得られた HTML は DOMPurify などでサニタイズし、`iframe` 要素と `script` の読み込み情報を分離して保存する。
+### 3.1 MVP の実装方式
+- **埋め込み方法**: Instagram公式の `embed.js` SDK を使用した blockquote 方式（API不要）
+- **実装場所**: `apps/web/components/InstagramEmbed.tsx`
+- **処理フロー**:
+  1. Supabase の `schedules.instagram_post_url` を取得する
+  2. `InstagramEmbed` コンポーネントで blockquote 要素を生成し、`data-instgrm-permalink` 属性に投稿URLを設定する
+  3. `next/script` で Instagram SDK (`https://www.instagram.com/embed.js`) を遅延読み込みする
+  4. SDK読み込み完了後、`window.instgrm?.Embeds.process()` を呼び出して埋め込みを処理する
+  5. 埋め込み失敗時（タイムアウト・エラー）は、投稿URLへの直接リンクをフォールバック表示する
 
-### 3.2 表示フロー
-1. Supabase の `schedules.instagram_post_url`・`embed_html`・`image_url` を取得する。
-2. サーバーコンポーネントまたは Edge Function で oEmbed API を呼び出し、HTML とスクリプトを分離したうえで `embed_html` を保存する。
-3. レンダリング時に `InstagramEmbed` コンポーネントで `iframe` を再構築し、`title`・`aria-label`・`loading="lazy"`・`referrerPolicy="no-referrer"` を付与する。
-4. `sandbox="allow-scripts allow-same-origin"` を設定し、`next/script` で Instagram SDK (`https://www.instagram.com/embed.js`) を遅延読み込み後 `window.instgrm?.Embeds.process()` を呼び出す。
-5. JavaScript 無効時や埋め込み失敗時はスケジュール画像（`image_url`）をフォールバック表示する。
+### 3.2 フォールバック動作（MVP）
+- **埋め込み失敗時**: Instagram投稿URLへの直接リンク（「Instagramで開く」）を表示する
+- **`image_url` の位置づけ**: 
+  - DBスキーマ上は必須カラム（ダミーURL可）だが、**MVP UIでは表示に使用しない**
+  - 将来的なフォールバック表示や運用上の整合性確保のために保持（ポストMVPで活用予定）
+- **`embed_html` の位置づけ**: 現時点では未使用。ポストMVPで oEmbed API 経由のキャッシュ機能を導入する際に活用予定
 
-### 3.3 フォールバックと監視
-- フォールバックが発生した場合は Supabase のログテーブル（例: `instagram_errors`）に保存し、Slack/Email で通知する。
-- 連続エラー発生時は Edge Function 側でリトライポリシーを制御し、必要に応じてキャッシュを無効化する。
+### 3.3 将来拡張（ポストMVP）
+- **oEmbed API の導入**: 
+  - エンドポイント: `https://graph.facebook.com/v17.0/instagram_oembed?url={POST_URL}` [[1]](#ref1)
+  - Facebook アプリのアクセストークンが必要。環境変数は `INSTAGRAM_OEMBED_TOKEN` としてサーバーサイドに保持する
+  - oEmbed レスポンスから得られた HTML は DOMPurify などでサニタイズし、`embed_html` カラムに保存する
+- **監視とログ**: 
+  - フォールバックが発生した場合は Supabase のログテーブル（例: `instagram_errors`）に保存し、Slack/Email で通知する
+  - 連続エラー発生時は Edge Function 側でリトライポリシーを制御し、必要に応じてキャッシュを無効化する
 
 ## 4. localStorage仕様（MVP）
 
