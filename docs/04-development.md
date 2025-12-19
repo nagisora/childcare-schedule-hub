@@ -11,7 +11,7 @@
 
 本書は恒常的な開発業務のガイドラインをまとめる。臨時メモは issue / PR のコメントに記録し、確定事項のみ本書へ反映する。
 
-補足: 高レベルの進め方（開発フェーズ）は [05 開発フェーズ](./05-development-phases.md) を参照。短時間作業の計画・記録には `docs/dev-sessions/template-session.md` をコピーして利用する。
+補足: 高レベルの進め方（開発フェーズ）は [05 開発フェーズ](./05-00-development-phases.md) を参照。短時間作業の計画・記録には [`docs/dev-sessions/template-session.md`](./dev-sessions/template-session.md) をコピーして利用する。テンプレートには「チェックリスト式実装計画書」が組み込まれており、壁打ち→計画→（実行方式の明記）→実行内容の明記→実行の流れで進められる。詳細は [`docs/dev-sessions/README.md`](./dev-sessions/README.md) を参照。
 
 ## 2. 開発環境セットアップ
 
@@ -79,6 +79,9 @@ mise exec -- pnpm --filter web dev
 | `NEXT_PUBLIC_SUPABASE_URL` | 必須 | クライアント / サーバー | なし | Supabase プロジェクト URL。`NEXT_PUBLIC_` 接頭辞によりクライアントへ配信。 |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 必須 | クライアント / サーバー | なし | Supabase Anon キー。公開可能だが、無料枠保護のためローテーションポリシーを準備。 |
 | `SUPABASE_SERVICE_ROLE_KEY` | 必須 | サーバーのみ | なし | Edge Function や ISR 再生成で使用。クライアントへ送信禁止。 |
+| `GOOGLE_CSE_API_KEY` | 任意 | サーバーのみ | なし | フェーズ9: Google Custom Search API 用のAPIキー。クライアントへ送信禁止・ログ出力禁止。 |
+| `GOOGLE_CSE_CX` | 任意 | サーバーのみ | なし | フェーズ9: Google Programmable Search Engine（CSE）の識別子（cx）。クライアントへ送信禁止。 |
+| `ADMIN_API_TOKEN` | 任意 | サーバーのみ | なし | フェーズ9: 内部API保護用トークン（`/api/instagram-search` など）。`x-admin-token` ヘッダーで検証。クライアントへ送信禁止・ログ出力禁止。 |
 | `INSTAGRAM_OEMBED_TOKEN` | 任意 | サーバーのみ | なし | Instagram oEmbed を高頻度で呼ぶ場合に必須。未設定時はレート制限に注意。 |
 | `CSH_STORAGE_VERSION` | 任意 | クライアント | 文字列 | お気に入りlocalStorageのバージョン管理に利用。デフォルトは `1`。 |
 
@@ -103,6 +106,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 
 # サーバー専用（クライアントに公開しない）
 SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJI..."
+
+# フェーズ9: Google Custom Search API（Programmable Search Engine）
+GOOGLE_CSE_API_KEY=""
+GOOGLE_CSE_CX=""
+
 INSTAGRAM_OEMBED_TOKEN=""
 SUPABASE_DB_PASSWORD=""        # Supabase CLI を使う場合
 ```
@@ -119,7 +127,7 @@ SUPABASE_DB_PASSWORD=""        # Supabase CLI を使う場合
 ### 3.4 環境別運用
 - 現在の仮MVP環境（Vercel）では、`Production` / `Preview` / `Development` に同一キーを登録し、Service Role Key は `Encrypted` として保存する。
 - Preview デプロイで動作検証する際は、必要な環境変数が設定されているか `vercel env pull` で確認する。
-- 注: 本番デプロイ先は [フェーズ11: デプロイ先の検討（コスト最適化）](./05-development-phases.md#フェーズ11-デプロイ先の検討コスト最適化) で再検討する。ホスティングを変更した場合は、本節の手順を移植・更新すること。
+- 注: 本番デプロイ先は [フェーズ12: デプロイ先の検討（コスト最適化）](./05-00-development-phases.md#フェーズ12-デプロイ先の検討コスト最適化) で再検討する。ホスティングを変更した場合は、本節の手順を移植・更新すること。
 
 ## 4. データベースと Supabase CLI
 
@@ -259,7 +267,7 @@ Supabase CLI を使ったローカル開発環境やマイグレーション管�
 2. 本番デプロイ前にプレビュー URL で動作確認し、非機能要件を満たすかチェック。
 3. 環境変数はホスティング基盤の Environment（現状: Vercel の Preview / Production）に分けて登録する。
 4. トラブル時は `supabase logs` やホスティング基盤のログ（現状: Vercel ログ）を確認し、影響度を即時に共有する。
-5. 注: 本番デプロイ先は [フェーズ8: デプロイ先の検討（コスト最適化）](./05-development-phases.md#フェーズ8-デプロイ先の検討コスト最適化) で再検討する。ホスティングを変更した場合は、本節の手順を移植・更新すること。
+5. 注: 本番デプロイ先は [フェーズ12: デプロイ先の検討（コスト最適化）](./05-00-development-phases.md#フェーズ12-デプロイ先の検討コスト最適化) で再検討する。ホスティングを変更した場合は、本節の手順を移植・更新すること。
 
 ## 8. トラブルシューティング
 | 問題 | 対処 |
@@ -280,7 +288,7 @@ Supabase CLI を使ったローカル開発環境やマイグレーション管�
 - **ISR 再生成**: `/api/revalidate` に対象タグ (`facilities` / `schedules`) を付与して POST。成功レスポンスとホスティング基盤のダッシュボード（現状: Vercel ダッシュボード）を確認。
 - **ログ確認**: Supabase Studio の Logs タブでエラー/関数ログを確認し、Instagram 埋め込み失敗ログは 24 時間以内にレビュー。
 - **ロールバック**: 重大障害時はホスティング基盤の Deploy ログ（現状: Vercel の Deploy ログ）から直前成功ビルドにロールバックし、Supabase `supabase db restore` で最新バックアップを適用。
-- 注: 本番デプロイ先は [フェーズ11: デプロイ先の検討（コスト最適化）](./05-development-phases.md#フェーズ11-デプロイ先の検討コスト最適化) で再検討する。ホスティングを変更した場合は、本節の手順を移植・更新すること。
+- 注: 本番デプロイ先は [フェーズ12: デプロイ先の検討（コスト最適化）](./05-00-development-phases.md#フェーズ12-デプロイ先の検討コスト最適化) で再検討する。ホスティングを変更した場合は、本節の手順を移植・更新すること。
 - **連絡体制**: 管理者メール `ops@childcare-hub.example` と Slack `#childcare-hub-ops` に通知。SLO 逸脱時は 30 分以内に一次報告。
 
 ### 9.1 仮MVP環境でのトラブルシューティング（フェーズ8）
@@ -365,7 +373,97 @@ Supabase CLI を使ったローカル開発環境やマイグレーション管�
 - 手動インポート時は、事前に `name` + `facility_type` + `address_full_raw` の組み合わせで重複チェックを行うことを推奨。
 - 将来的には、`name` + `facility_type` + `municipality_code` の組み合わせで一意制約を追加することを検討（ポストMVP）。
 
-### 9.5.3 スクレイピングスクリプト実行フロー
+### 9.5.3 InstagramアカウントURL半自動登録ツール（フェーズ9）
+
+**概要**:
+`apps/scripts/instagram-semi-auto-registration.ts` は、`instagram_url IS NULL` の施設に対して Google Custom Search API を使用してInstagramアカウントを検索し、候補を提示して人間が採用/スキップを選ぶフローを実現するCLIツールです。
+
+**前提条件**:
+- `apps/web/.env.local` に以下が設定されていること:
+  - `NEXT_PUBLIC_SUPABASE_URL`
+  - `SUPABASE_SERVICE_ROLE_KEY`
+  - `GOOGLE_CSE_API_KEY`
+  - `GOOGLE_CSE_CX`
+  - `ADMIN_API_TOKEN`
+- Next.js 開発サーバーが起動していること（`mise exec -- pnpm --filter web dev`）
+
+**使用方法**:
+
+1. **DRY-RUN モード（デフォルト、推奨）**:
+   ```bash
+   cd apps/scripts
+   pnpm tsx instagram-semi-auto-registration.ts
+   ```
+   - 対象施設（デフォルト: 東区）を取得し、各施設に対して `/api/instagram-search` を呼び出す
+   - 候補を表示して、人間が「採用 / スキップ / 未特定」を選択
+   - 結果を `apps/scripts/logs/instagram-registration-<timestamp>.json` に保存（DBは更新しない）
+
+2. **更新モード（実際にDBを更新）**:
+   ```bash
+   cd apps/scripts
+   pnpm tsx instagram-semi-auto-registration.ts --apply --yes
+   ```
+   - `--apply`: 更新モードを有効化
+   - `--yes`: 二重確認（必須）
+   - 更新前にバックアップを `apps/scripts/logs/instagram-backup-<timestamp>.json` に保存
+   - 採用した候補の `instagram_url` を `facilities` テーブルに更新
+
+3. **対象区を指定**:
+   ```bash
+   pnpm tsx instagram-semi-auto-registration.ts --ward=西区
+   ```
+
+4. **検索戦略を指定**:
+   ```bash
+   # score戦略（デフォルト、スコア方式）
+   pnpm tsx instagram-semi-auto-registration.ts --strategy=score
+   
+   # rank戦略（Google検索のランキング上位1〜3件を優先）
+   pnpm tsx instagram-semi-auto-registration.ts --strategy=rank
+   ```
+   - `--strategy=score`: スコア方式で候補を選別（説明可能・理由が出せる）
+   - `--strategy=rank`: 適切なクエリで検索し、上位1〜3件を候補として返す（短い施設名での誤検出を減らす）
+
+5. **戦略比較モード（DRY-RUN専用）**:
+   ```bash
+   pnpm tsx instagram-semi-auto-registration.ts --compare-strategies
+   ```
+   - 同一施設に対して score/rank の両方の戦略で検索し、結果を比較表示する
+   - `--apply` と同時指定は不可（DRY-RUN専用のため）
+
+6. **自動採用オプション（非対話環境での rank 戦略用）**:
+   ```bash
+   # DRY-RUN モードで自動採用の挙動を確認
+   pnpm tsx instagram-semi-auto-registration.ts --ward=東区 --strategy=rank --auto-adopt
+   
+   # 更新モードで自動採用を実行（候補1件のみ自動採用、複数候補は未特定として記録）
+   pnpm tsx instagram-semi-auto-registration.ts --ward=東区 --strategy=rank --auto-adopt --apply --yes
+   ```
+   - `--auto-adopt`: 非対話環境でも `--strategy=rank` の自動採用を許可（opt-in）
+   - **デフォルト動作（`--auto-adopt` 未指定）**: 非対話環境では rank 戦略の自動採用を行わない（安全装置）
+   - `--auto-adopt` 指定時の挙動:
+     - 候補0件: `action: not_found`, `reason: no_candidates`
+     - 候補1件: `action: adopted`, `reason: auto_adopt_single_candidate`（`--apply` ならDB更新）
+     - 候補2件以上: `action: not_found`, `reason: auto_adopt_blocked_multiple_candidates`（候補は結果JSONに記録され、人間が後で判断できる）
+   - **事故防止**: 迷うケース（複数候補）は必ず未特定として記録し、誤登録を防ぐ
+
+**出力ファイル**:
+- `apps/scripts/logs/instagram-registration-<timestamp>.json`: 処理結果（採用/スキップ/未特定の記録、実行時のフラグ情報も含む）
+- `apps/scripts/logs/instagram-backup-<timestamp>.json`: 更新前のバックアップ（`--apply` 時のみ）
+- `apps/scripts/logs/instagram-review-<timestamp>.json`: レビュー用サマリ（`action: not_found` のみを抽出、人間レビューが容易）
+
+**注意事項**:
+- APIキー等のシークレットは表示・保存されない
+- DRY-RUN モードを推奨（誤登録を防ぐため）
+- 更新モードを使用する場合は、必ずバックアップを確認してから実行すること
+- `--strategy=rank` を非対話環境で使用する場合:
+  - `--auto-adopt` 未指定: 自動採用を行わず、すべてスキップされる（安全装置）
+  - `--auto-adopt` 指定: 候補1件のみ自動採用、複数候補は未特定として記録（誤登録防止）
+- 結果JSONの `reason` フィールドは機械可読なコード（例: `auto_adopt_single_candidate`, `auto_adopt_blocked_multiple_candidates`, `user_skipped` など）で記録され、後から抽出・分析が容易
+
+**参照**: `docs/05-09-instagram-account-url-coverage.md`（タスク5）
+
+### 9.5.4 スクレイピングスクリプト実行フロー
 
 **前提条件**:
 - Node.js 20.x 以上がインストールされていること
@@ -477,7 +575,11 @@ name,facility_type,prefecture_code,municipality_code,ward_code,postal_code,prefe
 
 #### 1. InstagramアカウントURLの確認
 
-**方法: 手動でWeb検索・Instagram検索を実施**（推奨）
+**標準フロー: Google Custom Search API を使った半自動登録（推奨）**
+
+詳細は [`docs/instagram-integration/04-runbook.md`](./instagram-integration/04-runbook.md) の「方法A: Google Custom Search API を使った半自動登録」を参照。
+
+**フォールバック: 手動でWeb検索・Instagram検索を実施**
 
 1. 施設名を確認（`facilities` テーブルから取得、または名古屋市サイトから確認）
 2. 検索エンジンで以下のキーワードで検索:
@@ -489,7 +591,10 @@ name,facility_type,prefecture_code,municipality_code,ward_code,postal_code,prefe
 5. アカウントURLを控える（例: `https://www.instagram.com/account_name/`）
 6. `facilities.instagram_url` に登録（Supabase Studio または SQL）
 
-**注意**: 名古屋市サイト（一覧ページ・詳細ページ）にはInstagramリンクが含まれていないため、手動調査が必須。
+**注意**: 
+- 標準フロー（Google Custom Search API）が使えない場合のみ、このフォールバック手順を使用する
+- 詳細な手順と判断基準は [`docs/instagram-integration/05-instagram-account-search.md`](./instagram-integration/05-instagram-account-search.md) を参照
+- 名古屋市サイト（一覧ページ・詳細ページ）にはInstagramリンクが含まれていないため、手動調査が必須
 
 #### 2. スケジュールURLの確認
 

@@ -394,6 +394,10 @@ export function useFavoritesSync(allFacilities: Facility[]) {
 
 			// 選択月を即座に更新
 			setSelectedMonths((prev) => ({ ...prev, [facilityId]: targetMonth }));
+			// レースコンディション対策:
+			// APIが高速に返ると、selectedMonthsRef の反映（useEffect）より先にチェックが走り結果が破棄される。
+			// ここで ref も同期更新して「最新の選択月」を即時に可視化する。
+			selectedMonthsRef.current = { ...selectedMonthsRef.current, [facilityId]: targetMonth };
 
 		// ローディング状態を開始、エラー状態をクリア
 		setLoadingForIds([facilityId], true);

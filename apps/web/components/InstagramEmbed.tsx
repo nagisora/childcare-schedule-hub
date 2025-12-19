@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import Script from 'next/script';
 import { isInstagramPostUrl, processInstagramEmbed, isInstagramSDKLoaded } from '../lib/instagram-utils';
@@ -110,6 +111,7 @@ export function InstagramEmbed({ postUrl, className = '' }: InstagramEmbedProps)
 
 	// 投稿URLのバリデーション
 	const isValidUrl = isInstagramPostUrl(postUrl);
+	const invalidFallbackHref = postUrl && postUrl.trim().length > 0 ? postUrl : 'https://www.instagram.com/';
 
 	useEffect(() => {
 		if (!containerRef.current || !isValidUrl) {
@@ -191,7 +193,7 @@ export function InstagramEmbed({ postUrl, className = '' }: InstagramEmbedProps)
 			<div className={`flex flex-col items-center justify-center h-64 bg-slate-50 rounded-lg p-4 ${className}`}>
 				<p className="text-sm text-slate-400 mb-2">無効なInstagram投稿URLです</p>
 				<a
-					href={postUrl}
+					href={invalidFallbackHref}
 					target="_blank"
 					rel="noopener noreferrer"
 					className="text-sm text-blue-600 hover:text-blue-800 underline"

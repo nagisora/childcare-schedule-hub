@@ -8,6 +8,15 @@ import * as schedulesLib from '../lib/schedules';
 import * as storageLib from '../lib/storage';
 import * as favoritesLib from '../lib/favorites';
 
+// 日付依存（今月判定）をテストで固定する（ローカルTZでの揺れを避ける）
+vi.mock('../lib/date-utils', async () => {
+	const actual = await vi.importActual<typeof import('../lib/date-utils')>('../lib/date-utils');
+	return {
+		...actual,
+		getCurrentYearMonth: () => ({ year: 2024, month: 1 }),
+	};
+});
+
 // モック設定
 vi.mock('../lib/schedules');
 vi.mock('../lib/storage');
@@ -78,8 +87,8 @@ describe('useFavoritesSync', () => {
 				.filter((item): item is { facility: Facility; sortOrder: number } => item !== null)
 				.sort((a, b) => a.sortOrder - b.sortOrder);
 		});
-		vi.mocked(schedulesLib.getLatestSchedulesByFacilityIds).mockResolvedValue(mockSchedules);
-		vi.mocked(schedulesLib.getSchedulesByFacilityIdsAndMonth).mockResolvedValue({});
+		// 初期ロード/新規追加は「今月（固定: 2024-01-01）」のスケジュールを取得する仕様
+		vi.mocked(schedulesLib.getSchedulesByFacilityIdsAndMonth).mockResolvedValue(mockSchedules);
 	});
 
 	afterEach(() => {
@@ -103,13 +112,32 @@ describe('useFavoritesSync', () => {
 			expect(result.current.schedules).toHaveProperty('facility-2');
 		});
 
-		expect(schedulesLib.getLatestSchedulesByFacilityIds).toHaveBeenCalledWith(['facility-1', 'facility-2']);
+		expect(schedulesLib.getSchedulesByFacilityIdsAndMonth).toHaveBeenCalledWith(['facility-1', 'facility-2'], '2024-01-01');
 	});
 
 	// Given: 既存のお気に入りが1件存在し、スケジュールが読み込まれている状態
 	// When: 新規施設を1件追加する
 	// Then: 既存施設のスケジュールが維持され、新規施設のスケジュールのみ追加される
 	it('TC-N-02: 既存のお気に入りに1件追加したとき、既存施設のスケジュールが維持される', async () => {
+		// 初期ロード/追加のどちらも「今月（固定: 2024-01-01）」を取得する。
+		// interval 等で呼び出し回数がブレても壊れないように条件分岐で返す。
+		vi.mocked(schedulesLib.getSchedulesByFacilityIdsAndMonth).mockImplementation(async (facilityIds) => {
+			if (facilityIds.includes('facility-3')) {
+				return {
+					'facility-3': {
+						id: 'schedule-3',
+						facility_id: 'facility-3',
+						image_url: 'https://example.com/image3.jpg',
+						instagram_post_url: null,
+						embed_html: null,
+						published_month: '2024-01-01',
+						status: 'published',
+						notes: null,
+					},
+				};
+			}
+			return mockSchedules;
+		});
 		const { result } = renderHook(() => useFavoritesSync(mockFacilities));
 
 		await waitFor(() => {
@@ -126,18 +154,7 @@ describe('useFavoritesSync', () => {
 			{ facilityId: 'facility-3', sortOrder: 3 },
 		];
 		vi.mocked(storageLib.readFavoritesFromStorage).mockReturnValue(newStorageItems);
-		vi.mocked(schedulesLib.getLatestSchedulesByFacilityIds).mockResolvedValue({
-			'facility-3': {
-				id: 'schedule-3',
-				facility_id: 'facility-3',
-				image_url: 'https://example.com/image3.jpg',
-				instagram_post_url: null,
-				embed_html: null,
-				published_month: '2024-01-01',
-				status: 'published',
-				notes: null,
-			},
-		});
+		// NOTE: getSchedulesByFacilityIdsAndMonth は上の mockImplementation が担保するため、ここで上書き不要
 
 		// ストレージイベントを発火（シミュレーション）
 		window.dispatchEvent(new StorageEvent('storage', { key: 'csh_favorites' }));
@@ -207,7 +224,7 @@ describe('useFavoritesSync', () => {
 	// Then: エラーログが出力され、スケジュールは空の状態になる
 	it('TC-A-01: スケジュール取得APIが失敗する（初期ロード時）', async () => {
 		const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-		vi.mocked(schedulesLib.getLatestSchedulesByFacilityIds).mockRejectedValue(new Error('API Error'));
+		vi.mocked(schedulesLib.getSchedulesByFacilityIdsAndMonth).mockRejectedValue(new Error('API Error'));
 
 		const { result } = renderHook(() => useFavoritesSync(mockFacilities));
 
@@ -227,6 +244,8 @@ describe('useFavoritesSync', () => {
 	// When: 新規施設を追加する
 	// Then: 既存施設のスケジュールは維持され、新規施設のみスケジュールが取得されない
 	it('TC-A-02: スケジュール取得APIが失敗する（お気に入り追加時）', async () => {
+		// 初期ロードは成功
+		vi.mocked(schedulesLib.getSchedulesByFacilityIdsAndMonth).mockResolvedValueOnce(mockSchedules);
 		const { result } = renderHook(() => useFavoritesSync(mockFacilities));
 		const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -244,7 +263,8 @@ describe('useFavoritesSync', () => {
 			{ facilityId: 'facility-3', sortOrder: 3 },
 		];
 		vi.mocked(storageLib.readFavoritesFromStorage).mockReturnValue(newStorageItems);
-		vi.mocked(schedulesLib.getLatestSchedulesByFacilityIds).mockRejectedValue(new Error('API Error'));
+		// 追加時は失敗
+		vi.mocked(schedulesLib.getSchedulesByFacilityIdsAndMonth).mockRejectedValueOnce(new Error('API Error'));
 
 		// ストレージイベントを発火
 		window.dispatchEvent(new StorageEvent('storage', { key: 'csh_favorites' }));

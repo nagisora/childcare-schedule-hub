@@ -20,11 +20,49 @@ Instagram連携によるスケジュールURL取得・管理の運用手順を�
 
 #### 1. InstagramアカウントURLの確認
 
-**方法A: 自治体サイトから確認**
-- **結果**: 名古屋市サイト（一覧ページ・詳細ページ）にはInstagramリンクが含まれていないため、この方法は使用不可
-- **代替方法**: 手動でWeb検索・Instagram検索を実施
+**方法A: Google Custom Search API を使った半自動登録（推奨・標準フロー）**
+- **前提条件**:
+  - `apps/scripts/instagram-semi-auto-registration.ts` が利用可能
+  - 環境変数 `GOOGLE_CSE_API_KEY` と `GOOGLE_CSE_CX` が設定済み
+  - Supabase の接続情報が設定済み
+- **手順**:
+  1. 対象区を指定してCLIを実行（DRY-RUNモード）:
+     ```bash
+     cd apps/scripts
+     pnpm tsx instagram-semi-auto-registration.ts --ward=東区
+     ```
+  2. 候補を確認:
+     - 各施設の候補が表示される
+     - スコアが3点未満の候補は自動的にレビューに回される
+     - 複数候補がある場合は、レビュー用サマリファイル（`apps/scripts/logs/instagram-review-*.md`）を確認
+  3. 採用候補を確認してDB更新:
+     ```bash
+     pnpm tsx instagram-semi-auto-registration.ts --ward=東区 --apply --yes
+     ```
+  4. バックアップとログを確認:
+     - バックアップ: `apps/scripts/logs/instagram-backup-*.json`
+     - 実行ログ: `apps/scripts/logs/instagram-registration-*.json`
+     - レビューサマリ: `apps/scripts/logs/instagram-review-*.md`
+- **メリット**:
+  - 複数施設を一括処理できる
+  - 検索クエリの最適化が自動的に適用される
+  - バックアップとログが自動生成される
+- **フォールバック条件**:
+  - 環境変数が設定されていない場合
+  - APIのレート制限に達した場合
+  - 特定の施設だけを手動で確認したい場合
+  - その場合は「方法B: 手動でWeb検索」に切り替える
 
-**方法B: 手動でWeb検索・Instagram検索を実施**（推奨）
+**方法B: 自治体サイトから確認**
+- **結果（更新）**:
+  - 一覧ページ（テーブル）にはInstagramリンクが含まれていない
+  - ただし詳細ページ（`detail_page_url`）にInstagram URLが明示されているケースがあるため、**この方法は「部分的に有効」**
+    - 例: `https://www.kosodate.city.nagoya.jp/play/supportbases10.html` に `https://www.instagram.com/oyakokko_minato/` の記載
+    - 注意: 詳細ページURLは `.../play/...` が正で、`/play/` 抜けは 404 になることがある
+- **運用**:
+  - まず詳細ページを確認（または一括抽出）し、見つからない分だけ検索に回す
+
+**方法C: 手動でWeb検索・Instagram検索を実施**（フォールバック）
 1. 施設名を確認（`facilities` テーブルから取得、または名古屋市サイトから確認）
 2. 検索エンジンで以下のキーワードで検索:
    - `"施設名" Instagram`
@@ -34,9 +72,9 @@ Instagram連携によるスケジュールURL取得・管理の運用手順を�
 4. 見つかったアカウントが該当施設のものか確認（プロフィールの説明・投稿内容を確認）
 5. アカウントURLを控える（例: `https://www.instagram.com/account_name/`）
 
-**方法C: スクレイピングスクリプトで取得**
-- **結果**: 名古屋市サイトにInstagramリンクが含まれていないため、この方法は使用不可
-- **将来の拡張**: 名古屋市サイトが更新され、Instagramリンクが追加された場合に検討
+**方法D: スクレイピングスクリプトで取得**
+- **結果（更新）**: 詳細ページにInstagram URLが明示されているケースがあるため、**「詳細ページ→Instagram URL抽出」のスクレイピングは有効になり得る**
+- **注意**: アクセス間隔などスクレイピングガイドラインに準拠し、抽出できない場合は検索へフォールバックする
 
 #### 2. スケジュールURLの確認
 

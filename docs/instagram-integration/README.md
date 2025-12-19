@@ -44,12 +44,16 @@
 
 ### AIによるInstagramアカウント検索のベストプラクティス
 
-- **ブラウザで直接Google検索を開き、検索欄にキーワードを入力する方法を優先する**
+- **現状の正式手順**: ブラウザで直接Google検索を開き、検索欄にキーワードを入力する方法を優先する
   - `web_search` などの要約ベースの検索結果は、実際のGoogle検索結果と乖離することがあるため、「公式アカウントURLの特定」には不向きな場合がある
   - まずはブラウザツールで `https://www.google.com` を開き、検索ボックスにシンプルなクエリ（例: `おやこっこなか instagram`, `ゆるまる instagram`）をそのまま入力して検索する
 - **検索結果の読み方**
   - 公式アカウント候補として、`instagram.com/<アカウント名>/` へのリンクで、施設名＋エリア名（例: 名古屋市中区子育て応援拠点ゆるまる）が明示されているものを最優先とする
   - 施設と無関係な「ゆるまる」「ゆめまる」（個人アカウント、番組キャラ、別サービスなど）は除外し、説明文とプロフィールから施設との関連性を確認する
+- **検索APIによる自動化の検討状況**
+  - Google Custom Search API / Serper.dev / DuckDuckGo Search などの検索APIを用いて、AIがブラウザ操作を行わずに構造化データからURLを特定する案を、`instagram-integration/ai-comparisons/` 配下で比較検討している
+  - 特に、**長期運用では公式API系（Google Custom Search API / Serper.dev）を優先候補としつつ、DuckDuckGo Search はPoC用の補助的手段とする** 方針を想定している
+  - 実測ベースの検証（精度・所要時間）が終わり次第、`05-instagram-account-search.md` の手順を検索API版に差し替えるかどうかを判断する
 - **記録の仕方**
   - 特定できた場合は、`facilities.instagram_url` に登録すると同時に、`04-runbook.md` の「登録記録」および「気づき」に
     - 使った検索クエリ
@@ -66,7 +70,7 @@
 
 ## 関連ドキュメント
 
-- [05 開発フェーズ](../05-development-phases.md) - フェーズ6（Instagram連携 & お気に入りでのスケジュール埋め込み）の完了条件
+- [05 開発フェーズ](../05-00-development-phases.md) - フェーズ6（Instagram連携 & お気に入りでのスケジュール埋め込み）の完了条件
 - [02 設計資料](../02-design.md) - schedulesテーブル定義
 - [03 API 仕様](../03-api.md) - Instagram Embed API仕様
 - [04 開発ガイド](../04-development.md) - スクレイピングガイドライン（9.5.1節）

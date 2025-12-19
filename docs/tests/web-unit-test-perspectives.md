@@ -37,7 +37,32 @@
 
 **注:** 実装は `lib/storage.ts` に集約されている（以前は `lib/cookies.ts` として設計されていたが、localStorage ベースの実装に変更された）。
 
-### 1.3 `lib/storage.ts` - `removeFavorite` 関数
+### 1.3 `lib/instagram-search.ts` - Instagram検索関連ユーティリティ（フェーズ9）
+
+| Case ID | Input / Precondition | Perspective (Equivalence / Boundary) | Expected Result | Notes |
+|---------|---------------------|--------------------------------------|-----------------|-------|
+| TC-N-01 | 正常な施設名・区名でクエリ生成 | Equivalence – normal | 4つの優先順位付きクエリが生成される | - |
+| TC-N-02 | 区名が null でクエリ生成 | Boundary – NULL | 区名を含むクエリは生成されず、施設名のみのクエリが生成される | - |
+| TC-N-03 | 正常なプロフィールURLを正規化 | Equivalence – normal | `https://www.instagram.com/<username>/` 形式に統一される | - |
+| TC-N-04 | `m.instagram.com` のURLを正規化 | Equivalence – normal | `www.instagram.com` に変換される | - |
+| TC-N-05 | `http://` のURLを正規化 | Equivalence – normal | `https://` に変換される | - |
+| TC-A-01 | 投稿URL（`/p/`）を正規化 | Equivalence – abnormal | `null` を返す（除外） | - |
+| TC-A-02 | リールURL（`/reel/`）を正規化 | Equivalence – abnormal | `null` を返す（除外） | - |
+| TC-A-03 | クエリパラメータ付きURL（`?igsh=`）を正規化 | Equivalence – abnormal | クエリパラメータが除去される | - |
+| TC-A-04 | フラグメント付きURL（`#`）を正規化 | Equivalence – abnormal | フラグメントが除去される | - |
+| TC-A-05 | Instagram以外のドメインを正規化 | Equivalence – abnormal | `null` を返す（除外） | - |
+| TC-B-01 | スコア5点の候補 | Boundary – 閾値 | 採用される（5点以上） | - |
+| TC-B-02 | スコア4点の候補 | Boundary – 閾値-1 | 採用されない（5点未満） | - |
+| TC-B-03 | 施設名一致（長い名称: +4点）+ 区名一致（+2点）+ 名古屋/愛知（+1点）+ 子育て（+1点）+ プロフィールURL（+1点） | Equivalence – normal | 高スコア（8点以上）になり得る | 最大9点 |
+| TC-B-04 | 施設名一致なし（-2点）+ 名古屋/愛知なし（短い名称では追加減点）+ プロフィールURL（+1点） | Boundary – 閾値-1 | 採用されない（誤検出抑制） | - |
+| TC-B-05 | 投稿URLを含む候補（-10点） | Equivalence – abnormal | スコアに関係なく除外される | - |
+| TC-A-06 | 空文字列を正規化 | Boundary – 空 | `null` を返す | - |
+| TC-A-07 | null を正規化 | Boundary – NULL | `null` を返す | - |
+| TC-N-06 | 特殊文字（括弧・記号）を含む施設名でクエリ生成 | Equivalence – normal | エスケープされたクエリが生成される | - |
+| TC-B-07 | 短い施設名（例: いずみ）でクエリ生成 | Equivalence – normal | 名古屋/区/子育て文脈を優先したクエリが生成される | コスト抑制（最大4本） |
+| TC-B-08 | 短い施設名 + 別地域（例: 札幌）キーワード | Equivalence – abnormal | 5点未満になり、候補から除外される | 誤検出抑制 |
+
+### 1.4 `lib/storage.ts` - `removeFavorite` 関数
 
 | Case ID | Input / Precondition | Perspective (Equivalence / Boundary) | Expected Result | Notes |
 |---------|---------------------|--------------------------------------|-----------------|-------|
