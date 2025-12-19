@@ -628,8 +628,11 @@ name,facility_type,prefecture_code,municipality_code,ward_code,postal_code,prefe
 3. **Insert** > **Insert row** をクリック
 4. 以下の項目を入力:
    - `facility_id`: 対象施設のUUID（`facilities` テーブルから取得）
+   - `image_url`: スケジュール画像のURL（必須）
+     - **暫定運用**: まずはダミーURLでも可（例: `https://example.com/schedule-2025-01.jpg`）。ただし将来的なフォールバック表示に使うため、可能なら実画像URLを設定する
+     - 参考: `docs/06-db-operations.md`（`image_url` はダミーURL可）
    - `instagram_post_url`: Instagram投稿URL（例: `https://www.instagram.com/p/...`）
-     - 外部サイトURL（Googleドライブ等）の場合は、`image_url` に登録することを検討（将来拡張）
+     - 外部サイトURL（Googleドライブ等）が「正」の情報源でも、MVPではまず投稿URLを `instagram_post_url` として登録し、補足は `notes` に残す（必要に応じて後で実画像へ移行）
    - `published_month`: 対象月の1日（例: `2025-01-01`）
      - 注意: 月の1日で統一する（例: 1月なら `2025-01-01`、2月なら `2025-02-01`）
    - `status`: `published`
@@ -639,9 +642,10 @@ name,facility_type,prefecture_code,municipality_code,ward_code,postal_code,prefe
 
 ```sql
 -- 新規登録
-INSERT INTO schedules (facility_id, instagram_post_url, published_month, status)
+INSERT INTO schedules (facility_id, image_url, instagram_post_url, published_month, status)
 VALUES (
   'facility-uuid-here',  -- facilities テーブルから取得したUUID
+  'https://example.com/schedule-2025-01.jpg',  -- スケジュール画像URL（暫定はダミーURL可）
   'https://www.instagram.com/p/...',  -- Instagram投稿URL
   '2025-01-01',  -- 対象月の1日
   'published'
