@@ -197,7 +197,7 @@ function writeReviewMarkdown(results: DetailScanResult[]): string {
 		lines.push('|---|---|---|---|---|');
 		for (const r of rows) {
 			lines.push(
-				`| ${r.facilityName} | ${r.wardName ?? ''} | ${r.detailPageUrl} | ${r.normalizedInstagramUrl ?? ''} | ${r.reason}$${r.errorMessage ? ` (${r.errorMessage})` : ''} |`
+				`| ${r.facilityName} | ${r.wardName ?? ''} | ${r.detailPageUrl} | ${r.normalizedInstagramUrl ?? ''} | ${r.reason}${r.errorMessage ? ` (${r.errorMessage})` : ''} |`
 			);
 		}
 		lines.push('');

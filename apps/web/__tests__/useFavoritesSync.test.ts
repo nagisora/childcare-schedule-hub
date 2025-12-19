@@ -88,7 +88,6 @@ describe('useFavoritesSync', () => {
 				.sort((a, b) => a.sortOrder - b.sortOrder);
 		});
 		// 初期ロード/新規追加は「今月（固定: 2024-01-01）」のスケジュールを取得する仕様
-		vi.mocked(schedulesLib.getLatestSchedulesByFacilityIds).mockResolvedValue(mockSchedules);
 		vi.mocked(schedulesLib.getSchedulesByFacilityIdsAndMonth).mockResolvedValue(mockSchedules);
 	});
 
