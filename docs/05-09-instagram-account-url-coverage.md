@@ -213,7 +213,7 @@
 - **チェックリスト（完了条件）**:
   - [x] 既存テスト（例: `apps/web/__tests__/instagram-search.test.ts`）のカバー範囲を棚卸しし、観点表（等価分割・境界値）として dev-sessions に記録している - 2025-12-19（42件のテストが実装済み、主要分岐をカバー）
   - [x] `apps/web/lib/instagram-search.ts` の主要分岐（`strategy=score|rank|hybrid`、URL正規化、候補抽出、重複除外、閾値/limit、例外系）をユニットテストでカバーしている - 2025-12-19（`generateSearchQueries`, `normalizeInstagramUrl`, `scoreCandidate`, `processSearchResults`, `processSearchResultsRank`, `processSearchResultsHybrid` をカバー）
-  - [ ] `apps/web/app/api/instagram-search/route.ts` を、外部依存（Google CSE）をモックしたテストでカバーしている（正常系 / 400系 / 401系 / 500系の少なくとも主要経路） - 未実装（将来の拡張として検討）
+- [x] `apps/web/app/api/instagram-search/route.ts` を、外部依存（Google CSE）をモックしたテストでカバーしている（正常系 / 400系 / 401系 / 500系の少なくとも主要経路） - 2025-12-19 ([dev-session](../../dev-sessions/2025/12/20251219-02-phase9-instagram-account-url-final-check-refactor.md))
   - [ ] `apps/scripts/instagram-semi-auto-registration.ts` の主要判断（`--auto-adopt`、`reason` コード、サマリ出力）について、テスト可能な形に切り出したうえで自動テストを用意している（`apps/web` 側でのテストでも、`apps/scripts` 側にテストランナーを導入してもよい） - 未実装（将来の拡張として検討）
   - [x] `mise exec -- pnpm --filter web test` が安定して通る - 2025-12-19（112件すべてパス）
   - [x] カバレッジを取得でき、結果（要約）を dev-sessions に残している（例: `mise exec -- pnpm --filter web test:coverage`） - 2025-12-19（dev-sessionに記録）
