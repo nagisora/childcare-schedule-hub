@@ -30,7 +30,7 @@
 - [x] タスク4追加: 検索戦略切替（`strategy=score|rank`）とCLI比較モード（`--compare-strategies`） - 2025-12-14 ([dev-session](../../dev-sessions/2025/12/20251214-01-phase9-instagram-search-strategy-switch.md))
 - [x] タスク5追加: 非対話環境での自動採用オプション（`--auto-adopt`）、レビュー用サマリファイル（JSON + Markdown）、logsクリーンナップ機能、検索クエリ改善 - 2025-12-15 ([dev-session](../../dev-sessions/2025/12/20251215-01-phase9-instagram-auto-adopt-review.md))
 - [x] タスク4追加: hybrid戦略（`strategy=hybrid`、rank主経路+score再評価）の追加と実測 - 2025-12-16 ([dev-session](../../dev-sessions/2025/12/20251216-01-phase9-instagram-search-hybrid-strategy.md))
-- [ ] タスク4追加: 再検索抑制キャッシュ（facilityId+query+results）を設計・実装
+- [x] タスク4追加: 再検索抑制キャッシュ（facilityId+query+results） - **Deferred（未実装）** - 2025-12-19（MVP優先、回収先: Issue #28 / `docs/20-deferred-work.md` DW-005）([dev-session](../../dev-sessions/2025/12/20251219-02-phase9-instagram-account-url-final-check-refactor.md))
 - [x] [タスク6: Runbook整備とデータ品質チェック](#task-6) - 2025-12-19（Runbook更新・データ品質チェック実施完了）([dev-session](../../dev-sessions/2025/12/20251219-01-phase9-instagram-account-url-human-review-finalize.md))
 - [x] [タスク7: 自動テスト整備（フェーズ9回帰防止）](#task-7) - 2025-12-19（現状確認完了、主要分岐はカバー済み、API RouteとCLIツールのテストは将来拡張として検討）([dev-session](../../dev-sessions/2025/12/20251219-01-phase9-instagram-account-url-human-review-finalize.md))
 

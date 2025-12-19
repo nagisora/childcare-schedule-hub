@@ -18,10 +18,10 @@
 
 - **ゴール**: フェーズ9を「完了」と宣言できる状態（正本の整合性 + 回帰テストOK）にする（リファクタは次セッションへ分割）
   - 完了条件:
-    - [ ] `docs/05-09-instagram-account-url-coverage.md` の進捗チェックリストが **「未チェック項目の扱い」まで含めて整合**している（実装済み or Deferred へ移管のどちらかで説明可能）
-    - [ ] `apps/web/app/api/instagram-search/route.ts` について、外部依存（Google CSE）をモックした **最低限の分岐テスト**が追加されている
-    - [ ] `mise exec -- pnpm --filter web test` がパスする
-    - [ ] 主要な動作（検索API/正規化/戦略切替/CLIの最低限）が壊れていないことを確認できる（手動確認 or 既存テストで担保）
+    - [x] `docs/05-09-instagram-account-url-coverage.md` の進捗チェックリストが **「未チェック項目の扱い」まで含めて整合**している（例: 再検索抑制キャッシュは Deferred として回収先を明記）
+    - [x] `apps/web/app/api/instagram-search/route.ts` について、外部依存（Google CSE）をモックした **最低限の分岐テスト**が追加されている
+    - [x] `mise exec -- pnpm --filter web test` がパスする（**123 tests passed**）
+    - [x] 主要な動作（検索API/正規化/戦略切替/CLIの最低限）が壊れていないことを確認できる（今回はテスト補強のみで、既存テストで担保）
   - 補足:
     - DB更新（`facilities.instagram_url` など）や本番相当の運用操作はこのセッションのスコープ外
 
@@ -52,7 +52,7 @@
 
 ### 1. 作業タスク & 実行内容（最終チェック・リファクタ）
 
-- [ ] タスク1: フェーズ9の「完了状況の最終チェック」と正本の整合性整理
+- [x] タスク1: フェーズ9の「完了状況の最終チェック」と正本の整合性整理
   - 完了条件: `docs/05-09-instagram-account-url-coverage.md` の進捗チェックリストについて、未チェック項目の扱い（実装/Deferred）が説明可能になっている
   - **AIが実行する内容（手順/プロンプト/操作メモ）**:
     ```
@@ -101,13 +101,17 @@
 - メモ:
   - API Route テスト追加: `apps/web/__tests__/instagram-search-route.test.ts`
   - `mise exec -- pnpm --filter web test`: **123 tests passed**
+  - 正本の整合性整理:
+    - `docs/05-09-instagram-account-url-coverage.md` の「再検索抑制キャッシュ」を Deferred（未実装）として回収先を明記（Issue #28 / `docs/20-deferred-work.md` DW-005）
+    - `docs/05-00-development-phases.md` の「フェーズ進捗状況 / 次のステップ」を 2025-12-19 時点へ更新（フェーズ9完了 → フェーズ10着手）
 
 ## 結果とふりかえり
 
 - 完了できたタスク:
+  - [x] タスク1: フェーズ9の「完了状況の最終チェック」と正本の整合性整理
   - [x] タスク3: `apps/web/app/api/instagram-search/route.ts` の分岐テストを追加（外部依存をモック）
 - 未完了タスク / 想定外だったこと:
-  - [ ] タスク1: フェーズ9の「完了状況の最終チェック」と正本の整合性整理（未実施）
+  - なし
 - 学び・次回改善したいこと:
   - Route Handler の境界（認証/入力/外部依存/DB）の分岐テストを先に入れると、リファクタ前後の安心感が上がる
 
@@ -116,9 +120,7 @@
 - [ ] タスク2: フェーズ9関連コードのリファクタリング（読みやすさ/責務分離/重複削減）
   - 今回やらない理由: セッションのボリュームが大きくなったため分割（最終チェック＋テスト補強を優先）
   - 次回の着手条件/前提: `docs/dev-sessions/2025/12/20251219-03-phase9-instagram-account-url-refactor.md` を起点に実施
-- [ ] （候補）`docs/05-09...` の「タスク4追加: 再検索抑制キャッシュ」の扱い確定（実装するなら設計→実装、しないなら Deferred へ移管してチェックリスト整合を取る）
-  - 今回やらない理由: 最終チェックとリファクタ優先。キャッシュ設計は影響が大きく別セッションで扱うのが安全
-  - 次回の着手条件/前提: キャッシュ対象（facilityId+query+results など）と保存先（メモリ/ファイル/DB）・TTL・コスト影響の合意
+- [x] （持ち越し整理）再検索抑制キャッシュは Deferred（未実装）として回収先へ移管済み → `docs/20-deferred-work.md`（DW-005）/ Issue #28
 - [ ] （候補）`apps/scripts/instagram-semi-auto-registration.ts` の主要判断ロジックをテスト可能に切り出し
   - 今回やらない理由: 影響範囲が広がりやすい
   - 次回の着手条件/前提: CLIを pure function + I/O に分離し、テストランナー方針（web側でテストするか scripts側に導入するか）を決める
