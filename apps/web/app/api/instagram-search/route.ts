@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
 						break;
 					}
 				}
-			} catch (error) {
+			} catch {
 				triedQueries.push(query);
 				continue;
 			}
@@ -199,7 +199,7 @@ export async function GET(request: NextRequest) {
 						break;
 					}
 				}
-			} catch (error) {
+			} catch {
 				triedQueries.push(query);
 				continue;
 			}
@@ -254,7 +254,7 @@ export async function GET(request: NextRequest) {
 						break;
 					}
 				}
-			} catch (error) {
+			} catch {
 				triedQueries.push(query);
 				continue;
 			}
