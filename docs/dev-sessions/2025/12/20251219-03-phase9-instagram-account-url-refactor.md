@@ -120,8 +120,6 @@
 - [x] 確認2: `mise exec -- pnpm --filter web lint`
       - 期待結果: Lintエラーがない（`route.ts` の未使用変数 `error` 3箇所を修正）
       - 結果: Lintエラーなし（`mise exec -- pnpm --filter web lint` で確認済み）
-- [ ] 確認3（任意）: `mise exec -- pnpm --filter web test:coverage`
-      - 期待結果: カバレッジが取得できる
 
 ---
 
