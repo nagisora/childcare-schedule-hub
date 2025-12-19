@@ -134,7 +134,9 @@
     - `apps/web/__tests__/instagram-search-route.test.ts`: コメントを簡潔化
     - セッションドキュメントを2段階フロー（remove-ai-code-slop → refactor-plan）に更新
   - テスト: 全123テスト通過、Lintエラーなし
-  - コミット: `refactor: Instagram検索関連コードから過剰なコメントと冗長チェックを削除`（4342176）
+  - コミット:
+    - `refactor: Instagram検索関連コードから過剰なコメントと冗長チェックを削除`（4342176）
+    - `fix: /api/instagram-searchのLint未使用変数を解消`（66a5e1b）
 
 ## 結果とふりかえり
 
