@@ -19,7 +19,7 @@
 
 ### 実装タスク（セッション粒度の進捗）
 
-- [ ] [タスク1: 取得仕様の確定（対象月・判定・理由コード）](#task-1)
+- [x] [タスク1: 取得仕様の確定（対象月・判定・理由コード）](#task-1) - 2025-12-22
 - [ ] [タスク2: 投稿URL候補検索（Google CSE）の設計](#task-2)
 - [ ] [タスク3: サーバーサイド検索API（`/api/instagram-schedule-search`）の実装](#task-3)
 - [ ] [タスク4: 施設×月の一括処理CLI（カバー/未特定一覧化）](#task-4)
@@ -49,6 +49,7 @@
   - `docs/02-design.md`（`schedules` テーブル定義）
   - `docs/03-api.md`（`ScheduleSummary` / Instagram embed方針）
   - `docs/04-development.md`（9.6節: 既存の手動Runbook、`image_url` ダミー可の方針）
+  - [`docs/phase-artifacts/10-schedule-url-coverage/`](./phase-artifacts/10-schedule-url-coverage/)（添付資料: 仕様・理由コード・実行結果）
 
 ---
 
@@ -80,16 +81,18 @@
 ### タスク1: 取得仕様の確定（対象月・判定・理由コード）
 
 - **完了条件**:
-  - [ ] 対象施設/対象月の定義がドキュメント化され、CLIの入力仕様（`--month` など）に落ちる
-  - [ ] 施設×月が「登録済み / 未特定確定 / 対象外」に分類される判定基準が決まっている
-  - [ ] 理由コードが固定され、出力（JSON/Markdown）に必ず含まれる
+  - [x] 対象施設/対象月の定義がドキュメント化され、CLIの入力仕様（`--month` など）に落ちる - 2025-12-22（[`docs/phase-artifacts/10-schedule-url-coverage/task-01-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-01-spec.md)）
+  - [x] 施設×月が「登録済み / 未特定確定 / 対象外」に分類される判定基準が決まっている - 2025-12-22（[`docs/phase-artifacts/10-schedule-url-coverage/task-01-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-01-spec.md)）
+  - [x] 理由コードが固定され、出力（JSON/Markdown）に必ず含まれる - 2025-12-22（[`docs/phase-artifacts/10-schedule-url-coverage/reason-codes.md`](./phase-artifacts/10-schedule-url-coverage/reason-codes.md)）
 - **検証方法**:
-  - [ ] `docs/05-00-development-phases.md` のフェーズ10節と本ファイルの整合を目視確認
-  - [ ] 理由コードが重複/曖昧になっていないことを目視確認（フェーズ9の `reason` と同様に機械可読を優先）
+  - [x] `docs/05-00-development-phases.md` のフェーズ10節と本ファイルの整合を目視確認 - 2025-12-22
+  - [x] 理由コードが重複/曖昧になっていないことを目視確認（フェーズ9の `reason` と同様に機械可読を優先） - 2025-12-22
 - **dev-sessions粒度**:
   - 1セッション（20〜40分）
 - **更新先ドキュメント**:
   - `docs/05-10-schedule-url-coverage.md`（本ファイル）
+  - [`docs/phase-artifacts/10-schedule-url-coverage/task-01-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-01-spec.md)（仕様の正本）
+  - [`docs/phase-artifacts/10-schedule-url-coverage/reason-codes.md`](./phase-artifacts/10-schedule-url-coverage/reason-codes.md)（理由コードの正本）
 
 <a id="task-2"></a>
 ### タスク2: 投稿URL候補検索（Google CSE）の設計

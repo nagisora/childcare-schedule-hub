@@ -58,6 +58,9 @@
     - 命名例: `YYYY/MM/YYYYMMDD-連番-説明.md`（1日に複数回ある場合は連番）
     - テンプレからコピーして利用: `dev-sessions/template-session.md`
     - 詳細: [`docs/dev-sessions/README.md`](./dev-sessions/README.md) を参照
+  - `phase-artifacts/`: フェーズ別の添付資料（成果物・実行結果・サンプル出力）の置き場
+    - 命名例: `phase-artifacts/<フェーズ番号>-<説明>/`
+    - 詳細: 各フェーズの `phase-artifacts/` 配下の `README.md` を参照
 - 参照リンクは相互に付与し、初見でも辿れるようにする（01→02→03→04→05、04↔05、05↔dev-sessions）。
 
 ## 3. シナリオ別の参照ガイド
