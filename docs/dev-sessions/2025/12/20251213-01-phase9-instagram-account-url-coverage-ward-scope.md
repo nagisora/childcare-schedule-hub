@@ -19,7 +19,7 @@
 - **ゴール**: 「対象区（1区）」を確定し、Google Custom Search API（CSE）で検索できる準備（ドキュメント＋環境変数名＋疎通確認）まで到達する
   - 完了条件:
     - 対象区（例: 東区 / 西区 など）が **1つ** 決まり、対象施設リスト（`instagram_url IS NULL`）が抽出・記録されている
-    - `docs/instagram-integration/03-design-decisions.md` と `docs/instagram-integration/05-instagram-account-search.md` に「検索API前提のクエリ/判定ルール（案）」が追記されている
+    - `docs/phase-artifacts/09-instagram-integration/03-design-decisions.md` と `docs/phase-artifacts/09-instagram-integration/05-instagram-account-search.md` に「検索API前提のクエリ/判定ルール（案）」が追記されている
     - `docs/04-development.md` と `apps/web/env.local.example` に `GOOGLE_CSE_API_KEY` / `GOOGLE_CSE_CX` の追記方針が反映され、（可能なら）ローカルで疎通確認まで完了している
   - 補足:
     - Googleコンソール（CSE作成・APIキー発行）は人間作業。時間超過しそうなら「手順＋必要情報＋詰まった点」を dev-session に残して次回へ。
@@ -28,8 +28,8 @@
 
 - 参照: `docs/05-09-instagram-account-url-coverage.md`（フェーズ9詳細・進捗の正本）
 - 参照: `docs/05-00-development-phases.md`（フェーズ9の完了条件）
-- 参照: `docs/instagram-integration/03-design-decisions.md`（検索API採用方針）
-- 参照: `docs/instagram-integration/05-instagram-account-search.md`（現行の手動手順。将来は検索API版へ更新予定）
+- 参照: `docs/phase-artifacts/09-instagram-integration/03-design-decisions.md`（検索API採用方針）
+- 参照: `docs/phase-artifacts/09-instagram-integration/05-instagram-account-search.md`（現行の手動手順。将来は検索API版へ更新予定）
 - 参照: `docs/04-development.md`（環境変数管理）
 - 参照: `apps/web/env.local.example`（`.env.local` テンプレ）
 
@@ -37,7 +37,7 @@
 
 - 今日のセッションで前提とする方針:
   - スコープは **「区ごと（1区）」**で進める（東区/西区など）。名古屋市全件を一気に埋めるのではなく段階的に完了させる。
-  - 検索バックエンドは **Google Custom Search API（Google Programmable Search Engine / CSE）**を第1候補とする（`docs/instagram-integration/03-design-decisions.md` の方針）。
+  - 検索バックエンドは **Google Custom Search API（Google Programmable Search Engine / CSE）**を第1候補とする（`docs/phase-artifacts/09-instagram-integration/03-design-decisions.md` の方針）。
   - APIキー等は **サーバー側のみ**で管理し、クライアントへ露出させない。ログ出力も禁止。
 - 議論概要:
   - 先行セッションで「ブラウザ手動は遅い/見落としがある」課題があり、検索APIで構造化結果を取る方向に寄せることを確認した。
@@ -104,7 +104,7 @@
 
 - [x] タスク2: Google Custom Search API 用クエリ設計 & 判定ルール整理（区ごと前提）
       - 完了条件:
-        - `docs/instagram-integration/03-design-decisions.md` と `docs/instagram-integration/05-instagram-account-search.md` に、
+        - `docs/phase-artifacts/09-instagram-integration/03-design-decisions.md` と `docs/phase-artifacts/09-instagram-integration/05-instagram-account-search.md` に、
           - 検索API前提のクエリパターン（優先順位）
           - 公式判定ルール（上位N件から絞る基準）
           - あきらめ条件（未特定の扱い）
@@ -116,8 +116,8 @@
         検索クエリ設計と判定ルールをドキュメントに追記してください。
 
         - 参照ファイル:
-          - docs/instagram-integration/03-design-decisions.md
-          - docs/instagram-integration/05-instagram-account-search.md
+          - docs/phase-artifacts/09-instagram-integration/03-design-decisions.md
+          - docs/phase-artifacts/09-instagram-integration/05-instagram-account-search.md
           - docs/05-09-instagram-account-url-coverage.md（タスク2の要件）
         - やりたいこと:
           - 代表クエリ（例: site:instagram.com "<施設名>" "<区名>" 子育て）を複数用意し、優先順位を決める
@@ -210,12 +210,12 @@
       3. `やだっこひろば` (id: `3e7f8366-981f-41fe-b25b-6e41b74c0d3b`, 住所: 東区矢田三丁目3-44やだ保育園2階)
     - 補足: `ward_name IS NULL` のレコードは0件（データ品質OK）
   - **タスク2: 検索API向けクエリ設計 & 判定ルール追記（完了）**
-    - `docs/instagram-integration/03-design-decisions.md` に「検索クエリ設計と判定ルール（フェーズ9実装案）」セクションを追加
+    - `docs/phase-artifacts/09-instagram-integration/03-design-decisions.md` に「検索クエリ設計と判定ルール（フェーズ9実装案）」セクションを追加
       - 検索クエリの優先順位（4段階）
       - 検索結果からの公式判定ルール（スコアリング観点）
       - 除外すべきパターン（投稿URL、共有リンクなど）
       - あきらめ条件（未特定の扱い）
-    - `docs/instagram-integration/05-instagram-account-search.md` に「9. 検索API版ワークフロー（フェーズ9以降）」セクションを追加
+    - `docs/phase-artifacts/09-instagram-integration/05-instagram-account-search.md` に「9. 検索API版ワークフロー（フェーズ9以降）」セクションを追加
       - 同じ内容を「検索API版」として整理
       - ブラウザ手動フローとの使い分けを明記
   - **タスク3: 環境変数ドキュメント更新（AI側完了）**

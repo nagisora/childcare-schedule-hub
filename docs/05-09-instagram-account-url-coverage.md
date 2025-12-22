@@ -15,7 +15,7 @@
 - [x] Next.js サーバーサイドの検索API（例: `/api/instagram-search`）が PoC レベルで動作し、Google CSE から取得した結果を正規化して返却できる - 2025-12-13（タスク4完了）
 - [x] 複数施設向けの半自動登録フロー（候補提示→人間が採用/スキップを選ぶ）が用意され、`facilities.instagram_url` を安全に更新できる（DRY-RUN / 確認ステップを含む） - 2025-12-13（タスク5完了）
 - [x] 短い施設名など精度課題に備え、検索戦略を切り替えられる（`strategy=score|rank`） - 2025-12-14（タスク4追加完了）
-- [x] Runbookに検索APIベースの標準フローと、フォールバックとしての手動ブラウザ検索フローが整理されている - 2025-12-19（`docs/instagram-integration/04-runbook.md` と `05-instagram-account-search.md` に反映）([dev-session](../../dev-sessions/2025/12/20251219-01-phase9-instagram-account-url-human-review-finalize.md))
+- [x] Runbookに検索APIベースの標準フローと、フォールバックとしての手動ブラウザ検索フローが整理されている - 2025-12-19（`docs/phase-artifacts/09-instagram-integration/04-runbook.md` と `05-instagram-account-search.md` に反映）([dev-session](../../dev-sessions/2025/12/20251219-01-phase9-instagram-account-url-human-review-finalize.md))
 - [x] データ品質チェック（Instagramドメイン以外・重複URLの検出）が1回以上実施され、dev-sessionsに記録されている - 2025-12-18（全項目チェック完了、重複3件は意図的）([dev-session](../../dev-sessions/2025/12/20251218-01-phase9-instagram-account-url-coverage-finish.md))
 - [x] 対象施設が「処理済み」になっている（`instagram_url` が埋まった施設だけでなく、見つからない/判断不能な施設も「未特定（理由付き）」として一覧化されている） - 2025-12-19（61施設中54件設定済み、7件は未特定確定として記録）([dev-session](../../dev-sessions/2025/12/20251219-01-phase9-instagram-account-url-human-review-finalize.md))
 - [x] リファクタリングで壊れないよう、フェーズ9の主要ロジックに対する自動テストが整備されている（少なくとも `apps/web` で `mise exec -- pnpm --filter web test` が通る） - 2025-12-18（112件すべてパス）([dev-session](../../dev-sessions/2025/12/20251218-01-phase9-instagram-account-url-coverage-finish.md))
@@ -50,8 +50,8 @@
   - 本ドキュメントの「[0. 進捗チェックリスト（正本）](#progress)」に集約（チェックも同セクションで管理）
 - **関連ドキュメント**:
   - `docs/05-00-development-phases.md`（フェーズ9セクション）
-  - `docs/instagram-integration/03-design-decisions.md`
-  - `docs/instagram-integration/05-instagram-account-search.md`
+  - `docs/phase-artifacts/09-instagram-integration/03-design-decisions.md`
+  - `docs/phase-artifacts/09-instagram-integration/05-instagram-account-search.md`
   - `docs/04-development.md`（環境変数・Runbook）
   - `docs/dev-sessions/2025/12/20251209-01-phase9-instagram-search-api.md`（方針整理）
   - `docs/dev-sessions/2025/12/20251205-01-phase9-instagram-account-coverage.md`（手動登録の着手ログ）
@@ -100,7 +100,7 @@
 ### タスク2: Google Custom Search API 用クエリ設計 & 判定ルール整理
 
 - **チェックリスト（完了条件）**:
-  - [x] `docs/instagram-integration/03-design-decisions.md` と `05-instagram-account-search.md` に、Google Custom Search API を前提にした検索クエリ例・ヒューリスティクス・あきらめ条件が追記されている - 2025-12-13
+  - [x] `docs/phase-artifacts/09-instagram-integration/03-design-decisions.md` と `05-instagram-account-search.md` に、Google Custom Search API を前提にした検索クエリ例・ヒューリスティクス・あきらめ条件が追記されている - 2025-12-13
   - [x] 代表的なクエリパターン（例: `site:instagram.com "<施設名>" "<区名>" 子育て -site:instagram.com/p/ -site:instagram.com/reel/`）と、「上位N件からどう公式候補を1件に絞るか」のルールが整理されている - 2025-12-13 ([dev-session](../../dev-sessions/2025/12/20251213-01-phase9-instagram-account-url-coverage-ward-scope.md))
 - **検証方法**:  
   - 上記2ファイルを開き、フェーズ9セクションに「Google Custom Search API 版ワークフロー」がまとまっていることを目視確認
@@ -108,8 +108,8 @@
 - **dev-sessions粒度**:  
   - 1セッション（30〜45分）でクエリ案の試行 → ルール文章化までを狙う
 - **更新先ドキュメント**: 
-  - `docs/instagram-integration/03-design-decisions.md`
-  - `docs/instagram-integration/05-instagram-account-search.md`
+  - `docs/phase-artifacts/09-instagram-integration/03-design-decisions.md`
+  - `docs/phase-artifacts/09-instagram-integration/05-instagram-account-search.md`
 
 <a id="task-3"></a>
 ### タスク3: Google Programmable Search Engine & 環境変数セットアップ
@@ -190,9 +190,9 @@
 ### タスク6: Runbook整備とデータ品質チェック
 
 - **チェックリスト（完了条件）**:
-  - [x] `docs/instagram-integration/04-runbook.md` および `05-instagram-account-search.md` に「Google Custom Search API を使った標準フロー」が整理されている - 2025-12-19
-  - [x] `docs/instagram-integration/04-runbook.md` および `05-instagram-account-search.md` に「フォールバックとしてのブラウザ手動検索フロー」が整理されている - 2025-12-19
-  - [x] `docs/instagram-integration/04-runbook.md` および `05-instagram-account-search.md` に「公式候補が見つからない場合のあきらめ条件と記録方法」が整理されている - 2025-12-19
+  - [x] `docs/phase-artifacts/09-instagram-integration/04-runbook.md` および `05-instagram-account-search.md` に「Google Custom Search API を使った標準フロー」が整理されている - 2025-12-19
+  - [x] `docs/phase-artifacts/09-instagram-integration/04-runbook.md` および `05-instagram-account-search.md` に「フォールバックとしてのブラウザ手動検索フロー」が整理されている - 2025-12-19
+  - [x] `docs/phase-artifacts/09-instagram-integration/04-runbook.md` および `05-instagram-account-search.md` に「公式候補が見つからない場合のあきらめ条件と記録方法」が整理されている - 2025-12-19
   - [x] `facilities` に対してデータ品質チェック（Instagramドメイン以外・重複URLの検出）が1回以上実行され、結果がメモされている - 2025-12-19（dev-sessionに記録）
 - **検証方法**:  
   - Runbookと指示書を開いて、フェーズ9の実運用手順が1ドキュメントから追えるかを目視確認
@@ -200,8 +200,8 @@
 - **dev-sessions粒度**:  
   - 1セッション（30〜45分）で Runbook更新＋簡易チェックをまとめて実施可能
 - **更新先ドキュメント**: 
-  - `docs/instagram-integration/04-runbook.md`
-  - `docs/instagram-integration/05-instagram-account-search.md`
+  - `docs/phase-artifacts/09-instagram-integration/04-runbook.md`
+  - `docs/phase-artifacts/09-instagram-integration/05-instagram-account-search.md`
   - `docs/04-development.md`（必要に応じてRunbookへの参照を追加）
   - `docs/dev-sessions/` 配下（データ品質チェック結果の記録）
 
@@ -274,13 +274,13 @@
 最終的に `docs/04-development.md` に落とすべき運用手順のチェックリスト：
 
 - [x] 環境変数の設定手順（`docs/04-development.md` の環境変数セクション） - 2025-12-13（タスク3完了、3.1節に `GOOGLE_CSE_API_KEY` と `GOOGLE_CSE_CX` を追加）
-- [x] API呼び出しの標準フロー（`docs/instagram-integration/04-runbook.md` に記載） - 2025-12-19（タスク6完了、`docs/04-development.md` 9.5.3節にCLIツールの使用方法を記載、`docs/instagram-integration/04-runbook.md` と `05-instagram-account-search.md` に標準フローを整理）
-- [x] フォールバック手順（標準フローが失敗した場合の代替手段） - 2025-12-19（タスク6完了、`docs/instagram-integration/04-runbook.md` と `05-instagram-account-search.md` にフォールバック手順を整理、`docs/04-development.md` 9.6.2節に手動検索手順を記載）
-- [x] エラーハンドリング方針（エラー時のログ・通知・リトライ方針） - 2025-12-19（タスク6完了、`docs/04-development.md` 9.5.3節に注意事項を記載、`docs/instagram-integration/04-runbook.md` にエラー対応を整理）
-- [x] データ更新フロー（手動・自動の更新手順） - 2025-12-19（タスク6完了、`docs/04-development.md` 9.5.3節にCLIツールの使用方法を記載、`docs/instagram-integration/04-runbook.md` にデータ更新フローを整理）
-- [x] トラブルシューティング手順（よくある問題と対処法） - 2025-12-19（タスク6完了、`docs/04-development.md` 9.6.4節にトラブルシューティングを記載、`docs/instagram-integration/04-runbook.md` にエラー対応を整理）
+- [x] API呼び出しの標準フロー（`docs/phase-artifacts/09-instagram-integration/04-runbook.md` に記載） - 2025-12-19（タスク6完了、`docs/04-development.md` 9.5.3節にCLIツールの使用方法を記載、`docs/phase-artifacts/09-instagram-integration/04-runbook.md` と `05-instagram-account-search.md` に標準フローを整理）
+- [x] フォールバック手順（標準フローが失敗した場合の代替手段） - 2025-12-19（タスク6完了、`docs/phase-artifacts/09-instagram-integration/04-runbook.md` と `05-instagram-account-search.md` にフォールバック手順を整理、`docs/04-development.md` 9.6.2節に手動検索手順を記載）
+- [x] エラーハンドリング方針（エラー時のログ・通知・リトライ方針） - 2025-12-19（タスク6完了、`docs/04-development.md` 9.5.3節に注意事項を記載、`docs/phase-artifacts/09-instagram-integration/04-runbook.md` にエラー対応を整理）
+- [x] データ更新フロー（手動・自動の更新手順） - 2025-12-19（タスク6完了、`docs/04-development.md` 9.5.3節にCLIツールの使用方法を記載、`docs/phase-artifacts/09-instagram-integration/04-runbook.md` にデータ更新フローを整理）
+- [x] トラブルシューティング手順（よくある問題と対処法） - 2025-12-19（タスク6完了、`docs/04-development.md` 9.6.4節にトラブルシューティングを記載、`docs/phase-artifacts/09-instagram-integration/04-runbook.md` にエラー対応を整理）
 
-**補足**: 詳細な運用手順は `docs/instagram-integration/04-runbook.md` と `05-instagram-account-search.md` に整理されており、`docs/04-development.md` から参照可能な状態になっている。
+**補足**: 詳細な運用手順は `docs/phase-artifacts/09-instagram-integration/04-runbook.md` と `05-instagram-account-search.md` に整理されており、`docs/04-development.md` から参照可能な状態になっている。
 
 ## 6. リスク・撤退条件・ロールバック
 
@@ -299,7 +299,7 @@
   - 環境変数の削除（`.env.local` とホスティング環境の両方）
   - 実装したAPI Route の削除（`apps/web/app/api/instagram-search/route.ts`）
 - **フォールバック手順**: 
-  - 標準フロー（Google CSE）が使えない場合: ブラウザで手動検索し、結果を手動で `facilities.instagram_url` に登録する（`docs/instagram-integration/04-runbook.md` に手順を記載）
+  - 標準フロー（Google CSE）が使えない場合: ブラウザで手動検索し、結果を手動で `facilities.instagram_url` に登録する（`docs/phase-artifacts/09-instagram-integration/04-runbook.md` に手順を記載）
   - 検索APIが一時的に利用できない場合: 既存のデータを再利用し、新規登録は後回しにする
 
 ## 7. 将来の拡張・メモ

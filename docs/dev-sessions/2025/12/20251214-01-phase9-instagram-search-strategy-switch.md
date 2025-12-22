@@ -28,7 +28,7 @@
 
 - 参照: `docs/05-09-instagram-account-url-coverage.md`（フェーズ9正本）
 - 参照: `docs/dev-sessions/2025/12/20251213-02-phase9-instagram-search-api-semi-auto-registration.md`（現行PoCと改善要求）
-- 参照: `docs/instagram-integration/03-design-decisions.md`（検索クエリ/判定ルール）
+- 参照: `docs/phase-artifacts/09-instagram-integration/03-design-decisions.md`（検索クエリ/判定ルール）
 - 参照: `docs/04-development.md`（環境変数・CLI手順）
 
 ## 前提・合意事項（事前議論・壁打ちメモ）

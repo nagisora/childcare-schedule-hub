@@ -168,8 +168,8 @@
   - 正本（`docs/05-09-instagram-account-url-coverage.md`）に未特定確定一覧と最終カバレッジを反映
   - 本dev-sessionにレビュー結果を記録
 - [x] タスク6: Runbook整備とデータ品質チェック完了（**追加実施: 当初の計画には含まれていなかったが、ユーザーからの要望により実施**）
-  - `docs/instagram-integration/04-runbook.md` にGoogle Custom Search APIを使った標準フローを追加
-  - `docs/instagram-integration/05-instagram-account-search.md` に標準フローとフォールバック手順を整理
+  - `docs/phase-artifacts/09-instagram-integration/04-runbook.md` にGoogle Custom Search APIを使った標準フローを追加
+  - `docs/phase-artifacts/09-instagram-integration/05-instagram-account-search.md` に標準フローとフォールバック手順を整理
   - データ品質チェック実施（結果は下記「データ品質チェック結果」参照）
 - [x] タスク7: 自動テスト整備の現状確認完了（**追加実施: 当初の計画には含まれていなかったが、ユーザーからの要望により実施**）
   - 既存テスト: `apps/web/__tests__/instagram-search.test.ts` に42件のテストが実装済み

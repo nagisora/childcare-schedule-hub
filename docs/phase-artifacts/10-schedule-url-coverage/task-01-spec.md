@@ -20,11 +20,20 @@
 ### タイムゾーン処理
 
 - **サーバー/CI環境**: UTCでもブレないよう、`Asia/Tokyo` で「現在月」を判定
-- **実装例**: 
+- **実装例（推奨）**: `toLocaleString()` の再パースは環境差が出やすいので避け、`Intl.DateTimeFormat(...).formatToParts()` を使用する
+
   ```typescript
-  const now = new Date();
-  const jstDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }));
-  const currentMonth = `${jstDate.getFullYear()}-${String(jstDate.getMonth() + 1).padStart(2, '0')}-01`;
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(new Date());
+
+  const year = parts.find((p) => p.type === "year")?.value;
+  const month = parts.find((p) => p.type === "month")?.value;
+  if (!year || !month) throw new Error("Failed to get current month in Asia/Tokyo");
+
+  const currentMonth = `${year}-${month}-01`; // published_month に使う
   ```
 
 ## 2. 分類と判定基準
@@ -47,7 +56,7 @@
 
 ### 2.3 対象外
 
-- **判定条件**: そもそも処理対象外
+- **判定条件**: **Instagramベース（投稿URL permalink）では追えない**等の理由で、MVPの自動取得対象外と判断できる
 - **理由コード**: `S10_OUT_OF_SCOPE_*` 系（詳細は [`reason-codes.md`](./reason-codes.md) を参照）
 - **処理**: `schedules` には登録せず、理由コード付きで一覧化
 
@@ -66,7 +75,8 @@
    ├─ 候補0件 → 未特定確定（S10_NOT_FOUND_NO_RESULTS）
    ├─ 候補1件（妥当形式） → 自動採用（登録済み）
    ├─ 候補複数件 → 未特定確定（S10_NOT_FOUND_MULTIPLE_CANDIDATES）
-   └─ 候補あり（形式不正） → 未特定確定（S10_NOT_FOUND_INVALID_FORMAT）
+   ├─ 候補あり（形式不正） → 未特定確定（S10_NOT_FOUND_INVALID_FORMAT）
+   └─ 参照不能/ハイライトのみ等が根拠として取れる → 対象外（`S10_OUT_OF_SCOPE_*`）
    ↓
 5. 出力（JSON/Markdown）
    - 登録済み: schedules に反映

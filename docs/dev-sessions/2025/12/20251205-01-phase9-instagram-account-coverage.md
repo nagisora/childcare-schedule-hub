@@ -12,7 +12,7 @@
 
 ## 関連ドキュメント
 - 参照: `docs/05-development-phases.md` フェーズ9
-- 参照: `docs/instagram-integration/05-instagram-account-search.md` - AI向け検索手順
+- 参照: `docs/phase-artifacts/09-instagram-integration/05-instagram-account-search.md` - AI向け検索手順
 
 ## 現状確認
 
@@ -39,7 +39,7 @@
 ## 手順（予定）
 
 1. 小規模な区から開始（中村区・北区・西区の計4件）
-2. `docs/instagram-integration/05-instagram-account-search.md` の手順に従って検索・登録
+2. `docs/phase-artifacts/09-instagram-integration/05-instagram-account-search.md` の手順に従って検索・登録
 3. 記録をRunbookに追加
 4. 順次他の区にも拡大
 
@@ -56,7 +56,7 @@
 ## 実施中の作業
 
 ### 検索方法の確立
-- `docs/instagram-integration/05-instagram-account-search.md` の手順に従って検索を実施
+- `docs/phase-artifacts/09-instagram-integration/05-instagram-account-search.md` の手順に従って検索を実施
 - ブラウザツールでGoogle検索を直接実行
 - 過去の成功事例（「おやこっこなか instagram」「ゆるまる instagram」）を参考に、シンプルなクエリを優先
 

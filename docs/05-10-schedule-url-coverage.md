@@ -81,12 +81,12 @@
 ### タスク1: 取得仕様の確定（対象月・判定・理由コード）
 
 - **完了条件**:
-  - [x] 対象施設/対象月の定義がドキュメント化され、CLIの入力仕様（`--month` など）に落ちる - 2025-12-22（[`docs/phase-artifacts/10-schedule-url-coverage/task-01-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-01-spec.md)）
-  - [x] 施設×月が「登録済み / 未特定確定 / 対象外」に分類される判定基準が決まっている - 2025-12-22（[`docs/phase-artifacts/10-schedule-url-coverage/task-01-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-01-spec.md)）
-  - [x] 理由コードが固定され、出力（JSON/Markdown）に必ず含まれる - 2025-12-22（[`docs/phase-artifacts/10-schedule-url-coverage/reason-codes.md`](./phase-artifacts/10-schedule-url-coverage/reason-codes.md)）
+  - [x] 対象施設/対象月の定義がドキュメント化され、CLIの入力仕様（`--month` など）に落ちる - 2025-12-22（[`docs/phase-artifacts/10-schedule-url-coverage/task-01-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-01-spec.md) / [dev-session](./dev-sessions/2025/12/20251222-01-phase10-task1-spec.md)）
+  - [x] 施設×月が「登録済み / 未特定確定 / 対象外」に分類される判定基準が決まっている - 2025-12-22（[`docs/phase-artifacts/10-schedule-url-coverage/task-01-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-01-spec.md) / [dev-session](./dev-sessions/2025/12/20251222-01-phase10-task1-spec.md)）
+  - [x] 理由コードが固定され、出力（JSON/Markdown）に必ず含まれる - 2025-12-22（[`docs/phase-artifacts/10-schedule-url-coverage/reason-codes.md`](./phase-artifacts/10-schedule-url-coverage/reason-codes.md) / [dev-session](./dev-sessions/2025/12/20251222-01-phase10-task1-spec.md)）
 - **検証方法**:
-  - [x] `docs/05-00-development-phases.md` のフェーズ10節と本ファイルの整合を目視確認 - 2025-12-22
-  - [x] 理由コードが重複/曖昧になっていないことを目視確認（フェーズ9の `reason` と同様に機械可読を優先） - 2025-12-22
+  - [x] `docs/05-00-development-phases.md` のフェーズ10節と本ファイルの整合を目視確認 - 2025-12-22（[dev-session](./dev-sessions/2025/12/20251222-01-phase10-task1-spec.md)）
+  - [x] 理由コードが重複/曖昧になっていないことを目視確認（フェーズ9の `reason` と同様に機械可読を優先） - 2025-12-22（[dev-session](./dev-sessions/2025/12/20251222-01-phase10-task1-spec.md)）
 - **dev-sessions粒度**:
   - 1セッション（20〜40分）
 - **更新先ドキュメント**:
@@ -108,7 +108,7 @@
   - 1〜2セッション（30〜60分）
 - **更新先ドキュメント**:
   - `docs/05-10-schedule-url-coverage.md`
-  - （必要なら）`docs/instagram-integration/03-design-decisions.md`（将来の正規化ロジック共有）
+  - （必要なら）`docs/phase-artifacts/09-instagram-integration/03-design-decisions.md`（将来の正規化ロジック共有）
 
 <a id="task-3"></a>
 ### タスク3: サーバーサイド検索API（`/api/instagram-schedule-search`）の実装

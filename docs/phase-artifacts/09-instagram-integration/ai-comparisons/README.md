@@ -72,7 +72,7 @@
 5. **安定性・公式性**: 公式APIかどうか、仕様変更やブロックのリスク、SLAの有無
 
 比較検討の結果と、検索APIを用いたPoC（例: 10〜20施設でのDuckDuckGo / Google Custom Search / Serper.devの精度・所要時間比較）の実測値は、
-`docs/instagram-integration/05-instagram-account-search.md` および関連ドキュメントに順次反映し、正式な検索手順を更新します。
+`docs/phase-artifacts/09-instagram-integration/05-instagram-account-search.md` および関連ドキュメントに順次反映し、正式な検索手順を更新します。
 
 ## 開発セッション記録
 

@@ -51,7 +51,7 @@
   - 公式アカウント候補として、`instagram.com/<アカウント名>/` へのリンクで、施設名＋エリア名（例: 名古屋市中区子育て応援拠点ゆるまる）が明示されているものを最優先とする
   - 施設と無関係な「ゆるまる」「ゆめまる」（個人アカウント、番組キャラ、別サービスなど）は除外し、説明文とプロフィールから施設との関連性を確認する
 - **検索APIによる自動化の検討状況**
-  - Google Custom Search API / Serper.dev / DuckDuckGo Search などの検索APIを用いて、AIがブラウザ操作を行わずに構造化データからURLを特定する案を、`instagram-integration/ai-comparisons/` 配下で比較検討している
+  - Google Custom Search API / Serper.dev / DuckDuckGo Search などの検索APIを用いて、AIがブラウザ操作を行わずに構造化データからURLを特定する案を、`ai-comparisons/` 配下で比較検討している
   - 特に、**長期運用では公式API系（Google Custom Search API / Serper.dev）を優先候補としつつ、DuckDuckGo Search はPoC用の補助的手段とする** 方針を想定している
   - 実測ベースの検証（精度・所要時間）が終わり次第、`05-instagram-account-search.md` の手順を検索API版に差し替えるかどうかを判断する
 - **記録の仕方**
