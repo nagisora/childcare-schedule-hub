@@ -114,6 +114,7 @@
   - 1〜2セッション（30〜60分）
 - **更新先ドキュメント**:
   - `docs/05-10-schedule-url-coverage.md`
+  - `docs/phase-artifacts/10-schedule-url-coverage/`（添付資料: 仕様・理由コード・実行結果）
   - （必要なら）`docs/phase-artifacts/09-instagram-integration/03-design-decisions.md`（将来の正規化ロジック共有）
 
 <a id="task-3"></a>
@@ -132,6 +133,7 @@
   - 1〜3セッション（60〜180分）
 - **更新先ドキュメント**:
   - `docs/03-api.md`（必要なら内部APIとして追記）
+  - `docs/phase-artifacts/10-schedule-url-coverage/`（添付資料: 仕様・理由コード・実行結果）
   - `docs/dev-sessions/`（実装ログ・検証結果）
 
 <a id="task-4"></a>
@@ -149,6 +151,7 @@
   - 2〜4セッション（90〜240分）
 - **更新先ドキュメント**:
   - `docs/dev-sessions/`（実行ログ・出力の証跡）
+  - `docs/phase-artifacts/10-schedule-url-coverage/`（添付資料: 実行結果/出力の整理先。`runs/` 等）
   - （MVP後回し可）`docs/04-development.md`（CLI運用Runbook）
 
 <a id="task-5"></a>
@@ -166,6 +169,7 @@
   - 1〜2セッション（60〜120分）
 - **更新先ドキュメント**:
   - `docs/dev-sessions/`（バックアップ/ロールバック証跡）
+  - `docs/phase-artifacts/10-schedule-url-coverage/`（添付資料: バックアップ/ロールバック手順や代表例の保管先）
 
 <a id="task-6"></a>
 ### タスク6: 品質チェック（SQL）と証跡の記録
@@ -179,6 +183,7 @@
   - 1セッション（30〜60分）
 - **更新先ドキュメント**:
   - `docs/dev-sessions/`
+  - `docs/phase-artifacts/10-schedule-url-coverage/`（添付資料: 実行SQLや結果の整理先。`sql/` 等）
 
 ### フェーズ完了時のチェックリスト
 
