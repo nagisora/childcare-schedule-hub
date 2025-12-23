@@ -150,28 +150,41 @@ function decideStatusAndReason(
 		};
 	}
 
-	if (pCandidates.length === 1) {
-		const candidate = pCandidates[0];
-		if (candidate.matchedMonthHints.length > 0) {
-			// 自動採用
-			return {
-				status: 'registered',
-				selectedUrl: candidate.url,
-			};
-		} else {
-			return {
-				status: 'not_found',
-				reasonCode: 'S10_NOT_FOUND_NOT_MONTHLY_SCHEDULE',
-				reasonDescription: '月ヒントが取れないため月間スケジュールと断定できない',
-			};
-		}
+	// 月ヒントがマッチする候補のみを対象（精度向上のため）
+	const pCandidatesWithMonthHint = pCandidates.filter((c) => c.matchedMonthHints.length > 0);
+
+	// 月ヒントがマッチする候補が1件のみの場合、自動採用
+	if (pCandidatesWithMonthHint.length === 1) {
+		return {
+			status: 'registered',
+			selectedUrl: pCandidatesWithMonthHint[0].url,
+		};
 	}
 
-	if (pCandidates.length > 1) {
+	// 月ヒントがマッチする候補が複数ある場合
+	if (pCandidatesWithMonthHint.length > 1) {
 		return {
 			status: 'not_found',
 			reasonCode: 'S10_NOT_FOUND_MULTIPLE_CANDIDATES',
-			reasonDescription: `候補が${pCandidates.length}件あり、自動判定不可`,
+			reasonDescription: `候補が${pCandidatesWithMonthHint.length}件あり、自動判定不可（月ヒントマッチ: ${pCandidatesWithMonthHint.length}件、全体: ${pCandidates.length}件）`,
+		};
+	}
+
+	// 月ヒントがマッチする候補が0件の場合
+	if (pCandidatesWithMonthHint.length === 0 && pCandidates.length > 0) {
+		return {
+			status: 'not_found',
+			reasonCode: 'S10_NOT_FOUND_NOT_MONTHLY_SCHEDULE',
+			reasonDescription: `候補は${pCandidates.length}件あるが、月ヒントが取れないため月間スケジュールと断定できない`,
+		};
+	}
+
+	// 候補が0件の場合
+	if (pCandidates.length === 0) {
+		return {
+			status: 'not_found',
+			reasonCode: 'S10_NOT_FOUND_NO_RESULTS',
+			reasonDescription: 'CSE検索で候補が0件',
 		};
 	}
 

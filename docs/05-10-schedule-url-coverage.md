@@ -11,11 +11,12 @@
 
 ### フェーズ10: 全体の完了条件（MVP）
 
-- [ ] 対象施設（`facilities.instagram_url IS NOT NULL`）について、対象月（原則「現在月」）の `schedules` が「登録済み / 未特定確定 / 対象外」のいずれかに分類され、**処理済み**になっている
-  - 登録済みは `schedules` に反映（`instagram_post_url` を設定）
-  - 未特定確定/対象外は dev-sessions に「理由コード付き一覧（JSON/CSV/Markdown）」として証跡が残っている
-- [ ] **自動取得をCLIで実装**し、AIがCLIを自動実行してカバーできた範囲をもってMVPとして完了できる（手動でしか取れないものをMVP完了の必須条件にしない）
-- [ ] データ品質チェック（`published_month` の整合、重複、URL形式）が1回以上実施され、dev-sessionsに記録されている
+- [x] **手動登録フローの確立**（開発者が使用する施設のみを対象）
+  - 手動で `schedules` に `instagram_post_url` を登録する方法が確立されている
+  - 登録手順が `docs/04-development.md` に記載されている
+- [x] データ品質チェック（`published_month` の整合、重複、URL形式）が1回以上実施され、dev-sessionsに記録されている - 2025-12-23（[dev-session](./dev-sessions/2025/12/20251223-03-phase10-task6-quality-check-sql.md)）
+
+**注**: MVPでは自動取得（CLI）は実装済みだが、精度が不十分なため**手動登録で完了**とする。自動取得の精度向上は後回し（[後回し作業リスト](../20-deferred-work.md) DW-008 参照）。
 
 ### 実装タスク（セッション粒度の進捗）
 
@@ -26,18 +27,21 @@
 - [x] [タスク5: `schedules` への安全なUPSERT（バックアップ/ロールバック）](#task-5) - 2025-12-23
 - [x] [タスク6: 品質チェック（SQL）と証跡の記録](#task-6) - 2025-12-23（[dev-session](./dev-sessions/2025/12/20251223-03-phase10-task6-quality-check-sql.md)）
 
+**注**: MVP方針変更により、自動取得の精度向上は後回し（[後回し作業リスト](../20-deferred-work.md) DW-008 参照）。手動登録で完了とする。
+
 ---
 
 ## 1. 概要
 
 - **対応フェーズ**: フェーズ10
-- **目的**: 各施設が Instagram に投稿している**月間スケジュール（当月）を自動で特定**し、MVPで表示できる参照情報（基本は Instagram 投稿URL）として `schedules` に反映できる状態にする
+- **目的**: 各施設が Instagram に投稿している**月間スケジュール（当月）を手動で登録**し、MVPで表示できる参照情報（基本は Instagram 投稿URL）として `schedules` に反映できる状態にする
 - **スコープ（MVP）**:
-  - 対象施設: `facilities.instagram_url IS NOT NULL`
+  - 対象施設: **開発者が使用する施設のみ**（全施設の自動カバーは後回し）
   - 対象月: 原則「現在月」（`published_month` は対象月の1日で統一）
   - 取得対象: Instagram投稿の permalink（例: `https://www.instagram.com/p/.../`、必要なら `.../reel/.../` も候補に含める）
-  - 出力: `schedules.instagram_post_url` の登録、または「未特定確定/対象外（理由コード付き）」の一覧化
+  - 出力: `schedules.instagram_post_url` の手動登録
 - **非スコープ（MVP）**:
+  - 全施設の自動カバー（自動取得の精度向上は後回し、[後回し作業リスト](../20-deferred-work.md) DW-008 参照）
   - `facilities.instagram_url IS NULL` の施設のカバー（将来: `website_url` / 自治体サイト / PDF / Googleカレンダー等で回収）
   - InstagramのHTMLスクレイピング前提の自動巡回（利用規約/安定性の観点で避ける）
   - 運用Runbookの「運用できる粒度」への整備（MVP後回し可）

@@ -55,7 +55,7 @@ export function extractInstagramUsername(instagramUrl: string | null): string | 
 /**
  * 対象月の月ヒントパターンを生成する
  * @param month YYYY-MM形式（例: "2025-12"）
- * @returns 月ヒントパターンの配列（最大4パターン）
+ * @returns 月ヒントパターンの配列（最大8パターン、精度向上のため拡張）
  */
 function buildMonthHints(month: string): string[] {
 	const [year, monthNum] = month.split('-');
@@ -67,10 +67,8 @@ function buildMonthHints(month: string): string[] {
 	const hints: string[] = [];
 	// "YYYY年MM月"
 	hints.push(`${year}年${monthInt}月`);
-	// "YYYY/MM"
-	hints.push(`${year}/${monthNum}`);
-	// "YYYY.MM"
-	hints.push(`${year}.${monthNum}`);
+	// "MM月号"（よく使われるパターン）
+	hints.push(`${monthInt}月号`);
 	// "MM月"
 	hints.push(`${monthInt}月`);
 	// "MM月予定"
@@ -79,10 +77,18 @@ function buildMonthHints(month: string): string[] {
 	hints.push(`${monthInt}月の予定`);
 	// "MM月スケジュール"
 	hints.push(`${monthInt}月スケジュール`);
+	// "MM月カレンダー"
+	hints.push(`${monthInt}月カレンダー`);
+	// "MM月おたより"
+	hints.push(`${monthInt}月おたより`);
 	// "月間スケジュール"
 	hints.push('月間スケジュール');
+	// "カレンダー"
+	hints.push('カレンダー');
+	// "おたより"
+	hints.push('おたより');
 
-	return hints.slice(0, 4); // 最大4パターン
+	return hints.slice(0, 8); // 最大8パターン（精度向上のため拡張）
 }
 
 /**
@@ -155,48 +161,75 @@ export function generateScheduleSearchQueries(
 	const facilityVariants = buildFacilityNameVariantsForSearch(facilityName);
 	const facilityTerm = facilityVariants.length === 1 ? `"${facilityVariants[0]}"` : `(${facilityVariants.map(v => `"${v}"`).join(' OR ')})`;
 
+	// 追加キーワード（カレンダー、おたより、スケジュールなど）
+	const additionalKeywords = '(カレンダー OR おたより OR スケジュール OR 予定表 OR スケジュール表)';
+	
+	// 月号を最優先で使用（精度向上のため）
+	const monthInt = parseInt(month.split('-')[1] || '0', 10);
+	const monthGou = `${monthInt}月号`;
+
 	if (instagramUsername) {
 		// usernameありの場合（最優先）
-		// クエリ1
-		if (monthHintsOr) {
-			queries.push(
-				`site:instagram.com (inurl:/p/ OR inurl:/reel/) "${instagramUsername}" ${monthHintsOr}`
-			);
-		}
-		// クエリ2
-		if (monthHintsOr) {
-			queries.push(
-				`site:instagram.com (inurl:/p/ OR inurl:/reel/) "${instagramUsername}" ${facilityTerm} (${buildMonthHintsOrClause(month).split(' OR ').slice(0, 2).join(' OR ')})`
-			);
-		}
-		// クエリ3（wardNameがある場合のみ）
-		if (wardName && monthHintsOr) {
-			queries.push(
-				`site:instagram.com (inurl:/p/ OR inurl:/reel/) "${instagramUsername}" "${wardName}" (${buildMonthHintsOrClause(month).split(' OR ').slice(0, 2).join(' OR ')})`
-			);
-		}
+		// クエリ1: username + "月号" + "カレンダー"（最優先、精度向上のため）
+		queries.push(
+			`site:instagram.com (inurl:/p/ OR inurl:/reel/) "${instagramUsername}" "${monthGou}" カレンダー`
+		);
+		// クエリ2: username + "月号" + "おたより"（最優先）
+		queries.push(
+			`site:instagram.com (inurl:/p/ OR inurl:/reel/) "${instagramUsername}" "${monthGou}" おたより`
+		);
+		// クエリ3: username + "月号" + 追加キーワード
+		queries.push(
+			`site:instagram.com (inurl:/p/ OR inurl:/reel/) "${instagramUsername}" "${monthGou}" ${additionalKeywords}`
+		);
+		// クエリ4: username + "月号"（シンプル版）
+		queries.push(
+			`site:instagram.com (inurl:/p/ OR inurl:/reel/) "${instagramUsername}" "${monthGou}"`
+		);
+		// クエリ5: username + "月" + 追加キーワード（フォールバック）
+		queries.push(
+			`site:instagram.com (inurl:/p/ OR inurl:/reel/) "${instagramUsername}" "${monthInt}月" ${additionalKeywords}`
+		);
+		// クエリ6: username + 施設名 + "月" + 追加キーワード（フォールバック）
+		queries.push(
+			`site:instagram.com (inurl:/p/ OR inurl:/reel/) "${instagramUsername}" ${facilityTerm} "${monthInt}月" ${additionalKeywords}`
+		);
 	} else {
 		// usernameなしの場合（施設名中心）
-		// クエリ1（wardNameがある場合）
-		if (wardName && monthHintsOr) {
-			queries.push(
-				`site:instagram.com (inurl:/p/ OR inurl:/reel/) ${facilityTerm} "${wardName}" (${buildMonthHintsOrClause(month).split(' OR ').slice(0, 2).join(' OR ')})`
-			);
-		}
-		// クエリ2
-		if (monthHintsOr) {
-			queries.push(
-				`site:instagram.com (inurl:/p/ OR inurl:/reel/) ${facilityTerm} (${buildMonthHintsOrClause(month).split(' OR ').slice(0, 2).join(' OR ')})`
-			);
-		}
-		// クエリ3（wardNameがある場合、月ヒントなしのフォールバック）
+		// クエリ1: 施設名 + 区名 + "月号" + "カレンダー"（最優先、wardNameがある場合）
 		if (wardName) {
 			queries.push(
-				`site:instagram.com (inurl:/p/ OR inurl:/reel/) ${facilityTerm} "${wardName}" 子育て拠点`
+				`site:instagram.com (inurl:/p/ OR inurl:/reel/) ${facilityTerm} "${wardName}" "${monthGou}" カレンダー`
 			);
 		}
-		// クエリ4（月ヒントなしのフォールバック）
-		queries.push(`site:instagram.com (inurl:/p/ OR inurl:/reel/) ${facilityTerm} 子育て拠点`);
+		// クエリ2: 施設名 + "月号" + "カレンダー"（最優先）
+		queries.push(
+			`site:instagram.com (inurl:/p/ OR inurl:/reel/) ${facilityTerm} "${monthGou}" カレンダー`
+		);
+		// クエリ3: 施設名 + "月号" + "おたより"
+		queries.push(
+			`site:instagram.com (inurl:/p/ OR inurl:/reel/) ${facilityTerm} "${monthGou}" おたより`
+		);
+		// クエリ4: 施設名 + "月号" + 追加キーワード
+		queries.push(
+			`site:instagram.com (inurl:/p/ OR inurl:/reel/) ${facilityTerm} "${monthGou}" ${additionalKeywords}`
+		);
+		// クエリ5: 施設名 + "月号"（シンプル版）
+		queries.push(
+			`site:instagram.com (inurl:/p/ OR inurl:/reel/) ${facilityTerm} "${monthGou}"`
+		);
+		// クエリ6: 施設名 + 区名 + "月" + 追加キーワード（wardNameがある場合、フォールバック）
+		if (wardName) {
+			queries.push(
+				`site:instagram.com (inurl:/p/ OR inurl:/reel/) ${facilityTerm} "${wardName}" "${monthInt}月" ${additionalKeywords}`
+			);
+		}
+		// クエリ7: 施設名 + "月" + 追加キーワード（フォールバック）
+		queries.push(
+			`site:instagram.com (inurl:/p/ OR inurl:/reel/) ${facilityTerm} "${monthInt}月" ${additionalKeywords}`
+		);
+		// クエリ8: 施設名 + 追加キーワード（月ヒントなしのフォールバック、候補が0件の場合の救済）
+		queries.push(`site:instagram.com (inurl:/p/ OR inurl:/reel/) ${facilityTerm} ${additionalKeywords} 子育て拠点`);
 	}
 
 	return uniqueStrings(queries).slice(0, 4);
@@ -311,10 +344,24 @@ export function extractScheduleCandidates(
 		});
 	}
 
-	// /p/ を先頭に並べ替え
+	// 候補の並び替え（精度向上のため）
 	candidates.sort((a, b) => {
+		// 1. 月ヒントがマッチする候補を優先（月号を最優先）
+		const aHasMonthGou = a.matchedMonthHints.some(h => h.includes('月号'));
+		const bHasMonthGou = b.matchedMonthHints.some(h => h.includes('月号'));
+		if (aHasMonthGou && !bHasMonthGou) return -1;
+		if (!aHasMonthGou && bHasMonthGou) return 1;
+		
+		// 2. 月ヒントがマッチする候補を優先
+		const aHasMonthHint = a.matchedMonthHints.length > 0;
+		const bHasMonthHint = b.matchedMonthHints.length > 0;
+		if (aHasMonthHint && !bHasMonthHint) return -1;
+		if (!aHasMonthHint && bHasMonthHint) return 1;
+		
+		// 3. /p/ を /reel/ より優先
 		if (a.type === 'p' && b.type === 'reel') return -1;
 		if (a.type === 'reel' && b.type === 'p') return 1;
+		
 		return 0;
 	});
 

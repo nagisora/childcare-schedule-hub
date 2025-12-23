@@ -34,6 +34,7 @@ MVP優先で「後で必ず対応する」事項を、**忘れずに回収する
 | DW-005 | deferred | `/api/instagram-search` の再検索抑制キャッシュ（facilityId+query+strategy+results）を設計・実装 | MVPリリースを優先。保存先/TTL/キー設計など影響が広く、設計を固めてから入れたい | MVPリリース後（安定運用フェーズ） | Issue: #28 | 起点: `docs/dev-sessions/2025/12/20251216-02-phase9-instagram-search-hybrid-more-measurements.md` / 決定: `docs/dev-sessions/2025/12/20251219-02-phase9-instagram-account-url-final-check-refactor.md` |
 | DW-006 | deferred | `instagram-semi-auto-registration` の主要判断ロジック（採用/スキップ/未特定）をテスト可能に分離 | 全国対応で運用予定だが、MVPではCLIを使用しないため対応を見送る | 全国対応の着手前（MVP後） | Issue: #29 | 起点: `docs/dev-sessions/2025/12/20251219-02-phase9-instagram-account-url-final-check-refactor.md` / 決定: `docs/dev-sessions/2025/12/20251219-03-phase9-instagram-account-url-refactor.md` / 追跡: `https://github.com/nagisora/childcare-schedule-hub/issues/29` |
 | DW-007 | deferred | フェーズ10のRunbookを「運用できる粒度」に引き上げ（登録ルール / 月次更新 / 品質チェック） | MVPリリース優先。現時点は手動運用でデータが揃っているため、リリース後に改善する | MVPリリース完了後、月次更新の運用負荷やデータ品質課題（更新漏れ/重複等）が顕在化したら着手 | Issue: #31 | 起点: `docs/dev-sessions/2025/12/20251219-05-phase10-docs-alignment.md` / 追跡: `https://github.com/nagisora/childcare-schedule-hub/issues/31` |
+| DW-008 | deferred | 月間スケジュールの自動登録（精度向上・OCR/AI認識によるカレンダー形式の把握） | MVPでは手動登録（開発者が使用する施設のみ）で完了。自動取得CLIは実装済みだが検索精度が不十分なため、精度向上は後回し | MVPリリース後（安定運用フェーズ） | Issue: #34 | 起点: `docs/dev-sessions/2025/12/20251223-03-phase10-task6-quality-check-sql.md` / 検討事項: 画像をOCRまたはAIによる認識でカレンダー形式と把握する方法 / 追跡: `https://github.com/nagisora/childcare-schedule-hub/issues/34` |
 
 ## 関連
 
