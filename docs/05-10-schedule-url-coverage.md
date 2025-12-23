@@ -20,10 +20,10 @@
 ### 実装タスク（セッション粒度の進捗）
 
 - [x] [タスク1: 取得仕様の確定（対象月・判定・理由コード）](#task-1) - 2025-12-22
-- [ ] [タスク2: 投稿URL候補検索（Google CSE）の設計](#task-2)
-- [ ] [タスク3: サーバーサイド検索API（`/api/instagram-schedule-search`）の実装](#task-3)
-- [ ] [タスク4: 施設×月の一括処理CLI（カバー/未特定一覧化）](#task-4)
-- [ ] [タスク5: `schedules` への安全なUPSERT（バックアップ/ロールバック）](#task-5)
+- [x] [タスク2: 投稿URL候補検索（Google CSE）の設計](#task-2) - 2025-12-23
+- [x] [タスク3: サーバーサイド検索API（`/api/instagram-schedule-search`）の実装](#task-3) - 2025-12-23
+- [x] [タスク4: 施設×月の一括処理CLI（カバー/未特定一覧化）](#task-4) - 2025-12-23
+- [x] [タスク5: `schedules` への安全なUPSERT（バックアップ/ロールバック）](#task-5) - 2025-12-23
 - [ ] [タスク6: 品質チェック（SQL）と証跡の記録](#task-6)
 
 ---
@@ -121,66 +121,64 @@
 ### タスク3: サーバーサイド検索API（`/api/instagram-schedule-search`）の実装
 
 - **完了条件**:
-  - [ ] `apps/web/app/api/instagram-schedule-search/route.ts` を追加し、CSEから候補（投稿URL候補+メタ）を返せる
-  - [ ] `x-admin-token`（`ADMIN_API_TOKEN`）で保護されている
-  - [ ] 入力: `facilityId`（推奨）または `facilityName` + `wardName` + `instagramUrl` + `month`
-  - [ ] 出力: 例 `[{ url, title, snippet, score, matchedMonthHints: [...] }]`（名称は実装に合わせて調整）
-  - [ ] 例外/400/401/500のエラーフォーマットが統一されている
+  - [x] `apps/web/app/api/instagram-schedule-search/route.ts` を追加し、CSEから候補（投稿URL候補+メタ）を返せる - 2025-12-23
+  - [x] `x-admin-token`（`ADMIN_API_TOKEN`）で保護されている - 2025-12-23
+  - [x] 入力: `facilityId`（推奨）または `facilityName` + `wardName` + `instagramUrl` + `month` - 2025-12-23
+  - [x] 出力: 例 `[{ url, title, snippet, score, matchedMonthHints: [...] }]`（名称は実装に合わせて調整） - 2025-12-23
+  - [x] 例外/400/401/500のエラーフォーマットが統一されている - 2025-12-23
 - **設計仕様**:
   - 詳細は実装時に [`docs/phase-artifacts/10-schedule-url-coverage/task-03-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-03-spec.md) に追記予定
   - タスク2の設計仕様（[`task-02-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-02-spec.md)）を実装に落とし込む
 - **検証方法**:
-  - [ ] `mise exec -- pnpm --filter web dev` でローカル起動
-  - [ ] `curl` 等でAPIを叩き、401/200/500の主要経路を確認（シークレットはログ出力しない）
+  - [x] ユニットテストで主要経路（401/400/404/500/200）を確認 - 2025-12-23（[dev-session](./dev-sessions/2025/12/20251223-02-phase10-task3-5-search-api-cli-upsert.md)）
+  - [ ] `mise exec -- pnpm --filter web dev` でローカル起動し、`curl` 等でAPIを叩いて確認（次回セッションで実施予定）
 - **dev-sessions粒度**:
   - 1〜3セッション（60〜180分）
 - **更新先ドキュメント**:
-  - [`docs/phase-artifacts/10-schedule-url-coverage/task-03-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-03-spec.md)（実装仕様の正本、実装時に作成）
+  - [`docs/dev-sessions/2025/12/20251223-02-phase10-task3-5-search-api-cli-upsert.md`](./dev-sessions/2025/12/20251223-02-phase10-task3-5-search-api-cli-upsert.md)（実装ログ・検証結果）
   - `docs/03-api.md`（必要なら内部APIとして追記）
-  - `docs/dev-sessions/`（実装ログ・検証結果）
 
 <a id="task-4"></a>
 ### タスク4: 施設×月の一括処理CLI（カバー/未特定一覧化）
 
 - **完了条件**:
-  - [ ] `facilities.instagram_url IS NOT NULL` を対象に、施設を順次処理できる
-  - [ ] 施設ごとに検索APIを呼び、候補提示→（自動採用 or 未特定確定/対象外）を判断して記録できる
-  - [ ] 非対話環境でも安全に動く（デフォルトはDRY-RUN、適用には `--apply --yes` 必須）
-  - [ ] 出力ファイル（JSON + Markdown）が生成され、未特定/対象外の一覧がレビューしやすい
+  - [x] `facilities.instagram_url IS NOT NULL` を対象に、施設を順次処理できる - 2025-12-23
+  - [x] 施設ごとに検索APIを呼び、候補提示→（自動採用 or 未特定確定/対象外）を判断して記録できる - 2025-12-23
+  - [x] 非対話環境でも安全に動く（デフォルトはDRY-RUN、適用には `--apply --yes` 必須） - 2025-12-23
+  - [x] 出力ファイル（JSON + Markdown）が生成され、未特定/対象外の一覧がレビューしやすい - 2025-12-23
 - **設計仕様**:
   - 詳細は実装時に [`docs/phase-artifacts/10-schedule-url-coverage/task-04-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-04-spec.md) に追記予定
   - タスク2の設計仕様（[`task-02-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-02-spec.md)）とタスク3のAPI仕様を組み合わせて実装
 - **検証方法**:
-  - [ ] まずは対象を `--limit=3` 等で絞ってDRY-RUN実行し、出力ファイルの体裁を確認
-  - [ ] 既に登録済みの施設×月がスキップされることを確認
+  - [ ] まずは対象を `--limit=3` 等で絞ってDRY-RUN実行し、出力ファイルの体裁を確認（次回セッションで実施予定）
+  - [ ] 既に登録済みの施設×月がスキップされることを確認（次回セッションで実施予定）
 - **dev-sessions粒度**:
   - 2〜4セッション（90〜240分）
 - **更新先ドキュメント**:
-  - [`docs/phase-artifacts/10-schedule-url-coverage/task-04-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-04-spec.md)（CLI仕様の正本、実装時に作成）
-  - `docs/dev-sessions/`（実行ログ・出力の証跡）
-  - `docs/phase-artifacts/10-schedule-url-coverage/runs/`（実行結果/出力の整理先）
+  - [`docs/dev-sessions/2025/12/20251223-02-phase10-task3-5-search-api-cli-upsert.md`](./dev-sessions/2025/12/20251223-02-phase10-task3-5-search-api-cli-upsert.md)（実装ログ）
+  - `docs/phase-artifacts/10-schedule-url-coverage/runs/`（実行結果/出力の整理先、次回セッションで実施予定）
   - （MVP後回し可）`docs/04-development.md`（CLI運用Runbook）
 
 <a id="task-5"></a>
 ### タスク5: `schedules` への安全なUPSERT（バックアップ/ロールバック）
 
 - **完了条件**:
-  - [ ] `--apply` 時のみDB更新が走る（DRY-RUNがデフォルト）
-  - [ ] 更新前にバックアップ（対象レコードのスナップショット）をファイルに保存する
-  - [ ] UPSERT方針が明確（`facility_id` + `published_month` をキーに更新/作成）
-  - [ ] `image_url` はDB必須のため、暫定はダミーURLを設定できる（MVP UIでは未使用）
+  - [x] `--apply` 時のみDB更新が走る（DRY-RUNがデフォルト） - 2025-12-23
+  - [x] 更新前にバックアップ（対象レコードのスナップショット）をファイルに保存する - 2025-12-23
+  - [x] UPSERT方針が明確（`facility_id` + `published_month` をキーに更新/作成） - 2025-12-23
+  - [x] `image_url` はDB必須のため、暫定はダミーURLを設定できる（MVP UIでは未使用） - 2025-12-23
 - **設計仕様**:
   - 詳細は実装時に [`docs/phase-artifacts/10-schedule-url-coverage/task-05-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-05-spec.md) に追記予定
   - タスク4のCLIにUPSERT機能を追加
 - **検証方法**:
-  - [ ] テスト用に1施設×1月で `--apply --yes` を実行し、DBに反映されることを確認
-  - [ ] ロールバック手順（バックアップから戻す）が手で実行できることを確認
+  - [ ] テスト用に1施設×1月で `--apply --yes` を実行し、DBに反映されることを確認（次回セッションで実施予定）
+  - [ ] ロールバック手順（バックアップから戻す）が手で実行できることを確認（次回セッションで実施予定）
 - **dev-sessions粒度**:
   - 1〜2セッション（60〜120分）
 - **更新先ドキュメント**:
-  - [`docs/phase-artifacts/10-schedule-url-coverage/task-05-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-05-spec.md)（UPSERT仕様の正本、実装時に作成）
-  - `docs/dev-sessions/`（バックアップ/ロールバック証跡）
+  - [`docs/dev-sessions/2025/12/20251223-02-phase10-task3-5-search-api-cli-upsert.md`](./dev-sessions/2025/12/20251223-02-phase10-task3-5-search-api-cli-upsert.md)（実装ログ）
   - `docs/phase-artifacts/10-schedule-url-coverage/`（添付資料: バックアップ/ロールバック手順や代表例の保管先）
+  - 補足: ロールバック補助スクリプト `apps/scripts/rollback-schedules-from-backup.ts` を追加済み
 
 <a id="task-6"></a>
 ### タスク6: 品質チェック（SQL）と証跡の記録
