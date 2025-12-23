@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
 					}
 				}
 			}
-		} catch (error) {
+		} catch {
 			triedQueries.push(query);
 			// 個別クエリのエラーは続行（他のクエリで成功する可能性がある）
 			continue;

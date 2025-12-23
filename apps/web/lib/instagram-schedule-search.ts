@@ -157,7 +157,6 @@ export function generateScheduleSearchQueries(
 	month: string
 ): string[] {
 	const queries: string[] = [];
-	const monthHintsOr = buildMonthHintsOrClause(month);
 	const facilityVariants = buildFacilityNameVariantsForSearch(facilityName);
 	const facilityTerm = facilityVariants.length === 1 ? `"${facilityVariants[0]}"` : `(${facilityVariants.map(v => `"${v}"`).join(' OR ')})`;
 
