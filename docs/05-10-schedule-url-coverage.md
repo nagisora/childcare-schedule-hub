@@ -24,7 +24,7 @@
 - [x] [タスク3: サーバーサイド検索API（`/api/instagram-schedule-search`）の実装](#task-3) - 2025-12-23
 - [x] [タスク4: 施設×月の一括処理CLI（カバー/未特定一覧化）](#task-4) - 2025-12-23
 - [x] [タスク5: `schedules` への安全なUPSERT（バックアップ/ロールバック）](#task-5) - 2025-12-23
-- [ ] [タスク6: 品質チェック（SQL）と証跡の記録](#task-6)
+- [x] [タスク6: 品質チェック（SQL）と証跡の記録](#task-6) - 2025-12-23（[dev-session](./dev-sessions/2025/12/20251223-03-phase10-task6-quality-check-sql.md)）
 
 ---
 
@@ -184,13 +184,13 @@
 ### タスク6: 品質チェック（SQL）と証跡の記録
 
 - **完了条件**:
-  - [ ] 本ファイル「4. 品質チェック」にあるSQLを1回以上実行し、結果を dev-sessions に記録
+  - [x] 本ファイル「4. 品質チェック」にあるSQLを1回以上実行し、結果を dev-sessions に記録 - 2025-12-23（[dev-session](./dev-sessions/2025/12/20251223-03-phase10-task6-quality-check-sql.md)）
   - [ ] 想定外（URL形式不正/対象月ズレ/未処理残り）があれば修正して再実行できる
 - **設計仕様**:
   - 詳細は実施時に [`docs/phase-artifacts/10-schedule-url-coverage/task-06-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-06-spec.md) に追記予定
   - 品質チェックSQLは本ファイル「4. 品質チェック」セクションに記載（詳細は [`sql/`](./phase-artifacts/10-schedule-url-coverage/sql/) に整理）
 - **検証方法**:
-  - [ ] Supabase Studio / MCP / psql などでSQLを実行し、結果（件数、代表例）を記録
+  - [x] Supabase Studio / MCP / psql などでSQLを実行し、結果（件数、代表例）を記録 - 2025-12-23（[dev-session](./dev-sessions/2025/12/20251223-03-phase10-task6-quality-check-sql.md)）
 - **dev-sessions粒度**:
   - 1セッション（30〜60分）
 - **更新先ドキュメント**:

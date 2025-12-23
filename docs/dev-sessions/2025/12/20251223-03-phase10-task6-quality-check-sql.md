@@ -83,7 +83,7 @@
       - apply は必ず --yes を要求（ガード確認）
     ```
 
-- [ ] タスク2: タスク6の品質チェックSQLを実行し、結果を証跡として記録する
+- [x] タスク2: タスク6の品質チェックSQLを実行し、結果を証跡として記録する
   - 完了条件: `docs/05-10-schedule-url-coverage.md` の「4. 品質チェック」クエリを1回以上実行し、結果（件数・代表例）を本ファイルに記録している
   - **AIが実行する内容（手順/プロンプト/操作メモ）**:
     ```
@@ -100,8 +100,12 @@
       - クエリ内の published_month は対象月に必ず置換する
     ```
 
-- [ ] タスク3（任意）: 想定外が出た場合の修正ループ（テスト→修正→再実行→記録）
+- [x] タスク3（任意）: 想定外が出た場合の修正ループ（テスト→修正→再実行→記録）
   - 完了条件: 「想定外」の原因と対応を記録し、再実行で改善した結果を残している（少なくとも1回は再実行まで到達）
+  - 実施内容:
+    - SQL(5)でクエリパラメータ残り5件を検出
+    - マイグレーション `normalize_instagram_post_urls_remove_query_params` で正規化
+    - SQL(5)再実行で0件（問題解消を確認）
   - **AIが実行する内容（手順/プロンプト/操作メモ）**:
     ```
     - 参照ファイル:
@@ -126,27 +130,46 @@
       - 期待結果: `mise exec -- pnpm --filter web test` が成功する
 - [ ] 確認2: CLI の DRY-RUN が動き、`apps/scripts/logs/` に JSON/Markdown が生成される
       - 期待結果: `schedule-url-coverage-*.json` と `schedule-url-review-*.md` が生成される
-- [ ] 確認3: 品質チェックSQLを実行し、結果を本セッションファイルに記録する
+- [x] 確認3: 品質チェックSQLを実行し、結果を本セッションファイルに記録する
       - 期待結果: 4. 品質チェックのSQL 1)〜5) の結果（件数・代表例）が残っている
 
 ---
 
 ## 実施ログ
 
-- スタート: HH:MM
+- スタート: 11:12
+- 終了: 11:14（初回）
+- 再開: 11:16（Webサーバー起動後）
+- 最終終了: 11:17
 - メモ:
-  -
+  - 対象月: 2025-12-01
+  - Supabase MCP接続確認済み（facilities: 61件、instagram_url IS NOT NULL: 54件、schedules (2025-12-01): 3件）
+  - CLI DRY-RUN実行（初回）: `mise exec -- pnpm exec tsx fetch-instagram-schedule-post-urls.ts --limit=3 --month=2025-12`
+    - 実行時刻: 2025-12-23 02:14:06
+    - ログファイル: `apps/scripts/logs/schedule-url-coverage-2025-12-23-02-14-06.json`, `schedule-url-review-2025-12-23-02-14-06.md`
+    - 結果: Webサーバー未起動のためAPI呼び出し失敗（`ECONNREFUSED`）。3件すべて `not_found`（理由コード: `S10_NOT_FOUND_NEEDS_REVIEW`）
+  - CLI DRY-RUN実行（再実行）: 2025-12-23 02:16:18
+    - ログファイル: `apps/scripts/logs/schedule-url-coverage-2025-12-23-02-16-18.json`, `schedule-url-review-2025-12-23-02-16-18.md`
+    - 結果: API呼び出し成功。3件すべて `not_found`（理由コード: `S10_NOT_FOUND_MULTIPLE_CANDIDATES`）。候補は取得できているが、複数候補のため自動判定不可
+  - URL正規化対応: SQL(5)で検出された5件のクエリパラメータ残りレコードを正規化（マイグレーション: `normalize_instagram_post_urls_remove_query_params`）
+    - 対象: 5件の `schedules.instagram_post_url` から `?` 以降と `#` 以降を除去
+    - 結果: SQL(5)再実行で0件（問題解消）
 
 ## 結果とふりかえり
 
 > **チェックの付け方**: 完了したタスクは `- [x]` で列挙する。未完了のタスクは `- [ ]` のまま「次回に持ち越すタスク」へ移す。
 
 - 完了できたタスク:
-  - [ ] （完了したら記入）
+  - [x] タスク2: 品質チェックSQL（1)〜5)）を実行し、結果（件数・代表例）をセッションファイルに記録
+  - [x] CLI DRY-RUNを実行し、ログファイル（JSON/Markdown）を生成（初回はWebサーバー未起動で失敗、再実行で成功）
+  - [x] タスク3: 想定外の修正ループ（SQL(5)でクエリパラメータが残っている5件を検出し、マイグレーションで正規化。SQL(5)再実行で0件を確認）
 - 未完了タスク / 想定外だったこと:
-  - [ ] （未完了があれば記述）
+  - [ ] タスク1: データ投入（CLIのDRY-RUNで候補は取得できたが、すべて複数候補のため自動判定不可。手動レビューが必要）
 - 学び・次回改善したいこと:
-  -
+  - CLI実行前にWebサーバーの起動状態を確認するか、`--api-base-url` オプションで別のURLを指定する
+  - 既存データのURL正規化（クエリパラメータ/フラグメント除去）を実施済み（5件を修正）
+  - SQL(2)で未処理施設が51件あるため、今後のデータ投入が必要
+  - 複数候補が検出された場合は、手動レビューが必要（自動判定不可）
 
 ## 次回に持ち越すタスク
 
@@ -165,5 +188,146 @@
 ## 付録（任意）
 
 > メモ: フェーズ計画の正本は `docs/05-00-development-phases.md`（索引）と、該当する `docs/05-10-schedule-url-coverage.md`（詳細計画）です。
+
+### 品質チェックSQL実行結果（2025-12-01）
+
+#### SQL 1) 登録済み件数
+
+```sql
+SELECT COUNT(*) AS registered_count
+FROM schedules s
+JOIN facilities f ON f.id = s.facility_id
+WHERE f.instagram_url IS NOT NULL
+  AND s.published_month = '2025-12-01'
+  AND s.instagram_post_url IS NOT NULL;
+```
+
+**結果**: `registered_count = 3`
+
+#### SQL 2) 未処理施設（schedules行が無い対象施設）
+
+```sql
+SELECT f.id, f.name, f.ward_name, f.instagram_url
+FROM facilities f
+LEFT JOIN schedules s
+  ON s.facility_id = f.id
+ AND s.published_month = '2025-12-01'
+WHERE f.instagram_url IS NOT NULL
+  AND s.id IS NULL
+ORDER BY f.ward_name, f.name;
+```
+
+**結果**: 総数 **51件**（対象施設54件のうち、登録済み3件を除く）
+
+**代表例（先頭20件）**:
+- おやこっこなか（中区）
+- おひさまのおうち（中川区）
+- くれよんすたじお（中川区）
+- なないろの風船（中川区）
+- フレンズあおぞら（中川区）
+- マイハウス（中川区）
+- ママバラ（中川区）
+- ゆるぽか（中川区）
+- ゆるまる（中川区）
+- おやこのおうち（中村区）
+- ぽかぽかひろば（中村区）
+- 遊モア　あじま（北区）
+- 遊モア　平安通（北区）
+- 遊モア柳原（北区）
+- おててのいえ（千種区）
+- すぎぱーく（千種区）
+- もんもの木（千種区）
+- momo（南区）
+- さくらあそび場（南区）
+- ぷるぷ（南区）
+
+#### SQL 3) published_month が月の1日でないレコード
+
+```sql
+SELECT id, facility_id, published_month
+FROM schedules
+WHERE EXTRACT(DAY FROM published_month) <> 1;
+```
+
+**結果**: **0件**（問題なし）
+
+#### SQL 4) instagram_post_url のドメイン/形式チェック
+
+```sql
+SELECT id, facility_id, instagram_post_url
+FROM schedules
+WHERE instagram_post_url IS NOT NULL
+  AND instagram_post_url !~* '^https?://(www\\.)?instagram\\.com/(p|reel)/';
+```
+
+**結果**: **0件**（正規表現チェックは通過）
+
+#### SQL 5) 共有リンクのクエリ/フラグメントが残っていないか
+
+```sql
+SELECT id, facility_id, instagram_post_url
+FROM schedules
+WHERE instagram_post_url IS NOT NULL
+  AND (instagram_post_url LIKE '%?%' OR instagram_post_url LIKE '%#%');
+```
+
+**結果**: **5件**（問題あり）
+
+**詳細**:
+1. `id: 46913d43-c730-4949-b97c-0338aaf67703`, `facility_id: f4ced207-a55c-471c-837d-c67dddef0320`（こころと）
+   - URL: `https://www.instagram.com/p/DP2e5GREqHd/?utm_source=ig_web_copy_link&igsh=MzRlODBiNWFlZA==`
+2. `id: 1fc73b74-cede-47d4-8cc2-e29412299065`, `facility_id: f4ced207-a55c-471c-837d-c67dddef0320`（こころと）
+   - URL: `https://www.instagram.com/p/DRD9er5krYe/?utm_source=ig_web_copy_link&igsh=MzRlODBiNWFlZA==`
+3. `id: 529411aa-6125-4330-aa67-21041d555e33`, `facility_id: 1dfd2a31-624b-4c76-880a-e0c8b520c968`（つながるひろば恵方の家）
+   - URL: `https://www.instagram.com/p/DPxZJidjwnI/?utm_source=ig_web_copy_link&igsh=MzRlODBiNWFlZA==`
+4. `id: ddf00b3f-1bd0-439d-9e4e-983b3f1ae766`, `facility_id: 1dfd2a31-624b-4c76-880a-e0c8b520c968`（つながるひろば恵方の家）
+   - URL: `https://www.instagram.com/p/DRLmvAzCeGw/?utm_source=ig_web_copy_link&igsh=MzRlODBiNWFlZA==`
+5. `id: cc7a9912-25d5-418f-abc3-a3c30bdb3880`, `facility_id: cf986b1b-2f32-4c5f-9f95-8e5ebaf60e30`（なっちゃん）
+   - URL: `https://www.instagram.com/p/DRi8crtj3hY/?utm_source=ig_web_copy_link&igsh=MzRlODBiNWFlZA==`
+
+**問題点**: すべてのURLに `?utm_source=ig_web_copy_link&igsh=...` というクエリパラメータが残っている。これは、既存データがCLIの正規化処理（`normalizeInstagramPostUrl`）を通っていない可能性がある。
+
+**対応方針**: 
+- 既存データの正規化が必要（クエリパラメータ/フラグメント除去）
+- CLIの `normalizeInstagramPostUrl` 関数は正しく実装されているが、既存データが手動投入または古いバージョンで投入された可能性がある
+
+**対応実施**: 
+- マイグレーション `normalize_instagram_post_urls_remove_query_params` を実行し、5件のレコードを正規化
+- SQL(5)再実行で0件を確認（問題解消）
+
+### CLI DRY-RUN実行結果（2025-12-23 02:14:06）
+
+**実行コマンド**: 
+```bash
+mise exec -- pnpm exec tsx fetch-instagram-schedule-post-urls.ts --limit=3 --month=2025-12
+```
+
+**生成ファイル**:
+- JSON: `apps/scripts/logs/schedule-url-coverage-2025-12-23-02-14-06.json`
+- Markdown: `apps/scripts/logs/schedule-url-review-2025-12-23-02-14-06.md`
+
+**サマリ**:
+- 対象施設数: 3
+- 処理済み: 3
+- 登録済み: 0
+- 未特定確定: 3
+- 対象外: 0
+
+**結果詳細**:
+- すべての施設で `not_found`（理由コード: `S10_NOT_FOUND_NEEDS_REVIEW`）
+- 理由: Webサーバー（`http://localhost:3000`）が起動していないため、API呼び出しが失敗（`ECONNREFUSED`）
+
+**対応**: 
+- 次回実行時は、事前に `mise exec -- pnpm --filter web dev` でWebサーバーを起動する必要がある
+- または、`--api-base-url` オプションで別のURLを指定する
+
+**再実行結果（Webサーバー起動後）**:
+- 実行時刻: 2025-12-23 02:16:18
+- API呼び出し: 成功
+- 結果: 3件すべて `not_found`（理由コード: `S10_NOT_FOUND_MULTIPLE_CANDIDATES`）
+  - おやこっこなか: 候補26件
+  - おひさまのおうち: 候補10件
+  - くれよんすたじお: 候補7件
+- 候補は正しく取得できているが、複数候補のため自動判定不可（手動レビューが必要）
 
 
