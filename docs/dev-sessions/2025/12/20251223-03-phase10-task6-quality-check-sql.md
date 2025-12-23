@@ -25,9 +25,9 @@
 
 - **ゴール1**: 対象月のデータ投入（必要な場合）と、品質チェックSQLの実行結果を dev-sessions に証跡として残せる
   - 完了条件:
-    - [ ] `apps/scripts/fetch-instagram-schedule-post-urls.ts` を最小スコープ（`--limit=1` など）で実行し、エラーなく出力（JSON/Markdown）とバックアップが生成される（必要な場合のみ）
-    - [ ] `docs/05-10-schedule-url-coverage.md` の「4. 品質チェック」にあるSQLを1回以上実行し、結果（件数・代表例）を本セッションファイルに記録している
-    - [ ] 想定外（URL形式不正/対象月ズレ/未処理残り）があれば、原因を特定し、修正→再実行して結果を更新できる状態にしている
+    - [x] `apps/scripts/fetch-instagram-schedule-post-urls.ts` を最小スコープ（`--limit=3`）で実行し、エラーなく出力（JSON/Markdown）が生成された（DRY-RUNのみ実行。バックアップは `--apply` 実行時のみ生成されるため、今回は未生成）
+    - [x] `docs/05-10-schedule-url-coverage.md` の「4. 品質チェック」にあるSQLを1回以上実行し、結果（件数・代表例）を本セッションファイルに記録している
+    - [x] 想定外（URL形式不正/対象月ズレ/未処理残り）があれば、原因を特定し、修正→再実行して結果を更新できる状態にしている
   - 補足:
     - Google CSEの枠/課金を避けるため、スクリプト実行は `--limit` を小さくして段階的に行う
     - シークレット（`ADMIN_API_TOKEN` / `GOOGLE_CSE_API_KEY` / `GOOGLE_CSE_CX` / `SUPABASE_SERVICE_ROLE_KEY`）はログや成果物に含めない
@@ -62,6 +62,7 @@
 
 - [ ] タスク1: （前提）対象月のデータが不足している場合、最小スコープで投入（DRY-RUN→APPLY）してバックアップを作る
   - 完了条件: `apps/scripts/logs/` に JSON/Markdown と `schedules-backup-*.json` が生成される
+  - 実施状況: DRY-RUNは実行済み（JSON/Markdownは生成）。APPLYは未実行（複数候補のため手動レビューが必要なため、バックアップファイルは未生成）
   - **AIが実行する内容（手順/プロンプト/操作メモ）**:
     ```
     - 参照ファイル:
@@ -126,10 +127,16 @@
 
 ### 2. 検証・テスト（確認方法）
 
-- [ ] 確認1: web のユニットテストが通る
+- [x] 確認1: web のユニットテストが通る
       - 期待結果: `mise exec -- pnpm --filter web test` が成功する
-- [ ] 確認2: CLI の DRY-RUN が動き、`apps/scripts/logs/` に JSON/Markdown が生成される
+      - 結果: 12ファイル、134テストすべて通過（2025-12-23 11:21:37実行）
+- [x] 確認2: CLI の DRY-RUN が動き、`apps/scripts/logs/` に JSON/Markdown が生成される
       - 期待結果: `schedule-url-coverage-*.json` と `schedule-url-review-*.md` が生成される
+      - 結果: 以下のファイルが生成された
+        - `schedule-url-coverage-2025-12-23-02-14-06.json`
+        - `schedule-url-review-2025-12-23-02-14-06.md`
+        - `schedule-url-coverage-2025-12-23-02-16-18.json`
+        - `schedule-url-review-2025-12-23-02-16-18.md`
 - [x] 確認3: 品質チェックSQLを実行し、結果を本セッションファイルに記録する
       - 期待結果: 4. 品質チェックのSQL 1)〜5) の結果（件数・代表例）が残っている
 
