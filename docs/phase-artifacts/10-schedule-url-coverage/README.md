@@ -13,6 +13,11 @@
 - `README.md`（本ファイル）: このフォルダの目的・最新のrunへのリンク
 - `reason-codes.md`: 理由コードの正本（`05-10` から参照リンク）
 - `task-01-spec.md`: タスク1で決めた仕様（対象月/分類/出力スキーマ）
+- `task-02-spec.md`: タスク2で決めた仕様（CSEクエリ生成/候補抽出/採用判定）
+- `task-03-spec.md`: タスク3の実装仕様（実装時に作成）
+- `task-04-spec.md`: タスク4のCLI仕様（実装時に作成）
+- `task-05-spec.md`: タスク5のUPSERT仕様（実装時に作成）
+- `task-06-spec.md`: タスク6の品質チェック仕様（実施時に作成）
 - `runs/YYYYMMDD/`: 実行結果の置き場（JSON/Markdown/CSV）
 - `sql/`: 品質チェックSQL（必要に応じて）
 

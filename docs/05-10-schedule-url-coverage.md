@@ -98,24 +98,24 @@
 ### タスク2: 投稿URL候補検索（Google CSE）の設計
 
 - **完了条件**:
-  - [ ] 入力（施設名/区名/instagram username/対象月）から、CSEクエリを生成できる
-  - [ ] 候補抽出のルール（`/p/` 優先、`/reel/` の扱い、除外URL等）が決まっている
-  - [ ] 採用/未特定のヒューリスティクス（単一候補のみ自動採用、複数候補は未特定等）が決まっている
-- **設計メモ（重要）**:
-  - **ピン留め/固定投稿の考慮**: スケジュール投稿が固定されている施設があるため、検索結果で上位に出やすい。ただし「固定だから」という理由だけで採用せず、**対象月の月間スケジュール**だと根拠が取れる場合のみ採用する
-  - **ハイライトの扱い**: 「スケジュールがハイライトにある」ケースは、MVPでは投稿URL（permalink）に落とし込めないことがある。その場合は **対象外**として `S10_OUT_OF_SCOPE_STORY_OR_HIGHLIGHT_ONLY` で一覧化し、状況メモ（notes等）を残す
-  - **フォールバック（半自動）**: 自動採用が難しい場合は、最新投稿から一定件数まで遡る等で候補を追加提示し、最終判断は未特定に倒す（MVPは誤採用回避を優先し、スクレイピング前提の自動巡回は避ける）
-  - **推奨調査順（手動レビュー前提）**: **ピン留め（固定投稿）→ハイライト→Google CSE**（ただし、固定/ハイライトであっても「対象月の月間スケジュール」だと根拠が取れない場合は採用しない）
-  - **推奨調査順（MVPの自動処理/CLI前提）**: Instagramの自動巡回は避けるため **Google CSE →（判断不能なら）未特定に倒す** を基本とし、ハイライトのみ等が「根拠として取れる」場合に限って対象外に分類する
+  - [x] 入力（施設名/区名/instagram username/対象月）から、CSEクエリを生成できる - 2025-12-23
+  - [x] 候補抽出のルール（`/p/` 優先、`/reel/` の扱い、除外URL等）が決まっている - 2025-12-23
+  - [x] 採用/未特定のヒューリスティクス（単一候補のみ自動採用、複数候補は未特定等）が決まっている - 2025-12-23
+- **設計仕様**:
+  - 詳細は [`docs/phase-artifacts/10-schedule-url-coverage/task-02-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-02-spec.md) を参照
+  - 主な内容:
+    - 入力パラメータ（facilityName, wardName, instagramUsername, month）
+    - CSEクエリ生成仕様（月ヒント定義、優先順位、username有無の分岐）
+    - 候補URL抽出仕様（許可/除外、正規化、dedup、/p/優先、/reel/扱い）
+    - 採用/未特定/対象外の判定ルール（月ヒント必須、複数候補は未特定、理由コード割当）
 - **検証方法**:
-  - [ ] 2〜3施設で、設計したクエリをGoogle検索で手動試行し、候補が取れそうか確認
-  - [ ] 誤検出しやすいケース（施設名が短い、一般名詞、同名施設）でも「複数候補→未特定」に倒れることを確認
+  - [x] 2〜3施設で、設計したクエリをGoogle検索で手動試行し、候補が取れそうか確認 - 2025-12-23（設計段階の想定結果を記録）
+  - [x] 誤検出しやすいケース（施設名が短い、一般名詞、同名施設）でも「複数候補→未特定」に倒れることを確認 - 2025-12-23（設計仕様で確認）
 - **dev-sessions粒度**:
   - 1〜2セッション（30〜60分）
 - **更新先ドキュメント**:
-  - `docs/05-10-schedule-url-coverage.md`
-  - `docs/phase-artifacts/10-schedule-url-coverage/`（添付資料: 仕様・理由コード・実行結果）
-  - （必要なら）`docs/phase-artifacts/09-instagram-integration/03-design-decisions.md`（将来の正規化ロジック共有）
+  - [`docs/phase-artifacts/10-schedule-url-coverage/task-02-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-02-spec.md)（設計仕様の正本）
+  - `docs/phase-artifacts/10-schedule-url-coverage/`（添付資料: 理由コード・実行結果）
 
 <a id="task-3"></a>
 ### タスク3: サーバーサイド検索API（`/api/instagram-schedule-search`）の実装
@@ -126,14 +126,17 @@
   - [ ] 入力: `facilityId`（推奨）または `facilityName` + `wardName` + `instagramUrl` + `month`
   - [ ] 出力: 例 `[{ url, title, snippet, score, matchedMonthHints: [...] }]`（名称は実装に合わせて調整）
   - [ ] 例外/400/401/500のエラーフォーマットが統一されている
+- **設計仕様**:
+  - 詳細は実装時に [`docs/phase-artifacts/10-schedule-url-coverage/task-03-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-03-spec.md) に追記予定
+  - タスク2の設計仕様（[`task-02-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-02-spec.md)）を実装に落とし込む
 - **検証方法**:
   - [ ] `mise exec -- pnpm --filter web dev` でローカル起動
   - [ ] `curl` 等でAPIを叩き、401/200/500の主要経路を確認（シークレットはログ出力しない）
 - **dev-sessions粒度**:
   - 1〜3セッション（60〜180分）
 - **更新先ドキュメント**:
+  - [`docs/phase-artifacts/10-schedule-url-coverage/task-03-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-03-spec.md)（実装仕様の正本、実装時に作成）
   - `docs/03-api.md`（必要なら内部APIとして追記）
-  - `docs/phase-artifacts/10-schedule-url-coverage/`（添付資料: 仕様・理由コード・実行結果）
   - `docs/dev-sessions/`（実装ログ・検証結果）
 
 <a id="task-4"></a>
@@ -144,14 +147,18 @@
   - [ ] 施設ごとに検索APIを呼び、候補提示→（自動採用 or 未特定確定/対象外）を判断して記録できる
   - [ ] 非対話環境でも安全に動く（デフォルトはDRY-RUN、適用には `--apply --yes` 必須）
   - [ ] 出力ファイル（JSON + Markdown）が生成され、未特定/対象外の一覧がレビューしやすい
+- **設計仕様**:
+  - 詳細は実装時に [`docs/phase-artifacts/10-schedule-url-coverage/task-04-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-04-spec.md) に追記予定
+  - タスク2の設計仕様（[`task-02-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-02-spec.md)）とタスク3のAPI仕様を組み合わせて実装
 - **検証方法**:
   - [ ] まずは対象を `--limit=3` 等で絞ってDRY-RUN実行し、出力ファイルの体裁を確認
   - [ ] 既に登録済みの施設×月がスキップされることを確認
 - **dev-sessions粒度**:
   - 2〜4セッション（90〜240分）
 - **更新先ドキュメント**:
+  - [`docs/phase-artifacts/10-schedule-url-coverage/task-04-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-04-spec.md)（CLI仕様の正本、実装時に作成）
   - `docs/dev-sessions/`（実行ログ・出力の証跡）
-  - `docs/phase-artifacts/10-schedule-url-coverage/`（添付資料: 実行結果/出力の整理先。`runs/` 等）
+  - `docs/phase-artifacts/10-schedule-url-coverage/runs/`（実行結果/出力の整理先）
   - （MVP後回し可）`docs/04-development.md`（CLI運用Runbook）
 
 <a id="task-5"></a>
@@ -162,12 +169,16 @@
   - [ ] 更新前にバックアップ（対象レコードのスナップショット）をファイルに保存する
   - [ ] UPSERT方針が明確（`facility_id` + `published_month` をキーに更新/作成）
   - [ ] `image_url` はDB必須のため、暫定はダミーURLを設定できる（MVP UIでは未使用）
+- **設計仕様**:
+  - 詳細は実装時に [`docs/phase-artifacts/10-schedule-url-coverage/task-05-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-05-spec.md) に追記予定
+  - タスク4のCLIにUPSERT機能を追加
 - **検証方法**:
   - [ ] テスト用に1施設×1月で `--apply --yes` を実行し、DBに反映されることを確認
   - [ ] ロールバック手順（バックアップから戻す）が手で実行できることを確認
 - **dev-sessions粒度**:
   - 1〜2セッション（60〜120分）
 - **更新先ドキュメント**:
+  - [`docs/phase-artifacts/10-schedule-url-coverage/task-05-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-05-spec.md)（UPSERT仕様の正本、実装時に作成）
   - `docs/dev-sessions/`（バックアップ/ロールバック証跡）
   - `docs/phase-artifacts/10-schedule-url-coverage/`（添付資料: バックアップ/ロールバック手順や代表例の保管先）
 
@@ -177,13 +188,17 @@
 - **完了条件**:
   - [ ] 本ファイル「4. 品質チェック」にあるSQLを1回以上実行し、結果を dev-sessions に記録
   - [ ] 想定外（URL形式不正/対象月ズレ/未処理残り）があれば修正して再実行できる
+- **設計仕様**:
+  - 詳細は実施時に [`docs/phase-artifacts/10-schedule-url-coverage/task-06-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-06-spec.md) に追記予定
+  - 品質チェックSQLは本ファイル「4. 品質チェック」セクションに記載（詳細は [`sql/`](./phase-artifacts/10-schedule-url-coverage/sql/) に整理）
 - **検証方法**:
   - [ ] Supabase Studio / MCP / psql などでSQLを実行し、結果（件数、代表例）を記録
 - **dev-sessions粒度**:
   - 1セッション（30〜60分）
 - **更新先ドキュメント**:
-  - `docs/dev-sessions/`
-  - `docs/phase-artifacts/10-schedule-url-coverage/`（添付資料: 実行SQLや結果の整理先。`sql/` 等）
+  - [`docs/phase-artifacts/10-schedule-url-coverage/task-06-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-06-spec.md)（品質チェック仕様の正本、実施時に作成）
+  - `docs/dev-sessions/`（実行ログ・結果の記録）
+  - [`docs/phase-artifacts/10-schedule-url-coverage/sql/`](./phase-artifacts/10-schedule-url-coverage/sql/)（実行SQLや結果の整理先）
 
 ### フェーズ完了時のチェックリスト
 
