@@ -166,10 +166,10 @@
 - [x] 確認1: `/api/instagram-schedule-search` の主要経路をテストで確認する
       - 期待結果: 401/500/400/200 の主要経路が落ちない（既存 `instagram-search-route.test.ts` と同等の粒度）
       - 実装: `apps/web/__tests__/instagram-schedule-search-route.test.ts` を追加し、認証・入力バリデーション・CSEエラー・正常系をカバー
-- [ ] 確認2: CLIを `--limit=3` でDRY-RUN実行し、JSON/Markdown出力が生成される
+- [x] 確認2: CLIを `--limit=3` でDRY-RUN実行し、JSON/Markdown出力が生成される（持ち越し済み → [dev-session](./20251223-03-phase10-task6-quality-check-sql.md)）
       - 期待結果: `apps/scripts/logs/` にファイルが作成され、summary件数と未特定一覧が読める
       - 補足: 実装は完了。実際の実行確認は次回セッションで実施予定
-- [ ] 確認3: `--apply --yes --limit=1` の最小ケースでUPSERTが動き、バックアップが保存される（テスト用データで）
+- [x] 確認3: `--apply --yes --limit=1` の最小ケースでUPSERTが動き、バックアップが保存される（テスト用データで）（持ち越し済み → [dev-session](./20251223-03-phase10-task6-quality-check-sql.md)）
       - 期待結果: `schedules` に反映され、バックアップファイルが残り、手順に従って戻せる
       - 補足: 実装は完了。実際の実行確認は次回セッションで実施予定
 
@@ -215,7 +215,7 @@
       - `apps/scripts/rollback-schedules-from-backup.ts` を追加（ロールバック補助スクリプト）
     - **補足**: `(facility_id, published_month)` キーでUPSERT、`image_url` はダミーURLを設定
 - 未完了タスク / 想定外だったこと:
-  - [ ] CLIの実際の実行確認（DRY-RUN/APPLY）は次回セッションで実施予定
+  - [x] CLIの実際の実行確認（DRY-RUN/APPLY）は次回セッションで実施予定（持ち越し済み → [dev-session](./20251223-03-phase10-task6-quality-check-sql.md)）
 - 学び・次回改善したいこと:
   - 既存パターンに準拠することで、一貫性のある実装ができた
   - テストは既存スタイルに合わせることで、保守性が向上する
@@ -228,7 +228,7 @@
 > - 前回セッション側のこのセクションは、後日 **各行を `- [x] （持ち越し済み → ...）` に更新して凍結**する（ここに追記して増やさない）
 > - 後日「漏れていたタスク」に気づいた場合は、**最新セッションにのみ追記**し、行末に `（漏れていたため追加: YYYY-MM-DD）` を付ける
 
-- [ ] タスク6: 品質チェック（SQL）と証跡の記録
+- [x] タスク6: 品質チェック（SQL）と証跡の記録（持ち越し済み → [dev-session](./20251223-03-phase10-task6-quality-check-sql.md)）
   - 今回やらない理由: UPSERT/出力が揃ってから1回まとめて実施したい
   - 次回着手条件: `--apply` 実行後に、`docs/05-10-schedule-url-coverage.md` のSQLを実行して結果を記録できる
 
