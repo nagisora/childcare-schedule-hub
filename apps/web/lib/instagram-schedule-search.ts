@@ -92,18 +92,6 @@ function buildMonthHints(month: string): string[] {
 }
 
 /**
- * 月ヒントのOR句を生成する（クエリ用）
- * @param month YYYY-MM形式
- * @returns OR句（例: "2025年12月" OR "12月" OR "12月の予定" OR "月間スケジュール"）
- */
-function buildMonthHintsOrClause(month: string): string {
-	const hints = buildMonthHints(month);
-	if (hints.length === 0) return '';
-	if (hints.length === 1) return `"${hints[0]}"`;
-	return `(${hints.map(h => `"${h}"`).join(' OR ')})`;
-}
-
-/**
  * 施設名のバリアントを生成（既存のinstagram-search.tsから流用）
  */
 function buildFacilityNameVariantsForSearch(name: string): string[] {
