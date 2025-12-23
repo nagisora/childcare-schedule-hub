@@ -137,8 +137,8 @@
 
 ## フェーズ6: Instagram 連携 & お気に入りでのスケジュール埋め込み
 - 目的: Instagram投稿を埋め込み表示し、お気に入りセクションで月間スケジュールを確認できる機能を実装する
-- 主に触るドキュメント: `02` / `03` / `04` / `docs/instagram-integration/`（調査・設計方針の検討ドキュメント）
-- 検討ドキュメント: [`docs/instagram-integration/`](./instagram-integration/README.md) - 複数のAIからの知見を集約し、最適な実装方針を決定するためのドキュメント集
+- 主に触るドキュメント: `02` / `03` / `04` / `docs/phase-artifacts/09-instagram-integration/`（調査・設計方針の検討ドキュメント）
+- 検討ドキュメント: [`docs/phase-artifacts/09-instagram-integration/`](./phase-artifacts/09-instagram-integration/README.md) - 複数のAIからの知見を集約し、最適な実装方針を決定するためのドキュメント集
 - 完了条件:
   - [x] 対象となる Instagram アカウントと、どのような形式でスケジュール情報が投稿されているか（キャプションのURL / プロフィールリンク / 固定投稿など）が整理されている
   - [x] 公式API / 埋め込み / 画面スクレイピング等の手段について、利用規約に沿った現実的な選択肢が比較されている
@@ -146,7 +146,7 @@
   - [x] Instagram埋め込みコンポーネントが実装され、お気に入りセクションでスケジュールを表示できる
   - [x] 上記のフローとデータ構造（例: `schedules` テーブルの更新ポリシー）が `docs/04-development.md` に Runbook としてまとまっている
 
-**検討ドキュメント**: 調査・設計方針の検討は [`docs/instagram-integration/`](./instagram-integration/README.md) で実施。複数のAIからの知見を集約し、最適な実装方針を決定する。
+**検討ドキュメント**: 調査・設計方針の検討は [`docs/phase-artifacts/09-instagram-integration/`](./phase-artifacts/09-instagram-integration/README.md) で実施。複数のAIからの知見を集約し、最適な実装方針を決定する。
 
 **実装済み内容**:
 - Instagram埋め込みコンポーネント（`InstagramEmbed.tsx`）の実装
@@ -201,12 +201,12 @@
 
 ## フェーズ9: InstagramアカウントURLの全面カバー
 - 目的: 一部の施設のみの状態から、全施設のInstagramアカウントURLを対象としたデータ投入・更新フローを確立する（検索APIは Google Custom Search API / Programmable Search Engine を第一候補とする）
-- 主に触るドキュメント: `docs/instagram-integration/` / `02` / `03` / `docs/04-development.md`（環境変数・Runbook） / `apps/web/env.local.example`
+- 主に触るドキュメント: `docs/phase-artifacts/09-instagram-integration/` / `02` / `03` / `docs/04-development.md`（環境変数・Runbook） / `apps/web/env.local.example`
 - 完了条件:
   - Google Programmable Search Engine（CSE）が `site:instagram.com` を中心に構成され、`GOOGLE_CSE_API_KEY` / `GOOGLE_CSE_CX` などの環境変数がサーバー専用として設定・ドキュメント化されている
   - Next.js サーバーサイドの検索API（例: `/api/instagram-search`）が PoC レベルで動作し、Google CSE から取得した結果を正規化して返却できる（エラーハンドリング方針を含む）
   - 複数施設向けの半自動登録フロー（候補提示→人間が採用/スキップを選ぶ）が用意され、`facilities.instagram_url` を更新するか、少なくとも採用候補をCSV/JSONに出力できる
-  - Runbook（`docs/instagram-integration/`）に検索APIベースの標準フローと、フォールバックとしての手動ブラウザ検索フローが整理されている
+  - Runbook（`docs/phase-artifacts/09-instagram-integration/`）に検索APIベースの標準フローと、フォールバックとしての手動ブラウザ検索フローが整理されている
   - データ品質チェック（Instagramドメイン以外・重複URLの検出）が1回以上実施され、dev-sessionsに記録されている
 - 代表タスク例:
   - CSEの最小セットアップ（検索対象スコープ設定、API有効化、キー/CX取得、環境変数設計のドキュメント化）
@@ -217,7 +217,8 @@
   - 詳細計画: [`05-09-instagram-account-url-coverage.md`](./05-09-instagram-account-url-coverage.md)
 
 ## フェーズ10: スケジュールURLの全面カバー
-- 目的: 各施設が Instagram に投稿している**月間スケジュール（当月）を自動で特定**し、MVPで表示できる参照情報（基本は Instagram 投稿URL）として `schedules` に反映できる状態にする
+- 目的: 各施設が Instagram に投稿している**月間スケジュール（当月）を手動で登録**し、MVPで表示できる参照情報（基本は Instagram 投稿URL）として `schedules` に反映できる状態にする
+- **注（MVP方針変更）**: 自動取得（CLI）は実装済みだが、検索精度が不十分なため、MVPでは**手動登録（開発者が使用する施設のみ）で完了**とする。自動取得の精度向上は後回し（[後回し作業リスト](./20-deferred-work.md) DW-008 参照）
 - 主に触るドキュメント: `02` / `03` / `dev-sessions`（**MVPでは `docs/04-development.md` へのRunbook整備は後回し可**）
 - **対象範囲（MVP）**:
   - 対象施設: `facilities.instagram_url IS NOT NULL`
@@ -229,12 +230,14 @@
   - **登録済み**: `schedules` に該当行が存在し、`instagram_post_url` が設定されている（MVPでは `image_url` はダミー可）
   - **未特定確定**: 自動取得（後述）を実行しても採用可能な候補が特定できない。理由コード付きで一覧化し「処理済み」として扱う（DBに無理にNULL行を作らず、ログ/JSON/CSV/Markdownで管理してよい）
   - **対象外**: Instagram上に月間スケジュールが存在しない/参照できない等で、InstagramベースのMVPでは追えない。理由コード付きで一覧化
-- **未特定理由（例: 理由コード）**:
-  - `not_found`: 候補が見つからない
-  - `ambiguous`: 候補が複数あり自動で1件に絞れない
-  - `not_monthly_schedule`: スケジュールっぽいが月間スケジュールと断定できない
-  - `story_or_highlight_only`: ストーリー/ハイライトのみで、投稿URL（permalink）として特定できない
-  - `account_private_or_unavailable`: 非公開/停止等で参照できない
+- **未特定/対象外理由（理由コード）**:
+  - 正本: [`docs/phase-artifacts/10-schedule-url-coverage/reason-codes.md`](./phase-artifacts/10-schedule-url-coverage/reason-codes.md)
+  - 例:
+    - `S10_NOT_FOUND_NO_RESULTS`: 候補が見つからない
+    - `S10_NOT_FOUND_MULTIPLE_CANDIDATES`: 候補が複数あり自動で1件に絞れない
+    - `S10_NOT_FOUND_NOT_MONTHLY_SCHEDULE`: 月間スケジュールと断定できない
+    - `S10_OUT_OF_SCOPE_STORY_OR_HIGHLIGHT_ONLY`: ストーリー/ハイライトのみで投稿URLに落ちない
+    - `S10_OUT_OF_SCOPE_ACCOUNT_PRIVATE_OR_UNAVAILABLE`: 非公開/停止等で参照できない
 - **自動取得の方針（MVP）**:
   - **第一候補: フェーズ9の Google CSE を流用**し、`site:instagram.com` 検索で「投稿URL候補」を収集・スコアリングして採用する（可能なものは `--auto-adopt` で自動採用、迷うものは未特定として残す）
     - ねらい: **実ブラウザで投稿を1件ずつ開く前に**、候補の母集団を作り、機械的に“勝てるケース”を自動化する
@@ -250,11 +253,11 @@
   - `schedules.image_url`: DB必須カラムのため **ダミーURL可**（MVP UIでは表示に使用しない）
   - `schedules.notes`: 取得根拠・判断メモ（例: 「固定投稿」「キャプションに外部URLあり」等）、未特定理由コード、外部参照URL（Google Drive等）があればここに記録
 - **完了条件（MVP）**:
-  - 対象施設について、対象月の `schedules` が「登録済み / 未特定確定 / 対象外」のいずれかに分類され、**処理済み**になっている
-    - 登録済みは `schedules` に反映
-    - 未特定確定/対象外は dev-sessions に「理由コード付き一覧（JSON/CSV/Markdown）」として証跡が残っている
-  - **自動取得をCLIで実装**し、フェーズ9同様に AI が CLI を自動実行してカバーできた範囲をもってMVPとして完了できる（= 手動でしか取れないものをMVP完了の必須条件にしない）
+  - **手動登録フローの確立**（開発者が使用する施設のみを対象）
+    - 手動で `schedules` に `instagram_post_url` を登録する方法が確立されている
+    - 登録手順が `docs/04-development.md` に記載されている
   - データ品質チェック（`published_month` の整合、重複、URL形式）が1回以上実施され、dev-sessionsに記録されている
+  - **注**: 自動取得（CLI）は実装済みだが、精度が不十分なため**手動登録で完了**とする。自動取得の精度向上は後回し（[後回し作業リスト](./20-deferred-work.md) DW-008 参照）
 - 代表タスク例:
   - フェーズ9の仕組み（Google CSE / 検索戦略 / `--auto-adopt`）を流用し、「スケジュール投稿URL候補」を返す検索/採用ロジックの設計
   - 施設×対象月の処理ループ（登録済みスキップ、候補探索、採用/未特定/対象外の記録）を行う CLI の実装
@@ -536,11 +539,10 @@
 
 ---
 
-## フェーズ進捗状況（2025-12-19 時点）
+## フェーズ進捗状況（2025-12-23 時点）
 
 ### 進行中のフェーズ
-- フェーズ9: InstagramアカウントURLの全面カバー（**完了**。現在は **リファクタリング中**）  
-  - フェーズ9は完了したが、次フェーズへ進む前にフェーズ9関連コードのリファクタリング（挙動不変・テスト維持）で品質を担保している（例: `docs/dev-sessions/2025/12/20251219-03-phase9-instagram-account-url-refactor.md`）。
+- なし
 
 ### 完了したフェーズ
 - [x] フェーズ1: 準備・要件の具体化（環境 / ドキュメント / MVP スコープ確定）
@@ -552,6 +554,8 @@
 - [x] フェーズ7: 仮MVP環境のVercelデプロイ
 - [x] フェーズ8: 仮MVP環境のクオリティアップ
 - [x] フェーズ9: InstagramアカウントURLの全面カバー（詳細: [`docs/05-09-instagram-account-url-coverage.md`](./05-09-instagram-account-url-coverage.md)）
+- [x] フェーズ10: スケジュールURLの全面カバー（詳細: [`docs/05-10-schedule-url-coverage.md`](./05-10-schedule-url-coverage.md)）
+  - **注**: MVP方針変更により、自動取得の精度向上は後回し（[後回し作業リスト](./20-deferred-work.md) DW-008 参照）。手動登録（開発者が使用する施設のみ）で完了とする。
 
 **フェーズ8の実装内容**:
 - 代表ページ（トップ/拠点一覧/詳細/お気に入り）のエラーハンドリングを実装
@@ -573,7 +577,6 @@
 - [`docs/dev-sessions/2025/12/20251202-01-phase8-pr-review-fix.md`](./dev-sessions/2025/12/20251202-01-phase8-pr-review-fix.md) - PRレビュー指摘事項の修正
 
 ### 次のステップ
-- **フェーズ10**: スケジュールURLの全面カバー（月次更新フローと品質チェックの整備）
 - **フェーズ11**: デザイン / UX 仕上げ & リリース準備（本番クオリティへの磨き込み）
 
 

@@ -36,7 +36,7 @@
 - `docs/02-design.md`
 - `docs/03-api.md`
 - `docs/04-development.md`
-- `docs/instagram-integration/` 配下（フェーズ6/9/10などInstagram関連の場合）
+- `docs/phase-artifacts/09-instagram-integration/` 配下（フェーズ6/9/10などInstagram関連の場合）
 
 ### 3. テンプレートのコピーとファイル作成
 

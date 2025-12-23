@@ -13,19 +13,29 @@ import { NextRequest, NextResponse } from 'next/server';
  * - POST /api/revalidate?path=/
  * 
  * セキュリティ:
- * - 本番環境では、認証トークンやシークレットの検証を追加すること
- * - 例: Authorization ヘッダーでトークンを検証
+ * - `x-admin-token`（`ADMIN_API_TOKEN`）で保護する（内部API / クエリ枠・負荷の悪用防止）
  */
 export async function POST(request: NextRequest) {
+	const adminToken = request.headers.get('x-admin-token');
+	const expectedToken = process.env.ADMIN_API_TOKEN;
+
+	if (!expectedToken) {
+		return NextResponse.json(
+			{ error: { code: 'CONFIG_ERROR', message: 'ADMIN_API_TOKEN is not configured' } },
+			{ status: 500 }
+		);
+	}
+
+	if (!adminToken || adminToken !== expectedToken) {
+		return NextResponse.json(
+			{ error: { code: 'UNAUTHORIZED', message: 'Invalid or missing x-admin-token header' } },
+			{ status: 401 }
+		);
+	}
+
 	const searchParams = request.nextUrl.searchParams;
 	const tag = searchParams.get('tag');
 	const path = searchParams.get('path');
-
-	// セキュリティチェック: 本番環境では認証を追加すること
-	// const authHeader = request.headers.get('authorization');
-	// if (authHeader !== `Bearer ${process.env.REVALIDATE_SECRET}`) {
-	//   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-	// }
 
 	if (tag) {
 		revalidateTag(tag);
@@ -46,7 +56,7 @@ export async function POST(request: NextRequest) {
 	}
 
 	return NextResponse.json(
-		{ error: 'Missing tag or path parameter' },
+		{ error: { code: 'BAD_REQUEST', message: 'Missing tag or path parameter' } },
 		{ status: 400 }
 	);
 }

@@ -29,7 +29,7 @@
 
 - 参照: `docs/05-09-instagram-account-url-coverage.md`（フェーズ9の正本）
 - 参照: `docs/dev-sessions/2025/12/20251216-02-phase9-instagram-search-hybrid-more-measurements.md`（直近の実測・仮説・修正点）
-- 参照: `docs/instagram-integration/01-investigation.md`（自治体サイトの拠点詳細ページURLと、その取得元ページ）
+- 参照: `docs/phase-artifacts/09-instagram-integration/01-investigation.md`（自治体サイトの拠点詳細ページURLと、その取得元ページ）
 - 参照: `apps/scripts/instagram-semi-auto-registration.ts`（更新CLI）
 - 参照: `apps/web/app/api/instagram-search/route.ts`（検索API）
 - 参照: `apps/web/lib/instagram-search.ts`（クエリ生成・スコア）

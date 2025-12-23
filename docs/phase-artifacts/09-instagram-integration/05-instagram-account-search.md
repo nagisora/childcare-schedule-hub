@@ -5,7 +5,7 @@
 - **目的**: `facilities.instagram_url` に、各施設の「公式と思われる Instagram アカウントURL」を登録するための、AI向け検索手順と判断基準を統一すること。
 - **想定ユースケース**:
   - 人間がAIに対して、次のように依頼できるようにする:
-    - 「中川区のInstagramのURLを取得して。やり方は `docs/instagram-integration/05-instagram-account-search.md` を参照して。」
+    - 「中川区のInstagramのURLを取得して。やり方は `docs/phase-artifacts/09-instagram-integration/05-instagram-account-search.md` を参照して。」
     - 「○○区の施設のうち、まだ `instagram_url` がNULLのものだけ対象に同じことをやって。」
 
 > **補足（検索APIによる自動化の検討状況）**
@@ -191,7 +191,7 @@ WHERE id = '<対象施設のid>';
 中川区の子育て応援拠点について、公式と思われるInstagramアカウントURLを調べて
 `facilities.instagram_url` に登録してください。
 
-手順と判断基準は `docs/instagram-integration/05-instagram-account-search.md`
+手順と判断基準は `docs/phase-artifacts/09-instagram-integration/05-instagram-account-search.md`
 を参照してください。
 
 対象は ward_name = '中川区' かつ instagram_url IS NULL の施設に限定してください。
@@ -205,7 +205,7 @@ WHERE id = '<対象施設のid>';
 `facilities.instagram_url` に登録してください。
 
 やり方・判断基準は
-`docs/instagram-integration/05-instagram-account-search.md` を参照してください。
+`docs/phase-artifacts/09-instagram-integration/05-instagram-account-search.md` を参照してください。
 ```
 
 ## 7. 参考資料

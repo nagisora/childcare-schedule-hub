@@ -6,7 +6,7 @@
 - 対応フェーズ: フェーズ6（Instagram連携によるスケジュールURL取得フロー - 調査・設計方針整理）
 
 ## 今日のゴール（最大 3 つ）
-1. `docs/instagram-integration/` フォルダとドキュメント骨格を作成する
+1. `docs/phase-artifacts/09-instagram-integration/` フォルダとドキュメント骨格を作成する
 2. 現状のDB状態と名古屋市サイトの構造を調査し、`01-investigation.md` に記録する
 3. 技術選択肢を整理し、設計方針を決定事項として `02-technical-options.md` と `03-design-decisions.md` に記録する
 
@@ -14,7 +14,7 @@
 - 参照: [05 開発フェーズ](../05-development-phases.md) フェーズ6、[02 設計資料](../02-design.md) 3.3節（schedulesテーブル定義）、[03 API 仕様](../03-api.md) 3.1節（Instagram Embed API）、[04 開発ガイド](../04-development.md) 9.5.1節（スクレイピングガイドライン）
 
 ## 手順（予定）
-1. `docs/instagram-integration/` フォルダとドキュメント骨格を作成
+1. `docs/phase-artifacts/09-instagram-integration/` フォルダとドキュメント骨格を作成
 2. 現在のDBデータ確認（`instagram_url`の設定状況）→ `01-investigation.md` に記録
 3. 名古屋市サイトのHTML構造確認（Instagramリンクの有無）→ `01-investigation.md` に記録
 4. サンプルInstagramアカウント分析の調査項目を整理 → `01-investigation.md` に記録
@@ -25,7 +25,7 @@
 - スタート: （記録）
 - メモ:
   - **フォルダ・ドキュメント骨格の作成**
-    - `docs/instagram-integration/` フォルダを作成
+    - `docs/phase-artifacts/09-instagram-integration/` フォルダを作成
     - `README.md`, `01-investigation.md`, `02-technical-options.md`, `03-design-decisions.md`, `04-runbook.md` の骨格を作成
     - 複数のAIからの知見を集約するための構造を確立
   - **現状のDB状態確認**
@@ -54,7 +54,7 @@
 
 ## 結果とふりかえり
 - 完了できたこと:
-  - `docs/instagram-integration/` フォルダとドキュメント骨格を作成し、複数のAIからの知見を集約する構造を確立
+  - `docs/phase-artifacts/09-instagram-integration/` フォルダとドキュメント骨格を作成し、複数のAIからの知見を集約する構造を確立
   - 現状のDB状態を確認し、すべての施設で `instagram_url` は `null` であることを確認
   - 名古屋市サイトの構造を分析し、一覧ページにはInstagramリンクが含まれていないことを確認
   - サンプルInstagramアカウント分析の調査項目を整理
@@ -74,11 +74,11 @@
 
 ## 作成したドキュメント
 
-- `docs/instagram-integration/README.md` - 概要・目的・検討の進め方
-- `docs/instagram-integration/01-investigation.md` - 調査結果（現状のDB状態、名古屋市サイトの構造分析、サンプルアカウント分析の調査項目）
-- `docs/instagram-integration/02-technical-options.md` - 技術選択肢の比較（推奨方針を含む）
-- `docs/instagram-integration/03-design-decisions.md` - 決定事項・採用方針（MVPでの方針、schedulesテーブルの更新ポリシー、将来の拡張方針）
-- `docs/instagram-integration/04-runbook.md` - 運用手順書（骨格のみ、確定後に完成予定）
+- `docs/phase-artifacts/09-instagram-integration/README.md` - 概要・目的・検討の進め方
+- `docs/phase-artifacts/09-instagram-integration/01-investigation.md` - 調査結果（現状のDB状態、名古屋市サイトの構造分析、サンプルアカウント分析の調査項目）
+- `docs/phase-artifacts/09-instagram-integration/02-technical-options.md` - 技術選択肢の比較（推奨方針を含む）
+- `docs/phase-artifacts/09-instagram-integration/03-design-decisions.md` - 決定事項・採用方針（MVPでの方針、schedulesテーブルの更新ポリシー、将来の拡張方針）
+- `docs/phase-artifacts/09-instagram-integration/04-runbook.md` - 運用手順書（骨格のみ、確定後に完成予定）
 
 ## フェーズ6の進捗状況
 

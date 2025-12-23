@@ -23,7 +23,7 @@
   - 補足: 本日は時間がなくなりましたので、このセッションは明日以降に実施予定です。
 
 ### 関連ドキュメント
-- 参照: `docs/05-00-development-phases.md`（フェーズ9のセクション） / `docs/05-09-instagram-account-url-coverage.md` / `docs/instagram-integration/03-design-decisions.md` / `docs/instagram-integration/05-instagram-account-search.md` / `docs/instagram-integration/ai-comparisons/search-api-comparison.md` / `docs/instagram-integration/ai-comparisons/summary.md` / `docs/04-development.md` / `apps/web/env.local.example`
+- 参照: `docs/05-00-development-phases.md`（フェーズ9のセクション） / `docs/05-09-instagram-account-url-coverage.md` / `docs/phase-artifacts/09-instagram-integration/03-design-decisions.md` / `docs/phase-artifacts/09-instagram-integration/05-instagram-account-search.md` / `docs/phase-artifacts/09-instagram-integration/ai-comparisons/search-api-comparison.md` / `docs/phase-artifacts/09-instagram-integration/ai-comparisons/summary.md` / `docs/04-development.md` / `apps/web/env.local.example`
 
 ## 前提・合意事項（事前議論・壁打ちメモ）
 
@@ -32,7 +32,7 @@
   - ai-comparisons の検討結果から、DuckDuckGo Search は本番運用では採用せず、Serper.dev はクエリ数増加時など将来の拡張候補として位置づける。
   - まずは Google Custom Search API の無料枠（1日100クエリ）内で運用する想定で、Programmable Search Engine を `site:instagram.com` を中心としたスコープで構成する。
   - 検索APIの呼び出しは Next.js のサーバーサイド（Route Handler / API Route）からのみ行い、APIキー等のシークレットは `.env.local` / ホスティング環境のサーバー専用環境変数として管理する。
-  - 既存のブラウザ手動検索フロー（`docs/instagram-integration/05-instagram-account-search.md`）は、検索APIフローが安定するまではフォールバック手順として維持する。
+  - 既存のブラウザ手動検索フロー（`docs/phase-artifacts/09-instagram-integration/05-instagram-account-search.md`）は、検索APIフローが安定するまではフォールバック手順として維持する。
 - 議論概要:
   - `phase-planning` コマンドでフェーズ9の実装計画を議論し、Google Custom Search API を第1候補として採用する方針を決定した。
   - 検索API候補の比較結果を踏まえて、「このプロジェクトでは最初からGoogle Custom Search APIを使う」方針を明文化した。
@@ -61,15 +61,15 @@
         - APIキーをクライアントに露出させないための注意点がコメントとして明文化されている
       - **実行プロンプト案**:
         ```
-        docs/instagram-integration/03-design-decisions.md と
-        docs/instagram-integration/ai-comparisons/search-api-comparison.md を前提に、
+        docs/phase-artifacts/09-instagram-integration/03-design-decisions.md と
+        docs/phase-artifacts/09-instagram-integration/ai-comparisons/search-api-comparison.md を前提に、
         Google Custom Search API（Programmable Search Engine）導入に必要な環境変数設計と
         ドキュメント更新方針を具体化してください。
 
         - 参照ファイル:
           - docs/04-development.md（3. 環境変数管理セクション）
           - apps/web/env.local.example
-          - docs/instagram-integration/03-design-decisions.md
+          - docs/phase-artifacts/09-instagram-integration/03-design-decisions.md
         - やりたいこと:
           - Google Custom Search API 用の環境変数名（例: GOOGLE_CSE_API_KEY, GOOGLE_CSE_CX）と、クライアント/サーバーどちらから参照するかの方針を決める
           - 上記を 04 開発ガイドの「主要変数一覧」および env.local.example に追記する差分案（追加する行とコメント）を提案する
@@ -81,17 +81,17 @@
 - [ ] タスク2（任意）: Google Programmable Search Engine の最小セットアップ手順を整理する
       - 完了条件: 
         - CSE 作成〜検索対象サイト指定〜 API 有効化〜 APIキー発行〜 CX 取得までの高レベル手順が 5〜10 ステップ程度の箇条書きでまとまっている
-        - その手順をどのドキュメント（例: `docs/instagram-integration/03-design-decisions.md` または `04-runbook.md`）に追記するかが決まっている
+        - その手順をどのドキュメント（例: `docs/phase-artifacts/09-instagram-integration/03-design-decisions.md` または `04-runbook.md`）に追記するかが決まっている
         - 無料枠やレート制限、検証用・本番用をどう運用するかのメモが含まれている
       - **実行プロンプト案**:
         ```
         Google Custom Search API を使う前提で、
         Google Programmable Search Engine（CSE）の最小セットアップ手順を
-        docs/instagram-integration/03-design-decisions.md か
-        docs/instagram-integration/04-runbook.md のどちらかに追記できるよう整理してください。
+        docs/phase-artifacts/09-instagram-integration/03-design-decisions.md か
+        docs/phase-artifacts/09-instagram-integration/04-runbook.md のどちらかに追記できるよう整理してください。
 
         - 参照ファイル:
-          - docs/instagram-integration/03-design-decisions.md
+          - docs/phase-artifacts/09-instagram-integration/03-design-decisions.md
           - docs/04-development.md（既存の外部サービス設定の書きぶりを参考にする）
         - やりたいこと:
           - CSE 作成〜サイト指定（site:instagram.com など）〜 API 有効化〜 API キー発行〜 CX 取得 までの手順を、5〜10ステップの箇条書きにまとめる
@@ -153,7 +153,7 @@
 
 - [ ] **タスク2: Google Custom Search API 用クエリ設計 & 判定ルール整理**  
       - **完了条件**:  
-        - `docs/instagram-integration/03-design-decisions.md` と `05-instagram-account-search.md` に、Google Custom Search API を前提にした検索クエリ例・ヒューリスティクス・あきらめ条件が追記されている  
+        - `docs/phase-artifacts/09-instagram-integration/03-design-decisions.md` と `05-instagram-account-search.md` に、Google Custom Search API を前提にした検索クエリ例・ヒューリスティクス・あきらめ条件が追記されている  
         - 代表的なクエリパターン（例: `site:instagram.com "<施設名>" "<区名>" 子育て -site:instagram.com/p/ -site:instagram.com/reel/`）と、「上位N件からどう公式候補を1件に絞るか」のルールが整理されている  
       - **検証方法**:  
         - 上記2ファイルを開き、フェーズ9セクションに「Google Custom Search API 版ワークフロー」がまとまっていることを目視確認  
@@ -199,7 +199,7 @@
 
 - [ ] **タスク6: Runbook整備とデータ品質チェック**  
       - **完了条件**:  
-        - `docs/instagram-integration/04-runbook.md` および `05-instagram-account-search.md` に、  
+        - `docs/phase-artifacts/09-instagram-integration/04-runbook.md` および `05-instagram-account-search.md` に、  
           - 「Google Custom Search API を使った標準フロー」  
           - 「フォールバックとしてのブラウザ手動検索フロー」  
           - 「公式候補が見つからない場合のあきらめ条件と記録方法」  
@@ -228,7 +228,7 @@
   - TypeScript での実装イメージ（擬似コード＋エラーハンドリング方針）が docs またはメモとして残っており、後続セッションでそのままコピペ実装できる状態になっている  
 - **実行プロンプト案**:  
   ```text
-  docs/instagram-integration/03-design-decisions.md の
+  docs/phase-artifacts/09-instagram-integration/03-design-decisions.md の
   「フェーズ9以降: InstagramアカウントURL検索フローの方針」を前提に、
   Next.js の Route Handler（App Router）で
   `/api/instagram-search` のPoC設計をしてください。
@@ -254,7 +254,7 @@
   - うまくいかないケースがあれば、そのパターンと代替クエリ（例: 区名を外す / 「子育て」を追加する等）がメモされている  
 - **実行プロンプト案**:  
   ```text
-  docs/instagram-integration/ai-comparisons/search-api-comparison.md と
+  docs/phase-artifacts/09-instagram-integration/ai-comparisons/search-api-comparison.md と
   summary.md を参照しつつ、
 
   代表的な3〜5施設（中区・中川区など）をピックアップして、

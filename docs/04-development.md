@@ -646,7 +646,7 @@ name,facility_type,prefecture_code,municipality_code,ward_code,postal_code,prefe
 
 ## 9.6 Instagram連携 & お気に入りでのスケジュール埋め込み（フェーズ6）
 
-本節は、Instagram連携によるスケジュールURL取得・更新の運用手順をまとめる。詳細な調査・設計資料は [`docs/instagram-integration/`](./instagram-integration/README.md) を参照。
+本節は、Instagram連携によるスケジュールURL取得・更新の運用手順をまとめる。詳細な調査・設計資料は [`docs/phase-artifacts/09-instagram-integration/`](./phase-artifacts/09-instagram-integration/README.md) を参照。
 
 ### 9.6.1 概要
 
@@ -668,7 +668,7 @@ name,facility_type,prefecture_code,municipality_code,ward_code,postal_code,prefe
 
 **標準フロー: Google Custom Search API を使った半自動登録（推奨）**
 
-詳細は [`docs/instagram-integration/04-runbook.md`](./instagram-integration/04-runbook.md) の「方法A: Google Custom Search API を使った半自動登録」を参照。
+詳細は [`docs/phase-artifacts/09-instagram-integration/04-runbook.md`](./phase-artifacts/09-instagram-integration/04-runbook.md) の「方法A: Google Custom Search API を使った半自動登録」を参照。
 
 **フォールバック: 手動でWeb検索・Instagram検索を実施**
 
@@ -684,7 +684,7 @@ name,facility_type,prefecture_code,municipality_code,ward_code,postal_code,prefe
 
 **注意**: 
 - 標準フロー（Google Custom Search API）が使えない場合のみ、このフォールバック手順を使用する
-- 詳細な手順と判断基準は [`docs/instagram-integration/05-instagram-account-search.md`](./instagram-integration/05-instagram-account-search.md) を参照
+- 詳細な手順と判断基準は [`docs/phase-artifacts/09-instagram-integration/05-instagram-account-search.md`](./phase-artifacts/09-instagram-integration/05-instagram-account-search.md) を参照
 - 名古屋市サイト（一覧ページ・詳細ページ）にはInstagramリンクが含まれていないため、手動調査が必須
 
 #### 2. スケジュールURLの確認
@@ -871,7 +871,7 @@ WHERE facility_id = 'facility-uuid-here'
     - キャプション内にURLが含まれていない場合は抽出不可
     - URLの種類の推測は簡易的なもので、100%正確ではない
     - 複数のURLが含まれている場合、どれがスケジュールURLかは人間が判断する必要がある
-  - **実装方針**: 詳細は [`docs/instagram-integration/03-design-decisions.md`](./instagram-integration/03-design-decisions.md) を参照
+  - **実装方針**: 詳細は [`docs/phase-artifacts/09-instagram-integration/03-design-decisions.md`](./phase-artifacts/09-instagram-integration/03-design-decisions.md) を参照
 
 **自動化の範囲**:
 
@@ -883,7 +883,7 @@ WHERE facility_id = 'facility-uuid-here'
   - 投稿形式がバラバラな場合の対応
 
 **参考資料**:
-- [Instagram連携調査・設計資料](./instagram-integration/README.md)
+- [Instagram連携調査・設計資料](./phase-artifacts/09-instagram-integration/README.md)
 - [02 設計資料](./02-design.md) - schedulesテーブル定義
 - [03 API 仕様](./03-api.md) - Instagram Embed API仕様
 

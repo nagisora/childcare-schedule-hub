@@ -28,8 +28,8 @@
 
 - 参照: `docs/05-09-instagram-account-url-coverage.md`（フェーズ9詳細・タスク4/5要件）
 - 参照: `docs/dev-sessions/2025/12/20251213-01-phase9-instagram-account-url-coverage-ward-scope.md`（対象区=東区、未登録3件）
-- 参照: `docs/instagram-integration/03-design-decisions.md`（検索クエリ設計と判定ルール）
-- 参照: `docs/instagram-integration/05-instagram-account-search.md`（検索API版ワークフロー）
+- 参照: `docs/phase-artifacts/09-instagram-integration/03-design-decisions.md`（検索クエリ設計と判定ルール）
+- 参照: `docs/phase-artifacts/09-instagram-integration/05-instagram-account-search.md`（検索API版ワークフロー）
 - 参照: `docs/04-development.md` / `apps/web/env.local.example`（環境変数）
 
 ## 前提・合意事項（事前議論・壁打ちメモ）
@@ -60,7 +60,7 @@
     - 参照ファイル:
       - docs/05-09-instagram-account-url-coverage.md（タスク4の完了条件）
       - docs/dev-sessions/2025/12/20251213-01-phase9-instagram-account-url-coverage-ward-scope.md（東区の対象施設）
-      - docs/instagram-integration/03-design-decisions.md（検索クエリ/判定ルール）
+      - docs/phase-artifacts/09-instagram-integration/03-design-decisions.md（検索クエリ/判定ルール）
     - やりたいこと:
       - 入力は `facilityId`（優先）または `facilityName`+`wardName`
       - Google CSE をサーバー側で呼び出し、結果を正規化して `[{ link, title, snippet, score }]` を返す

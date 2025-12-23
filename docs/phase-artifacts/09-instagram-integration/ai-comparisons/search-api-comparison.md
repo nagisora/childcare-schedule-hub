@@ -289,7 +289,7 @@ def find_instagram_profile(hub_name):
    - **成功率**: 「公式と思われるInstagramアカウントURL」を上位 N 件以内から正しく特定できた割合
    - **所要時間**: 1件あたりの平均応答時間
    - **実装の複雑さ**: 認証・設定・エラー処理の手間
-4. 結果を `docs/instagram-integration/dev-sessions/` などに記録し、最終的な採用方針を `03-design-decisions.md` / `05-instagram-account-search.md` に反映する
+4. 結果を `docs/dev-sessions/` などに記録し、最終的な採用方針を `03-design-decisions.md` / `05-instagram-account-search.md` に反映する
 
 ---
 

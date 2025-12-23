@@ -251,7 +251,7 @@
    - 各手法の効果を評価
 
 4. **ドキュメント更新**
-   - `docs/instagram-integration/05-instagram-account-search.md` に新しい検索手順を反映
+   - `docs/phase-artifacts/09-instagram-integration/05-instagram-account-search.md` に新しい検索手順を反映
 
 ---
 

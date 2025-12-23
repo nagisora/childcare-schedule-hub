@@ -177,7 +177,7 @@
     - 仕様変更・ブロックにより**突然動かなくなるリスク**があり、長期運用には向かない
     - 別途Python実行環境を用意する必要があり、Next.js単体で完結しない
   - 位置づけ:
-    - `docs/instagram-integration/ai-comparisons/search-api-comparison.md` および  
+    - `docs/phase-artifacts/09-instagram-integration/ai-comparisons/search-api-comparison.md` および  
       `duckduckgo-search-implementation-example.md` に**比較資料・実装例としては残す**が、
       少なくともフェーズ9の実装では **採用しない前提** とする
 
@@ -195,7 +195,7 @@
     を取得し、**ルールベースで「公式と思われる候補」を1件に絞る**。
 
 - 既存の手動フローとの関係:
-  - `docs/instagram-integration/05-instagram-account-search.md` にある「ブラウザでGoogle検索を開く手順」は、
+  - `docs/phase-artifacts/09-instagram-integration/05-instagram-account-search.md` にある「ブラウザでGoogle検索を開く手順」は、
     **フォールバック用の手動手順**として維持する。
   - 今後、Google Custom Search API ベースのフローが十分に安定した段階で、
     同指示書を「検索API版の手順」に差し替えることを検討する。
@@ -289,11 +289,11 @@ Google Custom Search API のレスポンス `items[]` から、上位N件（例:
 ### 関連ドキュメント
 
 - 検索APIの比較・検証方針:
-  - `docs/instagram-integration/ai-comparisons/search-api-comparison.md`
+  - `docs/phase-artifacts/09-instagram-integration/ai-comparisons/search-api-comparison.md`
 - 実装例（参考）:
-  - `docs/instagram-integration/ai-comparisons/duckduckgo-search-implementation-example.md`
+  - `docs/phase-artifacts/09-instagram-integration/ai-comparisons/duckduckgo-search-implementation-example.md`
 - 手動検索手順（現行の正式手順）:
-  - `docs/instagram-integration/05-instagram-account-search.md`
+  - `docs/phase-artifacts/09-instagram-integration/05-instagram-account-search.md`
 
 ---
 

@@ -11,17 +11,17 @@
 3. 作業内容をdev-sessionsに記録する
 
 ## 関連ドキュメント
-- docs/instagram-integration/ai-comparisons/README.md
-- docs/instagram-integration/ai-comparisons/search-api-comparison.md
-- docs/instagram-integration/03-design-decisions.md
-- docs/instagram-integration/05-instagram-account-search.md
+- docs/phase-artifacts/09-instagram-integration/ai-comparisons/README.md
+- docs/phase-artifacts/09-instagram-integration/ai-comparisons/search-api-comparison.md
+- docs/phase-artifacts/09-instagram-integration/03-design-decisions.md
+- docs/phase-artifacts/09-instagram-integration/05-instagram-account-search.md
 - docs/05-development-phases.md
 
 ## 手順（予定）
 - AI比較ドキュメント（summary / search-api-comparison）を再確認し、検索API候補の評価軸を整理
 - プロジェクトの前提（Next.js / 月あたりの想定クエリ数 / 手動フローとの関係）を踏まえて方針を検討
 - Google Custom Search API を第1候補とする判断を design-decisions.md に追記
-- 必要に応じて instagram-integration 配下のREADMEや指示書（05-instagram-account-search.md）の整合性を確認
+- 必要に応じて `docs/phase-artifacts/09-instagram-integration/` 配下のREADMEや指示書（05-instagram-account-search.md）の整合性を確認
 - dev-sessions に本セッションの記録を残す
 
 ## 実施ログ
