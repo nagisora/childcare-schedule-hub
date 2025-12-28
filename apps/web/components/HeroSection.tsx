@@ -13,7 +13,7 @@ export function HeroSection() {
 					β版
 				</span>
 			</h1>
-			<p className="mt-3 text-base md:text-lg text-slate-600">
+			<p className="mt-3 text-base md:text-lg text-slate-600 antialiased">
 				名古屋市内の子育て応援拠点のスケジュールを、ひと目で確認できます。
 			</p>
 			<p className="mt-2 text-[11px] leading-snug text-slate-500 opacity-60">
