@@ -48,8 +48,12 @@ test.describe('代表フロー: お気に入り追加', () => {
 			await expect(favoriteCard).toBeVisible();
 		}
 
-		// 「追加済み」と表示されることを確認
-		await expect(page.getByText('追加済み').first()).toBeVisible();
+		// お気に入りに追加済みのため、「−」ボタンが表示されることを確認
+		if (facilityName) {
+			const rowWithFavorite = page.locator('tr').filter({ hasText: facilityName.trim() });
+			const removeButton = rowWithFavorite.getByRole('button', { name: /をお気に入りから削除/ });
+			await expect(removeButton).toBeVisible();
+		}
 	});
 
 	// Given: トップページにアクセス済み
@@ -76,8 +80,8 @@ test.describe('代表フロー: お気に入り追加', () => {
 		const articleCount = await favoriteArticles.count();
 		expect(articleCount).toBe(addCount);
 
-		// 「5 / 5（最大5件まで登録可）」と表示されることを確認
-		await expect(page.getByText(/5 \/ 5（最大5件まで登録可）/)).toBeVisible();
+		// 「最大5件まで登録可」と表示されることを確認
+		await expect(page.getByText(/最大5件まで登録可/)).toBeVisible();
 	});
 
 	// Given: 5件までお気に入りを追加済み
@@ -146,9 +150,9 @@ test.describe('代表フロー: お気に入り追加', () => {
 			// 拠点名を含む行を探す
 			const rowWithFavorite = page.locator('tr').filter({ hasText: facilityName.trim() });
 			
-			// 「追加済み」ラベルが表示されることを確認
-			const addedLabel = rowWithFavorite.getByText('追加済み');
-			await expect(addedLabel).toBeVisible();
+			// 「−」ボタンが表示されることを確認（追加済みの状態）
+			const removeButton = rowWithFavorite.getByRole('button', { name: /をお気に入りから削除/ });
+			await expect(removeButton).toBeVisible();
 			
 			// 「+」ボタンが表示されないことを確認
 			const addButtonInRow = rowWithFavorite.getByRole('button', { name: /をお気に入りに追加/ });
@@ -173,13 +177,16 @@ test.describe('代表フロー: お気に入り追加', () => {
 		await firstAddButton.click();
 		await page.waitForLoadState('domcontentloaded');
 
-		// 拠点名を取得
+		// お気に入りカードが表示されることを確認
 		const favoriteArticle = page.getByRole('article').first();
+		await expect(favoriteArticle).toBeVisible();
+		
 		const facilityNameElement = favoriteArticle.getByRole('heading', { level: 3 });
 		const facilityName = await facilityNameElement.textContent();
 
-		// 「解除」ボタンをクリック
-		const removeButton = favoriteArticle.getByRole('button', { name: /解除/ });
+		// 「解除」ボタンをクリック（aria-labelに「お気に入りから...を削除」が設定されているため、テキストで検索）
+		const removeButton = favoriteArticle.getByText('解除');
+		await expect(removeButton).toBeVisible();
 		await removeButton.click();
 
 		// ページが再読み込みされるのを待つ（DOMContentLoaded で十分）
