@@ -3,6 +3,7 @@
 import { getMonthFirstDay, getCurrentYearMonth } from '../lib/date-utils';
 import { useFavoritesSync } from '../hooks/useFavoritesSync';
 import { FavoriteFacilityCard } from './FavoriteFacilityCard';
+import { EmptyState } from './EmptyState';
 import type { Facility } from '../lib/types';
 import type { FavoriteFacility } from '../lib/favorites';
 
@@ -25,11 +26,10 @@ export function FavoritesSection({ initialFavorites: _initialFavorites, allFacil
 	// 空状態コンポーネント
 	if (favorites.length === 0) {
 		return (
-			<div className="rounded-xl border bg-slate-50 p-8 text-center">
-				<p className="text-sm text-slate-600">
-					お気に入り登録がまだありません。下部の拠点一覧から「+」ボタンを押してお気に入りに追加してください。
-				</p>
-			</div>
+			<EmptyState
+				message="お気に入り登録がまだありません"
+				description="下部の拠点一覧から「+」ボタンを押してお気に入りに追加してください。"
+			/>
 		);
 	}
 

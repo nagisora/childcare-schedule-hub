@@ -141,5 +141,3 @@ todos:
 - `mise exec -- pnpm --filter web test`
 
 ## 成果物（セッションファイル更新）
-
-- [`docs/dev-sessions/2025/12/20251228-01-phase11-design-polish.md`](docs/dev-sessions/2025/12/20251228-01-phase11-design-polish.md) の

@@ -20,8 +20,9 @@ export function MonthSelector({ selectedMonth, onChange }: MonthSelectorProps) {
 		<div className="mb-3 flex items-center justify-center gap-2">
 			<button
 				onClick={() => onChange(prevYear, prevMonth)}
-				className="px-3 py-1 text-xs bg-slate-100 hover:bg-slate-200 rounded border border-slate-300 text-slate-700"
+				className="px-3 py-1 text-xs rounded-md border border-primary-300 bg-white text-primary-700 hover:bg-primary-50 transition-colors"
 				aria-label="前月"
+				type="button"
 			>
 				← 前月
 			</button>
@@ -30,8 +31,9 @@ export function MonthSelector({ selectedMonth, onChange }: MonthSelectorProps) {
 			</span>
 			<button
 				onClick={() => onChange(nextYear, nextMonth)}
-				className="px-3 py-1 text-xs bg-slate-100 hover:bg-slate-200 rounded border border-slate-300 text-slate-700"
+				className="px-3 py-1 text-xs rounded-md border border-primary-300 bg-white text-primary-700 hover:bg-primary-50 transition-colors"
 				aria-label="次月"
+				type="button"
 			>
 				次月 →
 			</button>

@@ -33,11 +33,33 @@ body {
 	background: var(--background); /* ライトグリーンの背景 */
 }
 
-main {
-	max-width: 880px;
-	margin: 0 auto;
-	background: white; /* コンテンツエリアは白背景 */
-	border-radius: 1rem; /* 角丸（rounded-2xl相当） */
+/* ========================================
+   共通コンポーネントスタイル（@layer components）
+   ======================================== */
+
+@layer components {
+	/* リンクの共通スタイル */
+	a:not([class]) {
+		color: rgb(37 99 235); /* blue-600 */
+		text-decoration: underline;
+		transition: color 0.2s;
+	}
+
+	a:not([class]):hover {
+		color: rgb(30 64 175); /* blue-800 */
+	}
+
+	a:not([class]):focus-visible {
+		outline: 2px solid var(--color-primary-500);
+		outline-offset: 2px;
+		border-radius: 0.125rem;
+	}
+
+	/* ボタンの共通フォーカススタイル（既存の.btn-*は個別に定義） */
+	button:focus-visible {
+		outline: 2px solid var(--color-primary-500);
+		outline-offset: 2px;
+	}
 }
 
 /* ========================================
@@ -70,7 +92,7 @@ main {
 	background-color: var(--color-primary-100);
 }
 
-.btn-remove:focus {
+.btn-remove:focus-visible {
 	outline: 2px solid var(--color-primary-500);
 	outline-offset: 2px;
 }
@@ -96,7 +118,7 @@ main {
 	background-color: var(--color-primary-50);
 }
 
-.btn-add:focus {
+.btn-add:focus-visible {
 	outline: 2px solid var(--color-primary-500);
 	outline-offset: 2px;
 }
@@ -125,7 +147,7 @@ main {
 	border-color: var(--color-primary-500);
 }
 
-.btn-move:focus {
+.btn-move:focus-visible {
 	outline: 2px solid var(--color-primary-500);
 	outline-offset: 2px;
 }
@@ -161,11 +183,6 @@ main {
 
 /* モバイル表示の改善 */
 @media (max-width: 640px) {
-	main {
-		padding-left: 1rem;
-		padding-right: 1rem;
-	}
-
 	/* テーブルの列幅を調整（モバイルで見やすくする） */
 	table {
 		font-size: 0.875rem;

@@ -44,12 +44,12 @@ export default async function HomePage() {
 	const favoriteIds: string[] = [];
 
 	return (
-		<main className="space-y-12 px-6 py-10 rounded-2xl">
+		<main className="max-w-6xl mx-auto space-y-12 px-4 sm:px-6 py-8 sm:py-10">
 			<HeroSection />
 
 			<section
 				aria-labelledby="favorites-heading"
-				className="max-w-6xl mx-auto rounded-2xl border border-primary-100 bg-white shadow-sm px-4 py-4"
+				className="rounded-2xl border border-primary-100 bg-white shadow-sm px-4 py-4"
 			>
 				<div className="flex items-center justify-between mb-3">
 					<h2 id="favorites-heading" className="text-xl font-semibold text-slate-900">
@@ -68,11 +68,11 @@ export default async function HomePage() {
 			</section>
 
 			{error ? (
-				<section className="max-w-6xl mx-auto">
+				<section>
 					<ErrorAlert message={error.message || '拠点一覧のデータを取得できませんでした。'} />
 				</section>
 			) : facilities.length === 0 ? (
-				<section className="max-w-6xl mx-auto">
+				<section>
 					<EmptyState
 						message="拠点データが登録されていません"
 						description="データがまだ投入されていない可能性があります。"

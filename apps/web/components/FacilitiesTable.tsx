@@ -95,13 +95,17 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 	};
 
 	return (
-		<section aria-labelledby="facilities-heading" className="max-w-6xl mx-auto bg-white rounded-2xl px-4 py-4">
+		<section aria-labelledby="facilities-heading" className="bg-white rounded-2xl px-4 py-4">
 			<h2 id="facilities-heading" className="text-xl font-semibold mb-4 text-slate-900">
 				拠点一覧
 			</h2>
 			<nav className="mb-3 flex flex-wrap gap-2 text-xs text-slate-600">
 				{wards.map((ward) => (
-					<a key={ward} className="rounded-full border border-primary-200 bg-white px-2 py-0.5 text-primary-700 hover:bg-primary-50" href={`#ward-${ward}`}>
+					<a
+						key={ward}
+						className="rounded-full border border-primary-200 bg-white px-2 py-0.5 text-primary-700 hover:bg-primary-50 focus-visible:outline-2 focus-visible:outline-primary-500 focus-visible:outline-offset-2 transition-colors"
+						href={`#ward-${ward}`}
+					>
 						{ward}へ
 					</a>
 				))}
