@@ -712,6 +712,31 @@ name,facility_type,prefecture_code,municipality_code,ward_code,postal_code,prefe
 
 #### 3. schedulesテーブルへの登録
 
+**推奨: 管理フォーム（スマホ/PCのブラウザだけで登録）**
+
+前提条件:
+- デプロイ先（またはローカル）の環境変数に以下が設定されていること:
+  - `NEXT_PUBLIC_SUPABASE_URL`
+  - `SUPABASE_SERVICE_ROLE_KEY`
+  - `ADMIN_BASIC_AUTH_USER`
+  - `ADMIN_BASIC_AUTH_PASSWORD`
+
+手順:
+1. 管理フォームを開く
+   - ローカル: `http://localhost:3000/admin/schedules/new`
+   - 本番/プレビュー: `<デプロイURL>/admin/schedules/new`
+2. Basic認証が表示されたら、`ADMIN_BASIC_AUTH_USER` / `ADMIN_BASIC_AUTH_PASSWORD` を入力する
+3. フォームに以下を入力して送信する
+   - 施設（facility）
+   - 月（YYYY-MM）
+   - Instagram投稿URL（`https://www.instagram.com/p/.../` または `https://www.instagram.com/reel/.../`）
+   - メモ（任意）
+4. 「登録しました」が表示されたら完了
+
+確認方法（MVP UI）:
+- トップページで対象施設をお気に入り登録し、該当月に切り替える
+- 反映が見えない場合はページを再読み込みする（クライアント側の状態が更新されていない可能性があるため）
+
 **Supabase Studio での操作**:
 
 1. Supabase プロジェクトのダッシュボードにアクセス
