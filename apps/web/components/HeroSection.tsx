@@ -6,11 +6,11 @@ export function HeroSection() {
 		>
 			<h1
 				id="hero-heading"
-				className="flex flex-wrap items-center gap-x-3 gap-y-2 text-3xl md:text-4xl font-bold tracking-tight text-slate-900"
+				className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 leading-tight"
 			>
 				<span>子育て拠点スケジュールハブ</span>
-				<span className="ml-3 text-xs font-semibold text-primary-700">
-					β版
+				<span className="whitespace-nowrap text-xs font-semibold text-primary-700">
+					{"\u00A0"}β版
 				</span>
 			</h1>
 			<p className="mt-3 text-base md:text-lg text-slate-600 antialiased">
