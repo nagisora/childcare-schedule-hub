@@ -1,7 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { addFavorite, removeFavorite, readFavoritesFromStorage, updateFavoritesInStorage, FAVORITES_UPDATED_EVENT } from '../lib/storage';
+import {
+	addFavorite,
+	removeFavorite,
+	readFavoritesFromStorage,
+	updateFavoritesInStorage,
+	seedDefaultFavoritesInStorageIfNeeded,
+	FAVORITES_UPDATED_EVENT,
+} from '../lib/storage';
 import type { FacilitiesByWard } from '../lib/types';
 
 type FacilitiesTableProps = {
@@ -24,6 +31,11 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 			const currentFavorites = readFavoritesFromStorage();
 			setFavoriteIds(new Set(currentFavorites.map((f) => f.facilityId)));
 		};
+
+		// 初回起動（localStorageキー未作成）の場合のみ、デフォルトお気に入りをseed
+		// FavoritesSection とどちらが先にマウントしても整合するように、両方で同じseed処理を実行する。
+		const allFacilities = wards.flatMap((ward) => facilitiesByWard[ward] ?? []);
+		seedDefaultFavoritesInStorageIfNeeded(allFacilities);
 		
 		// 初回読み込み
 		updateFavoriteIds();
@@ -37,6 +49,7 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 		return () => {
 			window.removeEventListener(FAVORITES_UPDATED_EVENT, handleFavoritesUpdated);
 		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	const handleAddFavorite = (facilityId: string) => {

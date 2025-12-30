@@ -2,8 +2,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
 	readFavoritesFromStorage,
 	updateFavoritesInStorage,
+	seedDefaultFavoritesInStorageIfNeeded,
 	type FavoriteCookieItem,
 } from '../lib/storage';
+import type { Facility } from '../lib/types';
 
 describe('readFavoritesFromStorage', () => {
 	beforeEach(() => {
@@ -245,6 +247,171 @@ describe('updateFavoritesInStorage', () => {
 		expect(parsed.version).toBe('1');
 		expect(parsed.favorites).toEqual(favorites);
 		expect(typeof parsed.savedAt).toBe('number');
+	});
+});
+
+describe('seedDefaultFavoritesInStorageIfNeeded', () => {
+	beforeEach(() => {
+		// 各テスト前にlocalStorageをクリア
+		localStorage.clear();
+	});
+
+	// Given: localStorageにキーが存在せず、対象施設（昭和区 こころと）が施設一覧に存在する
+	// When: seedDefaultFavoritesInStorageIfNeeded を実行
+	// Then: デフォルトお気に入りがseedされ、readFavoritesFromStorageで取得できる
+	it('TC-N-01: 初回起動時はデフォルトお気に入りがseedされる', () => {
+		const facilities: Facility[] = [
+			{
+				id: 'facility-kokoroto',
+				name: 'こころと',
+				ward_name: '昭和区',
+				address_full_raw: '',
+				phone: null,
+				instagram_url: null,
+				website_url: null,
+				facility_type: null,
+				detail_page_url: null,
+			},
+		];
+
+		// When
+		const seeded = seedDefaultFavoritesInStorageIfNeeded(facilities);
+
+		// Then
+		expect(seeded).toEqual([{ facilityId: 'facility-kokoroto', sortOrder: 1 }]);
+		expect(readFavoritesFromStorage()).toEqual([{ facilityId: 'facility-kokoroto', sortOrder: 1 }]);
+	});
+
+	// Given: localStorageにキーが既に存在する（空配列でもOK）
+	// When: seedDefaultFavoritesInStorageIfNeeded を実行
+	// Then: 既存データは上書きされない
+	it('TC-N-02: 既にキーが存在する場合はseedしない', () => {
+		const storageData = {
+			version: '1',
+			favorites: [] as FavoriteCookieItem[],
+			savedAt: Date.now(),
+		};
+		localStorage.setItem('csh_favorites', JSON.stringify(storageData));
+
+		const facilities: Facility[] = [
+			{
+				id: 'facility-kokoroto',
+				name: 'こころと',
+				ward_name: '昭和区',
+				address_full_raw: '',
+				phone: null,
+				instagram_url: null,
+				website_url: null,
+				facility_type: null,
+				detail_page_url: null,
+			},
+		];
+
+		// When
+		const seeded = seedDefaultFavoritesInStorageIfNeeded(facilities);
+
+		// Then
+		expect(seeded).toBeNull();
+		expect(readFavoritesFromStorage()).toEqual([]);
+	});
+
+	// Given: localStorageにキーが存在せず、対象施設が施設一覧に存在しない
+	// When: seedDefaultFavoritesInStorageIfNeeded を実行
+	// Then: seedされず、キーも作られない
+	it('TC-A-01: 対象施設が存在しない場合はseedしない', () => {
+		const facilities: Facility[] = [
+			{
+				id: 'facility-1',
+				name: '別の拠点',
+				ward_name: '昭和区',
+				address_full_raw: '',
+				phone: null,
+				instagram_url: null,
+				website_url: null,
+				facility_type: null,
+				detail_page_url: null,
+			},
+		];
+
+		// When
+		const seeded = seedDefaultFavoritesInStorageIfNeeded(facilities);
+
+		// Then
+		expect(seeded).toBeNull();
+		expect(localStorage.getItem('csh_favorites')).toBeNull();
+	});
+
+	// Given: localStorageにキーが存在せず、施設一覧が空
+	// When: seedDefaultFavoritesInStorageIfNeeded を実行
+	// Then: seedされない
+	it('TC-B-01: 施設一覧が空の場合はseedしない', () => {
+		// When
+		const seeded = seedDefaultFavoritesInStorageIfNeeded([]);
+
+		// Then
+		expect(seeded).toBeNull();
+		expect(localStorage.getItem('csh_favorites')).toBeNull();
+	});
+
+	// Given: localStorageにキーが存在せず、ward_nameがNULLの施設のみ存在する
+	// When: seedDefaultFavoritesInStorageIfNeeded を実行
+	// Then: ward条件を満たさないためseedされない
+	it('TC-A-02: ward_nameがNULLの場合はseedしない', () => {
+		const facilities: Facility[] = [
+			{
+				id: 'facility-kokoroto',
+				name: 'こころと',
+				ward_name: null,
+				address_full_raw: '',
+				phone: null,
+				instagram_url: null,
+				website_url: null,
+				facility_type: null,
+				detail_page_url: null,
+			},
+		];
+
+		// When
+		const seeded = seedDefaultFavoritesInStorageIfNeeded(facilities);
+
+		// Then
+		expect(seeded).toBeNull();
+		expect(localStorage.getItem('csh_favorites')).toBeNull();
+	});
+
+	// Given: localStorage.getItemが例外を投げる（ストレージ利用不可想定）
+	// When: seedDefaultFavoritesInStorageIfNeeded を実行
+	// Then: 例外を握りつぶしてseedしない
+	it('TC-A-03: localStorageが利用できない場合はseedしない', () => {
+		const getItemSpy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+			throw new Error('localStorage blocked');
+		});
+		const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+
+		const facilities: Facility[] = [
+			{
+				id: 'facility-kokoroto',
+				name: 'こころと',
+				ward_name: '昭和区',
+				address_full_raw: '',
+				phone: null,
+				instagram_url: null,
+				website_url: null,
+				facility_type: null,
+				detail_page_url: null,
+			},
+		];
+
+		// When
+		const seeded = seedDefaultFavoritesInStorageIfNeeded(facilities);
+
+		// Then
+		expect(seeded).toBeNull();
+		expect(setItemSpy).not.toHaveBeenCalled();
+
+		// Cleanup: spyを解除して元の実装に戻す（念のため）
+		getItemSpy.mockRestore();
+		setItemSpy.mockRestore();
 	});
 });
 
