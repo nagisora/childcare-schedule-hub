@@ -8,6 +8,7 @@ import {
 	updateFavoritesInStorage,
 	removeFavorite,
 	reorderFavorites,
+	seedDefaultFavoritesInStorageIfNeeded,
 	FAVORITES_UPDATED_EVENT,
 } from '../lib/storage';
 import { getMonthFirstDay, getCurrentYearMonth } from '../lib/date-utils';
@@ -264,8 +265,12 @@ export function useFavoritesSync(allFacilities: Facility[]) {
 	}, [selectedMonths]);
 
 	useEffect(() => {
+		// 初回起動（localStorageキー未作成）の場合のみ、デフォルトお気に入りをseedする
+		// ここでseedしておくことで、この後の初期同期がそのままデフォルトお気に入りを拾える。
+		const seededItems = seedDefaultFavoritesInStorageIfNeeded(allFacilities);
+
 		// 初期同期: localStorageから読み込んで状態を初期化
-		const initialStorageItems = readFavoritesFromStorage();
+		const initialStorageItems = seededItems ?? readFavoritesFromStorage();
 		const initialIds = initialStorageItems.map((f) => f.facilityId).sort().join(',');
 		lastStorageRef.current = initialIds;
 

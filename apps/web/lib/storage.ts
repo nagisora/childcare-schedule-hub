@@ -9,11 +9,18 @@ export type FavoriteCookieItem = {
 };
 
 import { MAX_FAVORITES } from './constants';
+import type { Facility } from './types';
 
 /**
  * localStorage のキー名
  */
 const STORAGE_KEY = 'csh_favorites';
+
+/**
+ * 初回起動時のデフォルトお気に入り（要件: 「昭和区 こころと」）
+ */
+const DEFAULT_FAVORITE_WARD_NAME = '昭和区';
+const DEFAULT_FAVORITE_NAME_KEYWORD = 'こころと';
 
 /**
  * お気に入り更新を通知するカスタムイベント名
@@ -61,6 +68,46 @@ export function updateFavoritesInStorage(favorites: FavoriteCookieItem[]): void 
 		// localStorage が使用できない場合（プライベートモードなど）はエラーを無視
 		console.warn('Failed to save favorites to localStorage:', error);
 	}
+}
+
+/**
+ * 初回起動（localStorageキー未作成）の場合のみ、デフォルトお気に入りをlocalStorageへ保存する。
+ *
+ * - 既にキーが存在する場合（空配列でも）は上書きしない
+ * - 対象拠点が見つからない場合は何もしない
+ *
+ * @param facilities 全拠点一覧（クライアント側で利用できるもの）
+ * @returns 追加したお気に入り（追加しなかった場合は null）
+ */
+export function seedDefaultFavoritesInStorageIfNeeded(facilities: Facility[]): FavoriteCookieItem[] | null {
+	if (typeof window === 'undefined') {
+		return null;
+	}
+
+	let hasKey = false;
+	try {
+		hasKey = localStorage.getItem(STORAGE_KEY) !== null;
+	} catch {
+		// localStorage が使用できない場合（プライベートモードなど）は何もしない
+		return null;
+	}
+
+	if (hasKey) {
+		return null;
+	}
+
+	const target = facilities.find((f) => {
+		const ward = f.ward_name ?? '';
+		return ward.includes(DEFAULT_FAVORITE_WARD_NAME) && f.name.includes(DEFAULT_FAVORITE_NAME_KEYWORD);
+	});
+
+	if (!target) {
+		return null;
+	}
+
+	const seeded: FavoriteCookieItem[] = [{ facilityId: target.id, sortOrder: 1 }];
+	updateFavoritesInStorage(seeded);
+	return seeded;
 }
 
 /**
