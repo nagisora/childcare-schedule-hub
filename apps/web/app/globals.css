@@ -179,17 +179,6 @@ main {
 		padding-bottom: 0.5rem;
 	}
 
-	/* テーブルの列を最小幅に設定（横スクロールを有効にする） */
-	/* 現在のテーブル構造: 1列目=お気に入り（★）、2列目=拠点名 */
-	table th:nth-child(1),
-	table td:nth-child(1) {
-		min-width: auto; /* お気に入り列（★）は内容に合わせて最小幅 */
-		width: auto;
-	}
-
-	table th:nth-child(2),
-	table td:nth-child(2) {
-		min-width: 120px; /* 拠点名 */
-	}
+	/* 列幅は各テーブル側で制御し、ここでは固定しない */
 }
 
