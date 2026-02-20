@@ -40,6 +40,21 @@ mise exec -- pnpm --filter web dev
 
 その他のコマンド（ビルド、テスト、型チェックなど）については、`apps/web/package.json` の `scripts` セクションを参照してください。
 
+## データ収集スクリプト
+
+名古屋市サイトから拠点データを取得するスクリプトは `apps/scripts` にあります。
+
+```bash
+# 拠点基本情報の取得（facilities）
+mise exec -- pnpm --filter scripts fetch-nagoya
+
+# 開設日・時間の取得（facility_schedules）: DRY-RUN
+mise exec -- pnpm --filter scripts fetch-operating-hours
+
+# 開設日・時間の取得（facility_schedules）: DB反映
+mise exec -- pnpm --filter scripts fetch-operating-hours --apply --yes
+```
+
 ## テスト
 
 ### テストの構造
