@@ -542,6 +542,36 @@ function writeJsonLog(
 	return filename;
 }
 
+function writeBackupJsonLog(
+	targetFacilityIds: string[],
+	backupRows: unknown[],
+): string {
+	const logsDir = join(__dirname, "logs");
+	mkdirSync(logsDir, { recursive: true });
+	const timestamp = new Date()
+		.toISOString()
+		.replace(/[:.]/g, "-")
+		.replace("T", "-")
+		.slice(0, -5);
+	const filename = join(logsDir, `facility-schedules-backup-${timestamp}.json`);
+	writeFileSync(
+		filename,
+		JSON.stringify(
+			{
+				timestamp: new Date().toISOString(),
+				mode: "APPLY_BACKUP",
+				limit,
+				targetFacilityIds,
+				backupRows,
+			},
+			null,
+			2,
+		),
+		"utf-8",
+	);
+	return filename;
+}
+
 function writeReviewMarkdown(results: ScanResult[]): string {
 	const logsDir = join(__dirname, "logs");
 	mkdirSync(logsDir, { recursive: true });
@@ -735,6 +765,7 @@ async function main(): Promise<void> {
 	}
 
 	let backupRows: unknown[] | null = null;
+	let backupJsonLogPath: string | null = null;
 	if (isApply) {
 		const targetFacilityIds = Array.from(
 			new Set(allParsedRows.map((row) => row.facility_id)),
@@ -750,6 +781,10 @@ async function main(): Promise<void> {
 				);
 			}
 			backupRows = existingRows ?? [];
+			backupJsonLogPath = writeBackupJsonLog(targetFacilityIds, backupRows);
+			console.log(
+				`[INFO] Backup JSON log (pre-apply): ${backupJsonLogPath}`,
+			);
 
 			const { error: deleteError } = await supabase
 				.from("facility_schedules")
@@ -757,7 +792,7 @@ async function main(): Promise<void> {
 				.in("facility_id", targetFacilityIds);
 			if (deleteError) {
 				throw new Error(
-					`Failed to delete existing facility_schedules rows: ${deleteError.message}`,
+					`Failed to delete existing facility_schedules rows: ${deleteError.message}. Backup log: ${backupJsonLogPath ?? "N/A"}`,
 				);
 			}
 
@@ -766,7 +801,7 @@ async function main(): Promise<void> {
 				.insert(allParsedRows);
 			if (insertError) {
 				throw new Error(
-					`Failed to insert facility_schedules rows: ${insertError.message}`,
+					`Failed to insert facility_schedules rows: ${insertError.message}. Backup log: ${backupJsonLogPath ?? "N/A"}`,
 				);
 			}
 		}
@@ -790,6 +825,9 @@ async function main(): Promise<void> {
 	const reviewLog = writeReviewMarkdown(results);
 
 	console.log(`[INFO] JSON log: ${jsonLog}`);
+	if (backupJsonLogPath) {
+		console.log(`[INFO] Backup JSON log: ${backupJsonLogPath}`);
+	}
 	console.log(`[INFO] Review log: ${reviewLog}`);
 	console.log(`[INFO] Parsed schedules: ${allParsedRows.length}`);
 	console.log(
