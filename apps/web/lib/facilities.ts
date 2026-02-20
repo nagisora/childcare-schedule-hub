@@ -7,7 +7,18 @@ import { unstable_cache } from 'next/cache';
  * 施設データ取得時に選択するフィールド（共通定義）
  * Facility 型の主要フィールドに対応
  */
-const FACILITY_FIELDS_FOR_LIST = 'id,name,ward_name,address_full_raw,phone,instagram_url,website_url,facility_type,detail_page_url';
+const FACILITY_FIELDS_FOR_LIST = [
+	'id',
+	'name',
+	'ward_name',
+	'address_full_raw',
+	'phone',
+	'instagram_url',
+	'website_url',
+	'facility_type',
+	'detail_page_url',
+	'facility_schedules(id,facility_id,open_time,close_time,monday,tuesday,wednesday,thursday,friday,saturday,sunday,holiday)',
+].join(',');
 
 /**
  * Supabase から拠点一覧を取得する（内部実装）
@@ -16,7 +27,7 @@ const FACILITY_FIELDS_FOR_LIST = 'id,name,ward_name,address_full_raw,phone,insta
 async function getFacilitiesInternal(): Promise<Facility[]> {
 	const { data, error } = await supabase
 		.from('facilities')
-		.select(FACILITY_FIELDS_FOR_LIST)
+		.select(FACILITY_FIELDS_FOR_LIST as '*')
 		.order('ward_name', { ascending: true, nullsFirst: false })
 		.order('name', { ascending: true });
 
@@ -50,7 +61,7 @@ export const getFacilities = unstable_cache(
 export async function getFacilityById(id: string): Promise<Facility | null> {
 	const { data, error } = await supabase
 		.from('facilities')
-		.select(FACILITY_FIELDS_FOR_LIST)
+		.select(FACILITY_FIELDS_FOR_LIST as '*')
 		.eq('id', id)
 		.single();
 
