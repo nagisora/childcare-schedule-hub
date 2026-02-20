@@ -782,9 +782,7 @@ async function main(): Promise<void> {
 			}
 			backupRows = existingRows ?? [];
 			backupJsonLogPath = writeBackupJsonLog(targetFacilityIds, backupRows);
-			console.log(
-				`[INFO] Backup JSON log (pre-apply): ${backupJsonLogPath}`,
-			);
+			console.log(`[INFO] Backup JSON log (pre-apply): ${backupJsonLogPath}`);
 
 			const { error: deleteError } = await supabase
 				.from("facility_schedules")
