@@ -4,22 +4,25 @@
 
 ## セットアップ
 
-開発ツールのバージョン管理は mise を利用します。Node.js と pnpm は `mise.toml` に定義されています。
+日常の実行コマンドは **pnpm** を標準とします。  
+Node.js / pnpm のバージョン固定には **mise（任意）** を利用できます（定義: `mise.toml`）。
 
-1) 初回のみ（信頼設定）
+1) （任意）mise を使う場合のみ、初回の信頼設定
 ```bash
 mise trust -y mise.toml
 ```
 
-2) ツールのインストール
+2) （任意）mise 経由でツールをインストール
 ```bash
 mise install
 ```
 
-3) 依存インストール（パッケージ構成が揃っている場合）
+3) 依存インストール
 ```bash
-mise exec -- pnpm install
+pnpm install
 ```
+
+補足: mise を使う場合は `mise exec -- pnpm install` でも同等に実行できます。
 
 ### 環境変数の設定（重要）
 
@@ -33,7 +36,7 @@ mise exec -- pnpm install
 開発サーバーを起動するには、以下のコマンドを実行してください：
 
 ```bash
-mise exec -- pnpm --filter web dev
+pnpm --filter web dev
 ```
 
 開発サーバーは `http://localhost:3000` で起動します。
@@ -46,13 +49,13 @@ mise exec -- pnpm --filter web dev
 
 ```bash
 # 拠点基本情報の取得（facilities）
-mise exec -- pnpm --filter scripts fetch-nagoya
+pnpm --filter scripts fetch-nagoya
 
 # 開設日・時間の取得（facility_schedules）: DRY-RUN
-mise exec -- pnpm --filter scripts fetch-operating-hours
+pnpm --filter scripts fetch-operating-hours
 
 # 開設日・時間の取得（facility_schedules）: DB反映
-mise exec -- pnpm --filter scripts fetch-operating-hours --apply --yes
+pnpm --filter scripts fetch-operating-hours --apply --yes
 ```
 
 ## テスト
@@ -83,19 +86,32 @@ mise exec -- pnpm --filter scripts fetch-operating-hours --apply --yes
 
 ```bash
 # 単体テスト実行
-mise exec -- pnpm --filter web test
+pnpm --filter web test
 
 # 単体テスト（カバレッジ取得）
-mise exec -- pnpm --filter web test:coverage
+pnpm --filter web test:coverage
 
 # E2E テスト実行
-mise exec -- pnpm --filter web e2e
+pnpm --filter web e2e
 
 # 型チェック
-mise exec -- pnpm --filter web typecheck
+pnpm --filter web typecheck
 
 # Lint
-mise exec -- pnpm --filter web lint
+pnpm --filter web lint
+```
+
+### コード整形（Biome: 段階導入中）
+
+- **現状は段階導入中**: format を先行導入し、lint は引き続き ESLint（`next lint`）を使用します。
+- **現時点の対象**: リファクタ対象ファイルに限定して Biome を適用しています（全体適用は次段階）。
+
+```bash
+# 形式チェック（差分なし確認）
+pnpm --filter web format:check
+
+# 整形を適用
+pnpm --filter web format
 ```
 
 ## 開発資料

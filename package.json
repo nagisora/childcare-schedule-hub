@@ -2,9 +2,24 @@
   "name": "childcare-schedule-hub",
   "private": true,
   "version": "0.1.0",
+  "packageManager": "pnpm@10.26.0",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "scripts": {
+    "dev:web": "pnpm --filter web dev",
+    "lint:web": "pnpm --filter web lint",
+    "typecheck:web": "pnpm --filter web typecheck",
+    "test:web": "pnpm --filter web test",
+    "build:web": "pnpm --filter web build",
+    "format": "pnpm --filter web format",
+    "format:check": "pnpm --filter web format:check"
+  },
   "workspaces": [
     "apps/*"
-  ]
+  ],
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.4"
+  }
 }
-
-

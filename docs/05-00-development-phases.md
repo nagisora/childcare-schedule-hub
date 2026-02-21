@@ -42,7 +42,7 @@
 - 目的: ローカル開発が即開始でき、主要ドキュメントが参照可能な状態を作り、MVP の機能・非機能・受け入れ基準を合意し、優先順位を固定する
 - 主に触るドキュメント: `00` / `01` / `04`
 - 完了条件:
-  - `pnpm dev --filter apps/web` でローカル起動できる
+  - `pnpm --filter web dev` でローカル起動できる
   - `00/04` に沿って初見でも開発を始められるリンク導線がある
   - MVP のユーザーストーリー / 受け入れ基準が明文化されている
   - 影響する `02/03/04` の更新ポイントが洗い出されている
@@ -85,10 +85,10 @@
 
 上記の DB セットアップ完了後、以下のコマンドを実行して確認します:
 
-- [ ] `mise exec -- pnpm --filter web lint`（ESLint チェック）
-- [ ] `mise exec -- pnpm --filter web typecheck`（TypeScript 型チェック）
-- [ ] `mise exec -- pnpm --filter web test`（単体テスト）
-- [ ] `mise exec -- pnpm --filter web build`（ビルド成功）※ Supabase 環境変数が必要
+- [ ] `pnpm --filter web lint`（ESLint チェック）
+- [ ] `pnpm --filter web typecheck`（TypeScript 型チェック）
+- [ ] `pnpm --filter web test`（単体テスト）
+- [ ] `pnpm --filter web build`（ビルド成功）※ Supabase 環境変数が必要
   - 環境変数が未設定の場合、`Missing Supabase environment variables` エラーで失敗します（セットアップできているかの自動チェック）
 - 注: E2E テスト（`pnpm --filter web e2e`）はフェーズ4で整備予定
 
@@ -161,7 +161,7 @@
   - `app/facilities/[id]/page.tsx` の `params` は Next.js の実ランタイム仕様（Promise で渡される）に合わせて `Promise<{ id: string }>` とし、
     `pnpm dev` 実行時の警告を避けるために `await params` で展開する実装としている（phase6 のリファクタ計画で検討した同期型 `params` 案からの差分）。
 
-**開発セッション**: [`docs/dev-sessions/2025/11/20251128-session-phase6-vercel-deploy.md`](./dev-sessions/2025/11/20251128-session-phase6-vercel-deploy.md) を参照
+**開発セッション**: 2025-11 の記録で実施（詳細ログは軽量化方針により整理済み）
 
 **注**: 現在は一部の施設・スケジュールURLのみを手動で登録している状態です。全施設のスケジュールURLカバーは [フェーズ10: スケジュールURLの全面カバー](#フェーズ10-スケジュールurlの全面カバー) で実施します。
 
@@ -183,7 +183,7 @@
 - ビルドキャッシュの問題解決（`.next`ディレクトリの削除による再ビルド）
 - デプロイ成功確認
 
-**開発セッション**: [`docs/dev-sessions/2025/11/20251128-session-phase6-vercel-deploy.md`](./dev-sessions/2025/11/20251128-session-phase6-vercel-deploy.md) を参照
+**開発セッション**: 2025-11 の記録で実施（詳細ログは軽量化方針により整理済み）
 
 **注**: このフェーズは「仮MVP環境」として、一部の施設・スケジュールURLのみを手動で登録した状態でデプロイしています。本番相当のクオリティ向上は [フェーズ8: 仮MVP環境のクオリティアップ](#フェーズ8-仮mvp環境のクオリティアップ) で実施します。
 
@@ -289,7 +289,7 @@
     - [ ] 画像・アイコンに代替テキストまたは `aria-label` が設定されている（装飾的要素は `aria-hidden="true"`）
     - [ ] コントラスト比が4.5:1以上（Lighthouse / axe-core で自動検証）
   - **E2Eテストの再確認**:
-    - [ ] 実際の施設データとスケジュールURLが入った状態で、代表フローの E2E テストを実行: `mise exec -- pnpm --filter web e2e`
+    - [ ] 実際の施設データとスケジュールURLが入った状態で、代表フローの E2E テストを実行: `pnpm --filter web e2e`
     - [ ] テスト観点表（`docs/tests/representative-flow.md`）を更新し、実データでの動作確認結果を記録
     - [ ] 主要シナリオ（拠点一覧表示・お気に入り追加・スケジュール表示・月切り替え）がすべてパスする
   - **リリースノート・ロールバック手順**:
@@ -320,7 +320,7 @@
   - **本番環境での動作確認**:
     - [ ] 代表フロー（拠点一覧→スケジュール表示→お気に入り）について、本番URL上で手動チェックを実施
     - [ ] 手動チェック手順と結果を dev-sessions に記録（成功/失敗・エラー内容・スクリーンショット等）
-    - [ ] 本番環境での E2E テスト実行（可能な場合）: 本番URLを `baseURL` に設定して `mise exec -- pnpm --filter web e2e` を実行し、結果を記録
+    - [ ] 本番環境での E2E テスト実行（可能な場合）: 本番URLを `baseURL` に設定して `pnpm --filter web e2e` を実行し、結果を記録
   - **ログ確認の整備**:
     - [ ] Vercel ダッシュボードでのログ確認手順を `docs/04-development.md` に追記:
       - 確認箇所: Vercel ダッシュボード > プロジェクト > Deployments > 該当デプロイ > Logs
@@ -512,7 +512,7 @@
    - 既存ファイルがある場合、最大連番+1を新しい連番とする（例: 最大が `02` なら `03`）
 
 3. **ファイル名と本文の日付を生成する**:
-   - ファイル名: `docs/dev-sessions/YYYY/MM/YYYYMMDD-連番-説明.md`（例: `docs/dev-sessions/2025/11/20251130-01-phase8-quality-up.md`）
+   - ファイル名: `docs/dev-sessions/YYYY/MM/YYYYMMDD-連番-説明.md`（例: `docs/dev-sessions/YYYY/MM/YYYYMMDD-01-task-summary.md`）
      - `連番` は2桁の数字（`01`, `02`, `03`...）
      - `説明` はセッションの内容を表す短い文字列（例: `phase8-quality-up`, `phase6-instagram`）
    - 本文の「日付: YYYY-MM-DD」: 取得した `YYYYMMDD` 形式を `YYYY-MM-DD` 形式に変換して使用
@@ -572,9 +572,7 @@
   - 月切り替え時のローディング状態管理を改善（staleリクエストが最新リクエストのローディング表示を打ち消さないように修正）
 
 **開発セッション**:
-- [`docs/dev-sessions/2025/11/20251130-session-phase8-quality-up.md`](./dev-sessions/2025/11/20251130-session-phase8-quality-up.md) - フェーズ8の主要実装
-- [`docs/dev-sessions/2025/11/20251130-session-phase8-followup.md`](./dev-sessions/2025/11/20251130-session-phase8-followup.md) - ローディング/エラーUI実装とテスト追加
-- [`docs/dev-sessions/2025/12/20251202-01-phase8-pr-review-fix.md`](./dev-sessions/2025/12/20251202-01-phase8-pr-review-fix.md) - PRレビュー指摘事項の修正
+- 2025-11〜2025-12 の記録で実施（詳細ログは軽量化方針により整理済み）
 
 ### 次のステップ
 - **フェーズ11**: デザイン / UX 仕上げ & リリース準備（本番クオリティへの磨き込み）

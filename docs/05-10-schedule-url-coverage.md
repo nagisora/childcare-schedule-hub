@@ -1,300 +1,56 @@
 # フェーズ10詳細: スケジュールURLの全面カバー
 
-<a id="progress"></a>
 ## 0. 進捗チェックリスト（正本）
 
-このドキュメントはフェーズ10の**進捗管理の正本**とする。
+このドキュメントはフェーズ10の進捗管理の正本です。  
+作業ログは最小運用とし、証跡は本書・Runbook・Issue に集約します。
 
-- チェックの付け方:
-  - 未完了: `- [ ]`
-  - 完了: `- [x]`（可能なら `YYYY-MM-DD` と証跡リンク（dev-sessions等）を併記）
-
-### フェーズ10: 全体の完了条件（MVP）
-
-- [x] **手動登録フローの確立**（開発者が使用する施設のみを対象）
-  - 手動で `schedules` に `instagram_post_url` を登録する方法が確立されている
-  - 登録手順が `docs/04-development.md` に記載されている
-- [x] データ品質チェック（`published_month` の整合、重複、URL形式）が1回以上実施され、dev-sessionsに記録されている - 2025-12-23（[dev-session](./dev-sessions/2025/12/20251223-03-phase10-task6-quality-check-sql.md)）
-
-**注**: MVPでは自動取得（CLI）は実装済みだが、精度が不十分なため**手動登録で完了**とする。自動取得の精度向上は後回し（[後回し作業リスト](../20-deferred-work.md) DW-008 参照）。
-
-### 実装タスク（セッション粒度の進捗）
-
-- [x] [タスク1: 取得仕様の確定（対象月・判定・理由コード）](#task-1) - 2025-12-22
-- [x] [タスク2: 投稿URL候補検索（Google CSE）の設計](#task-2) - 2025-12-23
-- [x] [タスク3: サーバーサイド検索API（`/api/instagram-schedule-search`）の実装](#task-3) - 2025-12-23
-- [x] [タスク4: 施設×月の一括処理CLI（カバー/未特定一覧化）](#task-4) - 2025-12-23
-- [x] [タスク5: `schedules` への安全なUPSERT（バックアップ/ロールバック）](#task-5) - 2025-12-23
-- [x] [タスク6: 品質チェック（SQL）と証跡の記録](#task-6) - 2025-12-23（[dev-session](./dev-sessions/2025/12/20251223-03-phase10-task6-quality-check-sql.md)）
-
-**注**: MVP方針変更により、自動取得の精度向上は後回し（[後回し作業リスト](../20-deferred-work.md) DW-008 参照）。手動登録で完了とする。
-
----
+- [x] 手動登録フロー（開発者利用施設向け）が確立されている
+- [x] `schedules.instagram_post_url` の登録/更新手順が整備されている
+- [x] 品質チェック（`published_month` 整合・重複・URL形式）を実施済み
+- [x] 自動取得は実装済みだが、MVPでは手動登録完了を採用している
 
 ## 1. 概要
 
-- **対応フェーズ**: フェーズ10
-- **目的**: 各施設が Instagram に投稿している**月間スケジュール（当月）を手動で登録**し、MVPで表示できる参照情報（基本は Instagram 投稿URL）として `schedules` に反映できる状態にする
-- **スコープ（MVP）**:
-  - 対象施設: **開発者が使用する施設のみ**（全施設の自動カバーは後回し）
-  - 対象月: 原則「現在月」（`published_month` は対象月の1日で統一）
-  - 取得対象: Instagram投稿の permalink（例: `https://www.instagram.com/p/.../`、必要なら `.../reel/.../` も候補に含める）
-  - 出力: `schedules.instagram_post_url` の手動登録
-- **非スコープ（MVP）**:
-  - 全施設の自動カバー（自動取得の精度向上は後回し、[後回し作業リスト](../20-deferred-work.md) DW-008 参照）
-  - `facilities.instagram_url IS NULL` の施設のカバー（将来: `website_url` / 自治体サイト / PDF / Googleカレンダー等で回収）
-  - InstagramのHTMLスクレイピング前提の自動巡回（利用規約/安定性の観点で避ける）
-  - 運用Runbookの「運用できる粒度」への整備（MVP後回し可）
-- **完了条件（MVP）**:
-  - 「0. 進捗チェックリスト（正本）」に集約
-- **関連ドキュメント**:
-  - `docs/05-00-development-phases.md`（フェーズ10セクション）
-  - `docs/05-09-instagram-account-url-coverage.md`（フェーズ9のCSE/CLI設計の参考）
-  - `docs/02-design.md`（`schedules` テーブル定義）
-  - `docs/03-api.md`（`ScheduleSummary` / Instagram embed方針）
-  - `docs/04-development.md`（9.6節: 既存の手動Runbook、`image_url` ダミー可の方針）
-  - [`docs/phase-artifacts/10-schedule-url-coverage/`](./phase-artifacts/10-schedule-url-coverage/)（添付資料: 仕様・理由コード・実行結果）
+- 対応フェーズ: フェーズ10
+- 目的: 月間スケジュールの投稿 URL を `schedules` に安全に反映できる状態を作る
+- MVP方針: 自動取得の精度向上は後回し。手動登録で完了とする
 
----
+## 2. 運用方針（現行）
 
-## 2. 前提・制約
+- API: `apps/web/app/api/instagram-schedule-search/route.ts`
+- CLI: `apps/scripts/fetch-instagram-schedule-post-urls.ts`
+- UPSERT API: `apps/web/app/api/admin/schedules/upsert/route.ts`
+- ロールバック補助: `apps/scripts/rollback-schedules-from-backup.ts`
 
-- **規約・利用条件**:
-  - Instagramの利用規約に抵触し得るスクレイピング/自動巡回は避ける（MVPでは「検索結果から候補URLを列挙→採用/未特定の判断」を基本）
-  - Google Custom Search API / Programmable Search Engine（CSE）の利用規約とレート制限に従う
-- **コスト・レート制限**:
-  - Google Custom Search API は無料枠（例: 1日100クエリ）を超えると課金が発生し得る
-  - 対象件数が多い場合、対象区/対象数を絞る、複数日に分割する、再検索を抑制する等で回避する
-- **データ品質要件**:
-  - `published_month` は対象月の1日で統一（例: `2025-02-01`）
-  - `schedules.instagram_post_url` は `instagram.com` の投稿URL（permalink）として妥当な形式のみを許可する
-  - 共有リンクのクエリパラメータ/フラグメントは除去（`?` / `#` を残さない）
-  - `(facility_id, published_month)` は1件に収束（ユニーク制約あり。登録時はUPSERT方針で更新）
-- **技術的制約**:
-  - 検索APIはサーバーサイドのみで実行（APIキーをクライアントへ露出しない）
-  - 公開悪用でクエリ枠を消費されないよう、内部APIは `ADMIN_API_TOKEN` 等で保護する
+## 3. 品質チェック（最低限）
 
----
+- `published_month` は対象月の1日で統一されていること
+- `(facility_id, published_month)` で重複がないこと
+- `instagram_post_url` が `instagram.com/(p|reel)` 形式であること
+- 共有リンク由来のクエリ/フラグメントが残っていないこと
 
-## 3. 実装計画
+## 4. 代表コマンド
 
-> このセクションは、フェーズ10全体の実装計画をまとめたものです。  
-> 各タスクの詳細な完了条件・検証方法・dev-sessions粒度については、個別のセッションで具体化していきます。
+```bash
+# API/フロント側テスト
+pnpm --filter web test
 
-<a id="task-1"></a>
-### タスク1: 取得仕様の確定（対象月・判定・理由コード）
+# 型チェック
+pnpm --filter web typecheck
 
-- **完了条件**:
-  - [x] 対象施設/対象月の定義がドキュメント化され、CLIの入力仕様（`--month` など）に落ちる - 2025-12-22（[`docs/phase-artifacts/10-schedule-url-coverage/task-01-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-01-spec.md) / [dev-session](./dev-sessions/2025/12/20251222-01-phase10-task1-spec.md)）
-  - [x] 施設×月が「登録済み / 未特定確定 / 対象外」に分類される判定基準が決まっている - 2025-12-22（[`docs/phase-artifacts/10-schedule-url-coverage/task-01-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-01-spec.md) / [dev-session](./dev-sessions/2025/12/20251222-01-phase10-task1-spec.md)）
-  - [x] 理由コードが固定され、出力（JSON/Markdown）に必ず含まれる - 2025-12-22（[`docs/phase-artifacts/10-schedule-url-coverage/reason-codes.md`](./phase-artifacts/10-schedule-url-coverage/reason-codes.md) / [dev-session](./dev-sessions/2025/12/20251222-01-phase10-task1-spec.md)）
-- **検証方法**:
-  - [x] `docs/05-00-development-phases.md` のフェーズ10節と本ファイルの整合を目視確認 - 2025-12-22（[dev-session](./dev-sessions/2025/12/20251222-01-phase10-task1-spec.md)）
-  - [x] 理由コードが重複/曖昧になっていないことを目視確認（フェーズ9の `reason` と同様に機械可読を優先） - 2025-12-22（[dev-session](./dev-sessions/2025/12/20251222-01-phase10-task1-spec.md)）
-- **dev-sessions粒度**:
-  - 1セッション（20〜40分）
-- **更新先ドキュメント**:
-  - `docs/05-10-schedule-url-coverage.md`（本ファイル）
-  - [`docs/phase-artifacts/10-schedule-url-coverage/task-01-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-01-spec.md)（仕様の正本）
-  - [`docs/phase-artifacts/10-schedule-url-coverage/reason-codes.md`](./phase-artifacts/10-schedule-url-coverage/reason-codes.md)（理由コードの正本）
+# スケジュール候補CLI（実行例）
+pnpm --filter scripts tsx fetch-instagram-schedule-post-urls.ts --limit=3 --month=YYYY-MM
+```
 
-<a id="task-2"></a>
-### タスク2: 投稿URL候補検索（Google CSE）の設計
+## 5. 後回し方針
 
-- **完了条件**:
-  - [x] 入力（施設名/区名/instagram username/対象月）から、CSEクエリを生成できる - 2025-12-23
-  - [x] 候補抽出のルール（`/p/` 優先、`/reel/` の扱い、除外URL等）が決まっている - 2025-12-23
-  - [x] 採用/未特定のヒューリスティクス（単一候補のみ自動採用、複数候補は未特定等）が決まっている - 2025-12-23
-- **設計仕様**:
-  - 詳細は [`docs/phase-artifacts/10-schedule-url-coverage/task-02-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-02-spec.md) を参照
-  - 主な内容:
-    - 入力パラメータ（facilityName, wardName, instagramUsername, month）
-    - CSEクエリ生成仕様（月ヒント定義、優先順位、username有無の分岐）
-    - 候補URL抽出仕様（許可/除外、正規化、dedup、/p/優先、/reel/扱い）
-    - 採用/未特定/対象外の判定ルール（月ヒント必須、複数候補は未特定、理由コード割当）
-- **検証方法**:
-  - [x] 2〜3施設で、設計したクエリをGoogle検索で手動試行し、候補が取れそうか確認 - 2025-12-23（設計段階の想定結果を記録）
-  - [x] 誤検出しやすいケース（施設名が短い、一般名詞、同名施設）でも「複数候補→未特定」に倒れることを確認 - 2025-12-23（設計仕様で確認）
-- **dev-sessions粒度**:
-  - 1〜2セッション（30〜60分）
-- **更新先ドキュメント**:
-  - [`docs/phase-artifacts/10-schedule-url-coverage/task-02-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-02-spec.md)（設計仕様の正本）
-  - `docs/phase-artifacts/10-schedule-url-coverage/`（添付資料: 理由コード・実行結果）
+- 自動取得精度の改善（OCR/AIを含む）は `docs/20-deferred-work.md` の DW-008 で管理する
+- 運用Runbookの詳細化（登録ルール/月次更新/品質チェック）は DW-007 で管理する
 
-<a id="task-3"></a>
-### タスク3: サーバーサイド検索API（`/api/instagram-schedule-search`）の実装
+## 6. 関連ドキュメント
 
-- **完了条件**:
-  - [x] `apps/web/app/api/instagram-schedule-search/route.ts` を追加し、CSEから候補（投稿URL候補+メタ）を返せる - 2025-12-23
-  - [x] `x-admin-token`（`ADMIN_API_TOKEN`）で保護されている - 2025-12-23
-  - [x] 入力: `facilityId`（推奨）または `facilityName` + `wardName` + `instagramUrl` + `month` - 2025-12-23
-  - [x] 出力: 例 `[{ url, title, snippet, score, matchedMonthHints: [...] }]`（名称は実装に合わせて調整） - 2025-12-23
-  - [x] 例外/400/401/500のエラーフォーマットが統一されている - 2025-12-23
-- **設計仕様**:
-  - 詳細は実装時に [`docs/phase-artifacts/10-schedule-url-coverage/task-03-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-03-spec.md) に追記予定
-  - タスク2の設計仕様（[`task-02-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-02-spec.md)）を実装に落とし込む
-- **検証方法**:
-  - [x] ユニットテストで主要経路（401/400/404/500/200）を確認 - 2025-12-23（[dev-session](./dev-sessions/2025/12/20251223-02-phase10-task3-5-search-api-cli-upsert.md)）
-  - [ ] `mise exec -- pnpm --filter web dev` でローカル起動し、`curl` 等でAPIを叩いて確認（次回セッションで実施予定）
-- **dev-sessions粒度**:
-  - 1〜3セッション（60〜180分）
-- **更新先ドキュメント**:
-  - [`docs/dev-sessions/2025/12/20251223-02-phase10-task3-5-search-api-cli-upsert.md`](./dev-sessions/2025/12/20251223-02-phase10-task3-5-search-api-cli-upsert.md)（実装ログ・検証結果）
-  - `docs/03-api.md`（必要なら内部APIとして追記）
-
-<a id="task-4"></a>
-### タスク4: 施設×月の一括処理CLI（カバー/未特定一覧化）
-
-- **完了条件**:
-  - [x] `facilities.instagram_url IS NOT NULL` を対象に、施設を順次処理できる - 2025-12-23
-  - [x] 施設ごとに検索APIを呼び、候補提示→（自動採用 or 未特定確定/対象外）を判断して記録できる - 2025-12-23
-  - [x] 非対話環境でも安全に動く（デフォルトはDRY-RUN、適用には `--apply --yes` 必須） - 2025-12-23
-  - [x] 出力ファイル（JSON + Markdown）が生成され、未特定/対象外の一覧がレビューしやすい - 2025-12-23
-- **設計仕様**:
-  - 詳細は実装時に [`docs/phase-artifacts/10-schedule-url-coverage/task-04-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-04-spec.md) に追記予定
-  - タスク2の設計仕様（[`task-02-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-02-spec.md)）とタスク3のAPI仕様を組み合わせて実装
-- **検証方法**:
-  - [ ] まずは対象を `--limit=3` 等で絞ってDRY-RUN実行し、出力ファイルの体裁を確認（次回セッションで実施予定）
-  - [ ] 既に登録済みの施設×月がスキップされることを確認（次回セッションで実施予定）
-- **dev-sessions粒度**:
-  - 2〜4セッション（90〜240分）
-- **更新先ドキュメント**:
-  - [`docs/dev-sessions/2025/12/20251223-02-phase10-task3-5-search-api-cli-upsert.md`](./dev-sessions/2025/12/20251223-02-phase10-task3-5-search-api-cli-upsert.md)（実装ログ）
-  - `docs/phase-artifacts/10-schedule-url-coverage/runs/`（実行結果/出力の整理先、次回セッションで実施予定）
-  - （MVP後回し可）`docs/04-development.md`（CLI運用Runbook）
-
-<a id="task-5"></a>
-### タスク5: `schedules` への安全なUPSERT（バックアップ/ロールバック）
-
-- **完了条件**:
-  - [x] `--apply` 時のみDB更新が走る（DRY-RUNがデフォルト） - 2025-12-23
-  - [x] 更新前にバックアップ（対象レコードのスナップショット）をファイルに保存する - 2025-12-23
-  - [x] UPSERT方針が明確（`facility_id` + `published_month` をキーに更新/作成） - 2025-12-23
-  - [x] `image_url` はDB必須のため、暫定はダミーURLを設定できる（MVP UIでは未使用） - 2025-12-23
-- **設計仕様**:
-  - 詳細は実装時に [`docs/phase-artifacts/10-schedule-url-coverage/task-05-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-05-spec.md) に追記予定
-  - タスク4のCLIにUPSERT機能を追加
-- **検証方法**:
-  - [ ] テスト用に1施設×1月で `--apply --yes` を実行し、DBに反映されることを確認（次回セッションで実施予定）
-  - [ ] ロールバック手順（バックアップから戻す）が手で実行できることを確認（次回セッションで実施予定）
-- **dev-sessions粒度**:
-  - 1〜2セッション（60〜120分）
-- **更新先ドキュメント**:
-  - [`docs/dev-sessions/2025/12/20251223-02-phase10-task3-5-search-api-cli-upsert.md`](./dev-sessions/2025/12/20251223-02-phase10-task3-5-search-api-cli-upsert.md)（実装ログ）
-  - `docs/phase-artifacts/10-schedule-url-coverage/`（添付資料: バックアップ/ロールバック手順や代表例の保管先）
-  - 補足: ロールバック補助スクリプト `apps/scripts/rollback-schedules-from-backup.ts` を追加済み
-
-<a id="task-6"></a>
-### タスク6: 品質チェック（SQL）と証跡の記録
-
-- **完了条件**:
-  - [x] 本ファイル「4. 品質チェック」にあるSQLを1回以上実行し、結果を dev-sessions に記録 - 2025-12-23（[dev-session](./dev-sessions/2025/12/20251223-03-phase10-task6-quality-check-sql.md)）
-  - [ ] 想定外（URL形式不正/対象月ズレ/未処理残り）があれば修正して再実行できる
-- **設計仕様**:
-  - 詳細は実施時に [`docs/phase-artifacts/10-schedule-url-coverage/task-06-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-06-spec.md) に追記予定
-  - 品質チェックSQLは本ファイル「4. 品質チェック」セクションに記載（詳細は [`sql/`](./phase-artifacts/10-schedule-url-coverage/sql/) に整理）
-- **検証方法**:
-  - [x] Supabase Studio / MCP / psql などでSQLを実行し、結果（件数、代表例）を記録 - 2025-12-23（[dev-session](./dev-sessions/2025/12/20251223-03-phase10-task6-quality-check-sql.md)）
-- **dev-sessions粒度**:
-  - 1セッション（30〜60分）
-- **更新先ドキュメント**:
-  - [`docs/phase-artifacts/10-schedule-url-coverage/task-06-spec.md`](./phase-artifacts/10-schedule-url-coverage/task-06-spec.md)（品質チェック仕様の正本、実施時に作成）
-  - `docs/dev-sessions/`（実行ログ・結果の記録）
-  - [`docs/phase-artifacts/10-schedule-url-coverage/sql/`](./phase-artifacts/10-schedule-url-coverage/sql/)（実行SQLや結果の整理先）
-
-### フェーズ完了時のチェックリスト
-
-- [ ] **フェーズの完了チェック**: 「0. 進捗チェックリスト（正本）」の完了条件がすべて満たされている
-- [ ] **（任意）コードのリファクタリング**:
-  - [ ] `/remove-ai-code-slop`
-  - [ ] `/refactor-plan`
-- [ ] **プルリクエストの作成**（必要な場合）
-- [ ] **Vercelのエラー確認**（デプロイを伴う場合）
-
----
-
-## 4. 品質チェック
-
-- **データ品質チェック（チェックリスト）**:
-  - [ ] `published_month` が「月の1日」で統一されている
-  - [ ] `(facility_id, published_month)` の重複がない
-  - [ ] `instagram_post_url` の形式が妥当（`instagram.com/(p|reel)/...`、クエリ/フラグメントなし）
-  - [ ] 対象施設×対象月の「未処理」が残っていない（登録済み or 未特定/対象外の一覧に載っている）
-- **検証方法**:
-  - Supabase Studio で `schedules` を確認
-  - SQLで集計/検出し、結果を dev-sessions に記録
-- **検証クエリ例**:
-  ```sql
-  -- 1) 対象月（例: 2025-02-01）で、対象施設のうち「登録済み（= instagram_post_urlあり）」の件数
-  SELECT
-    COUNT(*) AS registered_count
-  FROM schedules s
-  JOIN facilities f ON f.id = s.facility_id
-  WHERE f.instagram_url IS NOT NULL
-    AND s.published_month = '2025-02-01'
-    AND s.instagram_post_url IS NOT NULL;
-
-  -- 2) 対象月で、対象施設のうち「schedules行が無い」施設（= まだ登録済みにできていない）
-  SELECT f.id, f.name, f.ward_name, f.instagram_url
-  FROM facilities f
-  LEFT JOIN schedules s
-    ON s.facility_id = f.id
-   AND s.published_month = '2025-02-01'
-  WHERE f.instagram_url IS NOT NULL
-    AND s.id IS NULL
-  ORDER BY f.ward_name, f.name;
-
-  -- 3) published_month が月の1日でないレコードの検出
-  SELECT id, facility_id, published_month
-  FROM schedules
-  WHERE EXTRACT(DAY FROM published_month) <> 1;
-
-  -- 4) instagram_post_url のドメイン/形式チェック（投稿URL or リールURLのみ許可）
-  SELECT id, facility_id, instagram_post_url
-  FROM schedules
-  WHERE instagram_post_url IS NOT NULL
-    AND instagram_post_url !~* '^https?://(www\\.)?instagram\\.com/(p|reel)/';
-
-  -- 5) 共有リンクのクエリ/フラグメントが残っていないか
-  SELECT id, facility_id, instagram_post_url
-  FROM schedules
-  WHERE instagram_post_url IS NOT NULL
-    AND (instagram_post_url LIKE '%?%' OR instagram_post_url LIKE '%#%');
-  ```
-- **チェック実施タイミング**:
-  - データ投入後（`--apply` 実行後）
-  - フェーズ完了前（必須）
-
----
-
-## 5. リスク・撤退条件・ロールバック
-
-- **リスク**:
-  - Google CSE の無料枠/レート制限に達する（処理が止まる/課金が発生する）
-  - 検索精度が不十分で誤採用が起きる（特に施設名が短い/同名が多い）
-  - Instagram側の仕様/検索インデックス変化で結果が揺れる
-- **撤退条件**:
-  - CSEで十分な割合が取れず、MVP期限内に手動対応が必要な割合が高すぎる場合は、MVPでは「未特定確定」として一覧化し、ポストMVPで回収する
-- **ロールバック手順**:
-  - `--apply` 実行前に保存したバックアップファイルから、更新した `schedules` を元の値へ戻す（対象は facility_id + published_month で特定）
-  - 誤登録が少数なら、該当行のみ `instagram_post_url` をNULLに戻す or 行を削除（運用ポリシーに従う）
-- **フォールバック手順**:
-  - 標準フロー（CSE→候補→自動採用）が失敗する場合は、未特定理由コード付きで一覧化し「処理済み」に倒す（MVPでは無理に手動で埋めない）
-
----
-
-## 6. 将来の拡張・メモ
-
-- **拡張候補**:
-  - 施設ごとの「投稿パターン」（固定投稿/ハイライト/外部リンク等）を学習してクエリ戦略を最適化
-  - oEmbed導入（ポストMVP）により、投稿の可用性チェック/埋め込みキャッシュ/失敗監視を強化
-  - Instagram以外の経路（公式サイト、自治体サイト、PDF）も統合した回収フロー
-- **運用上の注意**:
-  - シークレット（CSE APIキー、ADMINトークン）はログ/出力ファイルに含めない
-  - 「自動採用」は単一候補に限定し、迷うケースは必ず未特定に倒す
-  - 固定投稿は候補になりやすいが、固定という事実だけで採用しない（対象月の月間スケジュールの根拠が必要）
-  - ハイライトのみで permalink 化できない場合は `S10_OUT_OF_SCOPE_STORY_OR_HIGHLIGHT_ONLY` として対象外に倒す
-  - フォールバック（半自動）を許容しつつ、MVPではスクレイピング前提の自動巡回は避ける
-- **関連する将来フェーズ**:
-  - フェーズ11〜13（リリース準備/本番テスト/告知）へ向けて、データ品質の維持と「未特定一覧」の扱いを確立する
-
+- `docs/05-00-development-phases.md`
+- `docs/04-development.md`
+- `docs/phase-artifacts/10-schedule-url-coverage/reason-codes.md`
+- `docs/20-deferred-work.md`

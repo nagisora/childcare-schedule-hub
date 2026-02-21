@@ -237,7 +237,7 @@ WHERE facility_id = 'facility-uuid-here'
 ### 表示確認
 
 **Webアプリでの表示確認方法**:
-1. ローカル開発サーバーを起動: `mise exec -- pnpm --filter web dev`
+1. ローカル開発サーバーを起動: `pnpm --filter web dev`
 2. 対象施設の詳細ページにアクセス
 3. スケジュールセクションを確認:
    - Instagram投稿が埋め込み表示されているか
