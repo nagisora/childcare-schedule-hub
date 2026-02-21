@@ -364,7 +364,7 @@ LIMIT 3;
 
 1. 開発サーバーを起動:
    ```bash
-   mise exec -- pnpm --filter web dev
+   pnpm --filter web dev
    ```
 
 2. ブラウザで `http://localhost:3000` を開き、以下を確認:

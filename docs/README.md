@@ -7,12 +7,12 @@
   - 目的: プロダクトの要求事項を単一ソースとして定義
   - 想定読者: プロダクトオーナー、開発/設計チーム
   - 更新のきっかけ: ビジネス要件変更、ロードマップ更新
-- 00 開発セットアップ（mise 方針・導線）: 本ファイルおよび `docs/04-development.md`
-  - 目的: 開発環境セットアップの入口。ランタイムは **mise** で管理（Node.js / pnpm など）
+- 00 開発セットアップ（pnpm 主体 / mise 任意）: 本ファイルおよび `docs/04-development.md`
+  - 目的: 開発環境セットアップの入口。日常の実行は **pnpm** を標準とし、ランタイム固定に **mise（任意）** を使えるようにする
   - 使い方:
-    1) `mise trust -y mise.toml`
-    2) `mise install`
-    3) パッケージが揃っている場合は `mise exec -- pnpm install`
+    1) `pnpm install`
+    2) 開発サーバー: `pnpm --filter web dev`
+    3) （任意）mise を使う場合のみ `mise trust -y mise.toml` → `mise install`
   - 参照: `README.md` の「セットアップ」も併せて参照
 - 02 設計資料: `docs/02-design.md`
   - 目的: システム構成、データモデル、UI/UX ガイドの提示
@@ -41,9 +41,9 @@
   - 想定読者: 開発者（MVP後に回収すべき作業を管理したい人）
   - 更新のきっかけ: 「後回し」決定時 / 回収完了時（Issue close時）
 - 開発セッション用ワークシート: `docs/dev-sessions/`
-  - 目的: 1 回の作業（短時間）を計画→実施→記録するテンプレ置き場
+  - 目的: 1 回の作業（短時間）を計画→実施するためのテンプレ置き場
   - テンプレ: `docs/dev-sessions/template-session.md`
-  - 記録ファイル: `docs/dev-sessions/YYYY/MM/` 配下
+  - 記録ファイル: 必要時のみ作成（過去の大量ログは軽量化方針で整理）
   - 詳細: [`docs/dev-sessions/README.md`](./dev-sessions/README.md) を参照
 
 推奨読了順: 01 → 02 → 03 → 04 → 05（必要に応じて `dev-sessions` を利用）
@@ -86,9 +86,9 @@
 - 開発フェーズ（05）: フェーズ定義や完了条件の学びが得られたとき
 - フェーズ詳細計画（05-<phase>）: フェーズ9以降の詳細計画を作成・更新するとき（テンプレート: [`docs/phase-planning/template-phase-detail.md`](./phase-planning/template-phase-detail.md)）
 - DB セットアップ & 手動オペレーション（06）: DB セットアップ手順の追加・変更時、MCP 導入・利用方法の更新時
-- セッション記録（dev-sessions）: 各作業の度に追記（小さく早く回す）
+- セッション記録（dev-sessions）: 必要な作業のみ記録（最小運用）
 
 ## 5. 運用ルール（要点）
 - 新しい開発タスクを始める前に、どのフェーズ（05）に属するか決める。
-- 1 セッションを始めるときは [`docs/dev-sessions/template-session.md`](./dev-sessions/template-session.md) をコピーし、当日のゴールと結果を残す。
+- 1 セッションを始めるときは [`docs/dev-sessions/template-session.md`](./dev-sessions/template-session.md) をコピーし、必要な範囲だけ記録する。
 - フェーズ完了時は関連ドキュメント（01〜04）を必要最小限で更新し、相互リンクを保つ。

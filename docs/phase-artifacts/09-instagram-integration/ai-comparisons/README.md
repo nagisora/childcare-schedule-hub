@@ -83,7 +83,7 @@
 ### Instagram連携関連
 
 - [05-instagram-account-search.md](../05-instagram-account-search.md) - 現在のAI向け検索手順
-- [20251205-01-phase9-instagram-account-coverage.md](../../dev-sessions/2025/12/20251205-01-phase9-instagram-account-coverage.md) - フェーズ9実施時の課題記録
+- フェーズ9実施時の課題記録（過去ログは軽量化方針により整理済み）
 - [05-00-development-phases.md](../../05-00-development-phases.md) - フェーズ9の定義
 
 ### 開発セッション関連

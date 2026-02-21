@@ -148,31 +148,31 @@
 
 ```bash
 # 全テスト実行
-mise exec -- pnpm --filter web test
+pnpm --filter web test
 
 # カバレッジ取得
-mise exec -- pnpm --filter web test:coverage
+pnpm --filter web test:coverage
 ```
 
 ### 5.2 E2E テスト
 
 ```bash
 # 全テスト実行
-mise exec -- pnpm --filter web e2e
+pnpm --filter web e2e
 
 # UI モードで実行
-mise exec -- pnpm --filter web e2e:ui
+pnpm --filter web e2e:ui
 ```
 
 ### 5.3 全テスト実行（Lint / 型チェック含む）
 
 ```bash
 # 順次実行
-mise exec -- pnpm --filter web lint
-mise exec -- pnpm --filter web typecheck
-mise exec -- pnpm --filter web test
-mise exec -- pnpm --filter web build
-mise exec -- pnpm --filter web e2e
+pnpm --filter web lint
+pnpm --filter web typecheck
+pnpm --filter web test
+pnpm --filter web build
+pnpm --filter web e2e
 ```
 
 ---

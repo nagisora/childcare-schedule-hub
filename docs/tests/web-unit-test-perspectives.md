@@ -116,17 +116,17 @@
 
 ### 単体テスト
 ```bash
-pnpm test --filter web
+pnpm --filter web test
 ```
 
 ### カバレッジ取得
 ```bash
-pnpm test --filter web --coverage
+pnpm --filter web test --coverage
 ```
 
 ### 型チェック
 ```bash
-pnpm typecheck --filter web
+pnpm --filter web typecheck
 ```
 
 ### Lint
