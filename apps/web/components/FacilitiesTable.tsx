@@ -338,9 +338,6 @@ export function FacilitiesTable({
 													<p className="truncate text-sm font-medium text-slate-900">
 														{facility.name}
 													</p>
-													<p className="mt-0.5 text-[11px] text-slate-500">
-														{isOuenBase ? "応援拠点" : "支援拠点"}
-													</p>
 												</div>
 												{renderFavoriteButton(facility.id, facility.name)}
 											</div>
