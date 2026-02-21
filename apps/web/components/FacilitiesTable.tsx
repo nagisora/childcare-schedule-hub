@@ -333,7 +333,7 @@ export function FacilitiesTable({
 											key={facility.id}
 											className={`px-3 py-3 ${isOuenBase ? "bg-primary-50/40" : "bg-white"}`}
 										>
-											<div className="grid grid-cols-[2rem_9rem_minmax(0,1fr)] items-center gap-4">
+											<div className="grid grid-cols-[2.25rem_10rem_minmax(0,1fr)] items-center gap-5">
 												<div className="flex h-7 items-center justify-center">
 													{renderFavoriteButton(facility.id, facility.name)}
 												</div>
@@ -348,9 +348,9 @@ export function FacilitiesTable({
 															開所曜日・開所時間の情報は準備中です。
 														</p>
 													) : (
-														<table className="facility-schedule-table w-full min-w-[432px] table-fixed text-xs">
+														<table className="facility-schedule-table w-max min-w-[424px] table-fixed text-xs">
 															<colgroup>
-																<col className="w-44" />
+																<col className="w-36" />
 																{WEEKDAY_COLUMNS.map((column) => (
 																	<col key={column.key} className="w-8" />
 																))}
