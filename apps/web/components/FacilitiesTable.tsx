@@ -333,75 +333,76 @@ export function FacilitiesTable({
 											key={facility.id}
 											className={`px-3 py-3 ${isOuenBase ? "bg-primary-50/40" : "bg-white"}`}
 										>
-											<div className="flex items-start justify-between gap-3">
-												<div className="min-w-0">
+											<div className="flex items-start gap-3">
+												<div className="shrink-0 pt-0.5">
+													{renderFavoriteButton(facility.id, facility.name)}
+												</div>
+												<div className="w-36 shrink-0">
 													<p className="truncate text-sm font-medium text-slate-900">
 														{facility.name}
 													</p>
 												</div>
-												{renderFavoriteButton(facility.id, facility.name)}
-											</div>
-
-											{scheduleRows.length === 0 ? (
-												<p className="mt-2 text-xs text-slate-500">
-													開所曜日・開所時間の情報は準備中です。
-												</p>
-											) : (
-												<div className="mt-2 overflow-x-auto">
-													<table className="w-full min-w-[540px] text-xs">
-														<thead className="bg-slate-50 text-slate-700">
-															<tr>
-																<th
-																	scope="col"
-																	className="whitespace-nowrap border border-primary-100 px-2 py-1.5 text-left font-medium"
-																>
-																	時間
-																</th>
-																{WEEKDAY_COLUMNS.map((column) => (
+												<div className="min-w-0 flex-1 overflow-x-auto">
+													{scheduleRows.length === 0 ? (
+														<p className="text-xs text-slate-500">
+															開所曜日・開所時間の情報は準備中です。
+														</p>
+													) : (
+														<table className="w-full min-w-[540px] text-xs">
+															<thead className="bg-slate-50 text-slate-700">
+																<tr>
 																	<th
-																		key={column.key}
 																		scope="col"
-																		className="border border-primary-100 px-2 py-1.5 text-center font-medium"
-																	>
-																		{column.label}
-																	</th>
-																))}
-															</tr>
-														</thead>
-														<tbody className="text-slate-700">
-															{scheduleRows.map((row) => (
-																<tr key={row.id}>
-																	<th
-																		scope="row"
 																		className="whitespace-nowrap border border-primary-100 px-2 py-1.5 text-left font-medium"
 																	>
-																		{formatTimeRangeLabel(
-																			row.open_time,
-																			row.close_time,
-																		)}
+																		時間
 																	</th>
-																	{WEEKDAY_COLUMNS.map((column) => {
-																		const isOpen = row[column.key];
-																		return (
-																			<td
-																				key={column.key}
-																				className="border border-primary-100 px-2 py-1.5 text-center"
-																			>
-																				<span className="sr-only">
-																					{isOpen ? "開所" : "休み"}
-																				</span>
-																				<span aria-hidden="true">
-																					{isOpen ? "●" : "－"}
-																				</span>
-																			</td>
-																		);
-																	})}
+																	{WEEKDAY_COLUMNS.map((column) => (
+																		<th
+																			key={column.key}
+																			scope="col"
+																			className="border border-primary-100 px-2 py-1.5 text-center font-medium"
+																		>
+																			{column.label}
+																		</th>
+																	))}
 																</tr>
-															))}
-														</tbody>
-													</table>
+															</thead>
+															<tbody className="text-slate-700">
+																{scheduleRows.map((row) => (
+																	<tr key={row.id}>
+																		<th
+																			scope="row"
+																			className="whitespace-nowrap border border-primary-100 px-2 py-1.5 text-left font-medium"
+																		>
+																			{formatTimeRangeLabel(
+																				row.open_time,
+																				row.close_time,
+																			)}
+																		</th>
+																		{WEEKDAY_COLUMNS.map((column) => {
+																			const isOpen = row[column.key];
+																			return (
+																				<td
+																					key={column.key}
+																					className="border border-primary-100 px-2 py-1.5 text-center"
+																				>
+																					<span className="sr-only">
+																						{isOpen ? "開所" : "休み"}
+																					</span>
+																					<span aria-hidden="true">
+																						{isOpen ? "●" : "－"}
+																					</span>
+																				</td>
+																			);
+																		})}
+																	</tr>
+																))}
+															</tbody>
+														</table>
+													)}
 												</div>
-											)}
+											</div>
 										</article>
 									);
 								})
