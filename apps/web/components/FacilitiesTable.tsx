@@ -62,24 +62,23 @@ function sortSchedulesByTime(
 	});
 }
 
-function parseTimeToMinutes(value: string): number {
-	const [hour = "0", minute = "0"] = value.split(":");
-	return Number(hour) * 60 + Number(minute);
-}
-
 function matchesFacilityFilters(
 	schedules: FacilitySchedule[],
 	{
+		saturdayOnly,
 		sundayOnly,
 		holidayOnly,
-		openAfter18,
 	}: {
+		saturdayOnly: boolean;
 		sundayOnly: boolean;
 		holidayOnly: boolean;
-		openAfter18: boolean;
 	},
 ): boolean {
 	if (schedules.length === 0) {
+		return false;
+	}
+
+	if (saturdayOnly && !schedules.some((schedule) => schedule.saturday)) {
 		return false;
 	}
 
@@ -88,15 +87,6 @@ function matchesFacilityFilters(
 	}
 
 	if (holidayOnly && !schedules.some((schedule) => schedule.holiday)) {
-		return false;
-	}
-
-	if (
-		openAfter18 &&
-		!schedules.some(
-			(schedule) => parseTimeToMinutes(schedule.close_time) >= 18 * 60,
-		)
-	) {
 		return false;
 	}
 
@@ -112,9 +102,9 @@ export function FacilitiesTable({
 	const [favoriteIds, setFavoriteIds] = useState<Set<string>>(
 		new Set(initialFavoriteIds),
 	);
+	const [filterSaturdayOnly, setFilterSaturdayOnly] = useState(false);
 	const [filterSundayOnly, setFilterSundayOnly] = useState(false);
 	const [filterHolidayOnly, setFilterHolidayOnly] = useState(false);
-	const [filterOpenAfter18, setFilterOpenAfter18] = useState(false);
 
 	useEffect(() => {
 		// クライアントサイドでマウント後にlocalStorageから最新の状態を取得
@@ -196,11 +186,11 @@ export function FacilitiesTable({
 	};
 
 	const hasActiveFilter =
-		filterSundayOnly || filterHolidayOnly || filterOpenAfter18;
+		filterSaturdayOnly || filterSundayOnly || filterHolidayOnly;
 
 	const wardSections = useMemo(() => {
 		const isFiltering =
-			filterSundayOnly || filterHolidayOnly || filterOpenAfter18;
+			filterSaturdayOnly || filterSundayOnly || filterHolidayOnly;
 		return wards
 			.map((ward) => {
 				const facilities = facilitiesByWard[ward] ?? [];
@@ -214,9 +204,9 @@ export function FacilitiesTable({
 				const visibleFacilities = isFiltering
 					? orderedFacilities.filter((facility) =>
 							matchesFacilityFilters(facility.facility_schedules ?? [], {
+								saturdayOnly: filterSaturdayOnly,
 								sundayOnly: filterSundayOnly,
 								holidayOnly: filterHolidayOnly,
-								openAfter18: filterOpenAfter18,
 							}),
 						)
 					: orderedFacilities;
@@ -227,9 +217,9 @@ export function FacilitiesTable({
 	}, [
 		wards,
 		facilitiesByWard,
+		filterSaturdayOnly,
 		filterSundayOnly,
 		filterHolidayOnly,
-		filterOpenAfter18,
 	]);
 
 	const totalVisibleFacilities = wardSections.reduce(
@@ -267,6 +257,18 @@ export function FacilitiesTable({
 			<div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
 				<span className="text-slate-600">絞り込み:</span>
 				<label
+					htmlFor="filter-saturday-open"
+					className="inline-flex items-center gap-1 rounded-full border border-primary-200 bg-white px-2 py-1 text-primary-700"
+				>
+					<input
+						id="filter-saturday-open"
+						type="checkbox"
+						checked={filterSaturdayOnly}
+						onChange={(event) => setFilterSaturdayOnly(event.target.checked)}
+					/>
+					<span>土曜開所</span>
+				</label>
+				<label
 					htmlFor="filter-sunday-open"
 					className="inline-flex items-center gap-1 rounded-full border border-primary-200 bg-white px-2 py-1 text-primary-700"
 				>
@@ -289,18 +291,6 @@ export function FacilitiesTable({
 						onChange={(event) => setFilterHolidayOnly(event.target.checked)}
 					/>
 					<span>祝日開所</span>
-				</label>
-				<label
-					htmlFor="filter-open-after-18"
-					className="inline-flex items-center gap-1 rounded-full border border-primary-200 bg-white px-2 py-1 text-primary-700"
-				>
-					<input
-						id="filter-open-after-18"
-						type="checkbox"
-						checked={filterOpenAfter18}
-						onChange={(event) => setFilterOpenAfter18(event.target.checked)}
-					/>
-					<span>18時以降開所</span>
 				</label>
 				{hasActiveFilter && (
 					<span className="text-slate-500">{totalVisibleFacilities}件</span>
