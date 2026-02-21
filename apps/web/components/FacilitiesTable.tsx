@@ -42,6 +42,12 @@ const WEEKDAY_COLUMNS: Array<{ label: string; key: WeekdayKey }> = [
 	{ label: "祝", key: "holiday" },
 ];
 
+type FacilityFilters = {
+	saturdayOnly: boolean;
+	sundayOnly: boolean;
+	holidayOnly: boolean;
+};
+
 function formatTimeValue(value: string): string {
 	const [hour = "00", minute = "00"] = value.split(":");
 	return `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`;
@@ -64,15 +70,7 @@ function sortSchedulesByTime(
 
 function matchesFacilityFilters(
 	schedules: FacilitySchedule[],
-	{
-		saturdayOnly,
-		sundayOnly,
-		holidayOnly,
-	}: {
-		saturdayOnly: boolean;
-		sundayOnly: boolean;
-		holidayOnly: boolean;
-	},
+	{ saturdayOnly, sundayOnly, holidayOnly }: FacilityFilters,
 ): boolean {
 	if (schedules.length === 0) {
 		return false;
@@ -91,6 +89,98 @@ function matchesFacilityFilters(
 	}
 
 	return true;
+}
+
+type FilterCheckboxProps = {
+	id: string;
+	label: string;
+	checked: boolean;
+	onToggle: (checked: boolean) => void;
+};
+
+function FilterCheckbox({ id, label, checked, onToggle }: FilterCheckboxProps) {
+	return (
+		<label
+			htmlFor={id}
+			className="inline-flex items-center gap-1 rounded-full border border-primary-200 bg-white px-2 py-1 text-primary-700"
+		>
+			<input
+				id={id}
+				type="checkbox"
+				checked={checked}
+				onChange={(event) => onToggle(event.target.checked)}
+			/>
+			<span>{label}</span>
+		</label>
+	);
+}
+
+type FacilityScheduleMatrixProps = {
+	rows: FacilitySchedule[];
+};
+
+function FacilityScheduleMatrix({ rows }: FacilityScheduleMatrixProps) {
+	return (
+		<div className="min-w-0 flex-1 overflow-x-auto">
+			{rows.length === 0 ? (
+				<p className="text-xs text-slate-500">
+					開所曜日・開所時間の情報は準備中です。
+				</p>
+			) : (
+				<table className="facility-schedule-table w-max min-w-[424px] table-fixed text-xs">
+					<colgroup>
+						<col className="w-36" />
+						{WEEKDAY_COLUMNS.map((column) => (
+							<col key={column.key} className="w-8" />
+						))}
+					</colgroup>
+					<thead className="bg-slate-50 text-slate-700">
+						<tr>
+							<th
+								scope="col"
+								className="whitespace-nowrap border border-primary-100 px-2 py-1.5 text-left font-medium align-middle"
+							>
+								時間
+							</th>
+							{WEEKDAY_COLUMNS.map((column) => (
+								<th
+									key={column.key}
+									scope="col"
+									className="border border-primary-100 px-2 py-1.5 text-center font-medium align-middle"
+								>
+									{column.label}
+								</th>
+							))}
+						</tr>
+					</thead>
+					<tbody className="text-slate-700">
+						{rows.map((row) => (
+							<tr key={row.id}>
+								<th
+									scope="row"
+									className="whitespace-nowrap border border-primary-100 px-2 py-1.5 text-left font-medium align-middle"
+								>
+									{formatTimeRangeLabel(row.open_time, row.close_time)}
+								</th>
+								{WEEKDAY_COLUMNS.map((column) => {
+									const isOpen = row[column.key];
+									return (
+										<td
+											key={column.key}
+											className="border border-primary-100 px-2 py-1.5 text-center align-middle"
+										>
+											<span className="sr-only">{isOpen ? "開所" : "休み"}</span>
+											<span aria-hidden="true">{isOpen ? "●" : "－"}</span>
+										</td>
+									);
+								})}
+							</tr>
+						))}
+					</tbody>
+				</table>
+			)}
+		</div>
+	);
 }
 
 export function FacilitiesTable({
@@ -188,9 +278,39 @@ export function FacilitiesTable({
 	const hasActiveFilter =
 		filterSaturdayOnly || filterSundayOnly || filterHolidayOnly;
 
+	const filterOptions: Array<{
+		id: string;
+		label: string;
+		checked: boolean;
+		onToggle: (checked: boolean) => void;
+	}> = [
+		{
+			id: "filter-saturday-open",
+			label: "土曜開所",
+			checked: filterSaturdayOnly,
+			onToggle: setFilterSaturdayOnly,
+		},
+		{
+			id: "filter-sunday-open",
+			label: "日曜開所",
+			checked: filterSundayOnly,
+			onToggle: setFilterSundayOnly,
+		},
+		{
+			id: "filter-holiday-open",
+			label: "祝日開所",
+			checked: filterHolidayOnly,
+			onToggle: setFilterHolidayOnly,
+		},
+	];
+
 	const wardSections = useMemo(() => {
-		const isFiltering =
-			filterSaturdayOnly || filterSundayOnly || filterHolidayOnly;
+		const filters: FacilityFilters = {
+			saturdayOnly: filterSaturdayOnly,
+			sundayOnly: filterSundayOnly,
+			holidayOnly: filterHolidayOnly,
+		};
+		const isFiltering = Object.values(filters).some(Boolean);
 		return wards
 			.map((ward) => {
 				const facilities = facilitiesByWard[ward] ?? [];
@@ -203,11 +323,10 @@ export function FacilitiesTable({
 				const orderedFacilities = [...ouen, ...others];
 				const visibleFacilities = isFiltering
 					? orderedFacilities.filter((facility) =>
-							matchesFacilityFilters(facility.facility_schedules ?? [], {
-								saturdayOnly: filterSaturdayOnly,
-								sundayOnly: filterSundayOnly,
-								holidayOnly: filterHolidayOnly,
-							}),
+							matchesFacilityFilters(
+								facility.facility_schedules ?? [],
+								filters,
+							),
 						)
 					: orderedFacilities;
 
@@ -256,42 +375,15 @@ export function FacilitiesTable({
 
 			<div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
 				<span className="text-slate-600">絞り込み:</span>
-				<label
-					htmlFor="filter-saturday-open"
-					className="inline-flex items-center gap-1 rounded-full border border-primary-200 bg-white px-2 py-1 text-primary-700"
-				>
-					<input
-						id="filter-saturday-open"
-						type="checkbox"
-						checked={filterSaturdayOnly}
-						onChange={(event) => setFilterSaturdayOnly(event.target.checked)}
+				{filterOptions.map((option) => (
+					<FilterCheckbox
+						key={option.id}
+						id={option.id}
+						label={option.label}
+						checked={option.checked}
+						onToggle={option.onToggle}
 					/>
-					<span>土曜開所</span>
-				</label>
-				<label
-					htmlFor="filter-sunday-open"
-					className="inline-flex items-center gap-1 rounded-full border border-primary-200 bg-white px-2 py-1 text-primary-700"
-				>
-					<input
-						id="filter-sunday-open"
-						type="checkbox"
-						checked={filterSundayOnly}
-						onChange={(event) => setFilterSundayOnly(event.target.checked)}
-					/>
-					<span>日曜開所</span>
-				</label>
-				<label
-					htmlFor="filter-holiday-open"
-					className="inline-flex items-center gap-1 rounded-full border border-primary-200 bg-white px-2 py-1 text-primary-700"
-				>
-					<input
-						id="filter-holiday-open"
-						type="checkbox"
-						checked={filterHolidayOnly}
-						onChange={(event) => setFilterHolidayOnly(event.target.checked)}
-					/>
-					<span>祝日開所</span>
-				</label>
+				))}
 				{hasActiveFilter && (
 					<span className="text-slate-500">{totalVisibleFacilities}件</span>
 				)}
@@ -342,72 +434,7 @@ export function FacilitiesTable({
 														{facility.name}
 													</p>
 												</div>
-												<div className="min-w-0 flex-1 overflow-x-auto">
-													{scheduleRows.length === 0 ? (
-														<p className="text-xs text-slate-500">
-															開所曜日・開所時間の情報は準備中です。
-														</p>
-													) : (
-														<table className="facility-schedule-table w-max min-w-[424px] table-fixed text-xs">
-															<colgroup>
-																<col className="w-36" />
-																{WEEKDAY_COLUMNS.map((column) => (
-																	<col key={column.key} className="w-8" />
-																))}
-															</colgroup>
-															<thead className="bg-slate-50 text-slate-700">
-																<tr>
-																	<th
-																		scope="col"
-																		className="whitespace-nowrap border border-primary-100 px-2 py-1.5 text-left font-medium align-middle"
-																	>
-																		時間
-																	</th>
-																	{WEEKDAY_COLUMNS.map((column) => (
-																		<th
-																			key={column.key}
-																			scope="col"
-																			className="border border-primary-100 px-2 py-1.5 text-center font-medium align-middle"
-																		>
-																			{column.label}
-																		</th>
-																	))}
-																</tr>
-															</thead>
-															<tbody className="text-slate-700">
-																{scheduleRows.map((row) => (
-																	<tr key={row.id}>
-																		<th
-																			scope="row"
-																			className="whitespace-nowrap border border-primary-100 px-2 py-1.5 text-left font-medium align-middle"
-																		>
-																			{formatTimeRangeLabel(
-																				row.open_time,
-																				row.close_time,
-																			)}
-																		</th>
-																		{WEEKDAY_COLUMNS.map((column) => {
-																			const isOpen = row[column.key];
-																			return (
-																				<td
-																					key={column.key}
-																					className="border border-primary-100 px-2 py-1.5 text-center align-middle"
-																				>
-																					<span className="sr-only">
-																						{isOpen ? "開所" : "休み"}
-																					</span>
-																					<span aria-hidden="true">
-																						{isOpen ? "●" : "－"}
-																					</span>
-																				</td>
-																			);
-																		})}
-																	</tr>
-																))}
-															</tbody>
-														</table>
-													)}
-												</div>
+												<FacilityScheduleMatrix rows={scheduleRows} />
 											</div>
 										</article>
 									);
