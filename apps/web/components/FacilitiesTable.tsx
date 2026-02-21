@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from "react";
 import {
 	addFavorite,
-	removeFavorite,
-	readFavoritesFromStorage,
-	updateFavoritesInStorage,
-	seedDefaultFavoritesInStorageIfNeeded,
 	FAVORITES_UPDATED_EVENT,
-} from '../lib/storage';
-import type { FacilitiesByWard, FacilitySchedule } from '../lib/types';
+	readFavoritesFromStorage,
+	removeFavorite,
+	seedDefaultFavoritesInStorageIfNeeded,
+	updateFavoritesInStorage,
+} from "../lib/storage";
+import type { FacilitiesByWard, FacilitySchedule } from "../lib/types";
 
 type FacilitiesTableProps = {
 	wards: string[];
@@ -22,36 +22,38 @@ type FacilitiesTableProps = {
 };
 
 type WeekdayKey =
-	| 'monday'
-	| 'tuesday'
-	| 'wednesday'
-	| 'thursday'
-	| 'friday'
-	| 'saturday'
-	| 'sunday'
-	| 'holiday';
+	| "monday"
+	| "tuesday"
+	| "wednesday"
+	| "thursday"
+	| "friday"
+	| "saturday"
+	| "sunday"
+	| "holiday";
 
 const WEEKDAY_COLUMNS: Array<{ label: string; key: WeekdayKey }> = [
-	{ label: '月', key: 'monday' },
-	{ label: '火', key: 'tuesday' },
-	{ label: '水', key: 'wednesday' },
-	{ label: '木', key: 'thursday' },
-	{ label: '金', key: 'friday' },
-	{ label: '土', key: 'saturday' },
-	{ label: '日', key: 'sunday' },
-	{ label: '祝', key: 'holiday' },
+	{ label: "月", key: "monday" },
+	{ label: "火", key: "tuesday" },
+	{ label: "水", key: "wednesday" },
+	{ label: "木", key: "thursday" },
+	{ label: "金", key: "friday" },
+	{ label: "土", key: "saturday" },
+	{ label: "日", key: "sunday" },
+	{ label: "祝", key: "holiday" },
 ];
 
 function formatTimeValue(value: string): string {
-	const [hour = '00', minute = '00'] = value.split(':');
-	return `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
+	const [hour = "00", minute = "00"] = value.split(":");
+	return `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`;
 }
 
 function formatTimeRangeLabel(openTime: string, closeTime: string): string {
 	return `${formatTimeValue(openTime)} ～ ${formatTimeValue(closeTime)}`;
 }
 
-function sortSchedulesByTime(schedules: FacilitySchedule[]): FacilitySchedule[] {
+function sortSchedulesByTime(
+	schedules: FacilitySchedule[],
+): FacilitySchedule[] {
 	return [...schedules].sort((a, b) => {
 		if (a.open_time === b.open_time) {
 			return a.close_time.localeCompare(b.close_time);
@@ -61,7 +63,7 @@ function sortSchedulesByTime(schedules: FacilitySchedule[]): FacilitySchedule[] 
 }
 
 function parseTimeToMinutes(value: string): number {
-	const [hour = '0', minute = '0'] = value.split(':');
+	const [hour = "0", minute = "0"] = value.split(":");
 	return Number(hour) * 60 + Number(minute);
 }
 
@@ -75,7 +77,7 @@ function matchesFacilityFilters(
 		sundayOnly: boolean;
 		holidayOnly: boolean;
 		openAfter18: boolean;
-	}
+	},
 ): boolean {
 	if (schedules.length === 0) {
 		return false;
@@ -89,16 +91,27 @@ function matchesFacilityFilters(
 		return false;
 	}
 
-	if (openAfter18 && !schedules.some((schedule) => parseTimeToMinutes(schedule.close_time) >= 18 * 60)) {
+	if (
+		openAfter18 &&
+		!schedules.some(
+			(schedule) => parseTimeToMinutes(schedule.close_time) >= 18 * 60,
+		)
+	) {
 		return false;
 	}
 
 	return true;
 }
 
-export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = [] }: FacilitiesTableProps) {
+export function FacilitiesTable({
+	wards,
+	facilitiesByWard,
+	initialFavoriteIds = [],
+}: FacilitiesTableProps) {
 	// サーバーサイドの初期値とクライアントサイドの状態を同期
-	const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set(initialFavoriteIds));
+	const [favoriteIds, setFavoriteIds] = useState<Set<string>>(
+		new Set(initialFavoriteIds),
+	);
 	const [filterSundayOnly, setFilterSundayOnly] = useState(false);
 	const [filterHolidayOnly, setFilterHolidayOnly] = useState(false);
 	const [filterOpenAfter18, setFilterOpenAfter18] = useState(false);
@@ -114,29 +127,31 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 		// FavoritesSection とどちらが先にマウントしても整合するように、両方で同じseed処理を実行する。
 		const allFacilities = wards.flatMap((ward) => facilitiesByWard[ward] ?? []);
 		seedDefaultFavoritesInStorageIfNeeded(allFacilities);
-		
+
 		// 初回読み込み
 		updateFavoriteIds();
-		
+
 		// カスタムイベントでお気に入りの変更を検知
 		const handleFavoritesUpdated = () => {
 			updateFavoriteIds();
 		};
 		window.addEventListener(FAVORITES_UPDATED_EVENT, handleFavoritesUpdated);
-		
+
 		return () => {
-			window.removeEventListener(FAVORITES_UPDATED_EVENT, handleFavoritesUpdated);
+			window.removeEventListener(
+				FAVORITES_UPDATED_EVENT,
+				handleFavoritesUpdated,
+			);
 		};
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+	}, [wards, facilitiesByWard]);
 
 	const handleAddFavorite = (facilityId: string) => {
 		const currentFavorites = readFavoritesFromStorage();
 		const updated = addFavorite(facilityId, currentFavorites);
-		
+
 		// 最大件数に達している場合は追加できない
 		if (updated.length === currentFavorites.length) {
-			alert('お気に入りは最大5件まで登録できます。');
+			alert("お気に入りは最大5件まで登録できます。");
 			return;
 		}
 
@@ -167,52 +182,79 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 						? `${facilityName}をお気に入りから削除`
 						: `${facilityName}をお気に入りに追加`
 				}
-				className={isFavorite ? 'btn-remove' : 'btn-add'}
-				onClick={() => (isFavorite ? handleRemoveFavorite(facilityId) : handleAddFavorite(facilityId))}
+				className={isFavorite ? "btn-remove" : "btn-add"}
+				onClick={() =>
+					isFavorite
+						? handleRemoveFavorite(facilityId)
+						: handleAddFavorite(facilityId)
+				}
 				type="button"
 			>
-				{isFavorite ? '−' : '＋'}
+				{isFavorite ? "−" : "＋"}
 			</button>
 		);
 	};
 
-	const hasActiveFilter = filterSundayOnly || filterHolidayOnly || filterOpenAfter18;
+	const hasActiveFilter =
+		filterSundayOnly || filterHolidayOnly || filterOpenAfter18;
 
 	const wardSections = useMemo(() => {
+		const isFiltering =
+			filterSundayOnly || filterHolidayOnly || filterOpenAfter18;
 		return wards
 			.map((ward) => {
 				const facilities = facilitiesByWard[ward] ?? [];
-				const ouen = facilities.filter((facility) => facility.facility_type === 'childcare_ouen_base');
-				const others = facilities.filter((facility) => facility.facility_type !== 'childcare_ouen_base');
+				const ouen = facilities.filter(
+					(facility) => facility.facility_type === "childcare_ouen_base",
+				);
+				const others = facilities.filter(
+					(facility) => facility.facility_type !== "childcare_ouen_base",
+				);
 				const orderedFacilities = [...ouen, ...others];
-				const visibleFacilities = hasActiveFilter
+				const visibleFacilities = isFiltering
 					? orderedFacilities.filter((facility) =>
 							matchesFacilityFilters(facility.facility_schedules ?? [], {
 								sundayOnly: filterSundayOnly,
 								holidayOnly: filterHolidayOnly,
 								openAfter18: filterOpenAfter18,
-							})
-					  )
+							}),
+						)
 					: orderedFacilities;
 
 				return { ward, facilities: visibleFacilities };
 			})
-			.filter((section) => !hasActiveFilter || section.facilities.length > 0);
-	}, [wards, facilitiesByWard, hasActiveFilter, filterSundayOnly, filterHolidayOnly, filterOpenAfter18]);
+			.filter((section) => !isFiltering || section.facilities.length > 0);
+	}, [
+		wards,
+		facilitiesByWard,
+		filterSundayOnly,
+		filterHolidayOnly,
+		filterOpenAfter18,
+	]);
 
 	const totalVisibleFacilities = wardSections.reduce(
 		(total, section) => total + section.facilities.length,
-		0
+		0,
 	);
 
 	return (
-		<section aria-labelledby="facilities-heading" className="max-w-6xl mx-auto bg-white rounded-2xl px-4 py-4">
-			<h2 id="facilities-heading" className="text-xl font-semibold mb-4 text-slate-900">
+		<section
+			aria-labelledby="facilities-heading"
+			className="max-w-6xl mx-auto bg-white rounded-2xl px-4 py-4"
+		>
+			<h2
+				id="facilities-heading"
+				className="text-xl font-semibold mb-4 text-slate-900"
+			>
 				拠点一覧
 			</h2>
 			<nav className="mb-3 flex flex-wrap gap-2 text-xs text-slate-600">
 				{wardSections.map(({ ward }) => (
-					<a key={ward} className="rounded-full border border-primary-200 bg-white px-2 py-0.5 text-primary-700 hover:bg-primary-50" href={`#ward-${ward}`}>
+					<a
+						key={ward}
+						className="rounded-full border border-primary-200 bg-white px-2 py-0.5 text-primary-700 hover:bg-primary-50"
+						href={`#ward-${ward}`}
+					>
 						{ward}へ
 					</a>
 				))}
@@ -224,24 +266,36 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 
 			<div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
 				<span className="text-slate-600">絞り込み:</span>
-				<label className="inline-flex items-center gap-1 rounded-full border border-primary-200 bg-white px-2 py-1 text-primary-700">
+				<label
+					htmlFor="filter-sunday-open"
+					className="inline-flex items-center gap-1 rounded-full border border-primary-200 bg-white px-2 py-1 text-primary-700"
+				>
 					<input
+						id="filter-sunday-open"
 						type="checkbox"
 						checked={filterSundayOnly}
 						onChange={(event) => setFilterSundayOnly(event.target.checked)}
 					/>
 					<span>日曜開所</span>
 				</label>
-				<label className="inline-flex items-center gap-1 rounded-full border border-primary-200 bg-white px-2 py-1 text-primary-700">
+				<label
+					htmlFor="filter-holiday-open"
+					className="inline-flex items-center gap-1 rounded-full border border-primary-200 bg-white px-2 py-1 text-primary-700"
+				>
 					<input
+						id="filter-holiday-open"
 						type="checkbox"
 						checked={filterHolidayOnly}
 						onChange={(event) => setFilterHolidayOnly(event.target.checked)}
 					/>
 					<span>祝日開所</span>
 				</label>
-				<label className="inline-flex items-center gap-1 rounded-full border border-primary-200 bg-white px-2 py-1 text-primary-700">
+				<label
+					htmlFor="filter-open-after-18"
+					className="inline-flex items-center gap-1 rounded-full border border-primary-200 bg-white px-2 py-1 text-primary-700"
+				>
 					<input
+						id="filter-open-after-18"
 						type="checkbox"
 						checked={filterOpenAfter18}
 						onChange={(event) => setFilterOpenAfter18(event.target.checked)}
@@ -249,117 +303,124 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 					<span>18時以降開所</span>
 				</label>
 				{hasActiveFilter && (
-					<span className="text-slate-500">
-						{totalVisibleFacilities}件
-					</span>
+					<span className="text-slate-500">{totalVisibleFacilities}件</span>
 				)}
 			</div>
+			{hasActiveFilter && (
+				<p className="mb-3 text-xs text-slate-500">
+					※ スケジュール未登録の拠点は絞り込み結果に表示されません。
+				</p>
+			)}
 
 			<div className="space-y-4">
 				{wardSections.map(({ ward, facilities }) => (
-						<section
-							key={ward}
-							aria-labelledby={`ward-${ward}`}
-							className="rounded-xl border border-primary-100 bg-white shadow-sm"
+					<section
+						key={ward}
+						aria-labelledby={`ward-${ward}`}
+						className="rounded-xl border border-primary-100 bg-white shadow-sm"
+					>
+						<h3
+							id={`ward-${ward}`}
+							className="rounded-t-xl bg-primary-50 px-3 py-3 text-sm font-bold tracking-wide text-primary-900"
 						>
-							<h3
-								id={`ward-${ward}`}
-								className="rounded-t-xl bg-primary-50 px-3 py-3 text-sm font-bold tracking-wide text-primary-900"
-							>
-								{ward}
-							</h3>
-							<div className="divide-y divide-primary-100">
-								{facilities.length === 0 ? (
-									<div className="px-3 py-3 text-xs text-slate-500">
-										拠点情報がありません。
-									</div>
-								) : (
-									facilities.map((facility) => {
-										const isOuenBase = facility.facility_type === 'childcare_ouen_base';
-										const scheduleRows = sortSchedulesByTime(
-											facility.facility_schedules ?? []
-										);
+							{ward}
+						</h3>
+						<div className="divide-y divide-primary-100">
+							{facilities.length === 0 ? (
+								<div className="px-3 py-3 text-xs text-slate-500">
+									拠点情報がありません。
+								</div>
+							) : (
+								facilities.map((facility) => {
+									const isOuenBase =
+										facility.facility_type === "childcare_ouen_base";
+									const scheduleRows = sortSchedulesByTime(
+										facility.facility_schedules ?? [],
+									);
 
-										return (
-											<article
-												key={facility.id}
-												className={`px-3 py-3 ${isOuenBase ? 'bg-primary-50/40' : 'bg-white'}`}
-											>
-												<div className="flex items-start justify-between gap-3">
-													<div className="min-w-0">
-														<p className="truncate text-sm font-medium text-slate-900">
-															{facility.name}
-														</p>
-														<p className="mt-0.5 text-[11px] text-slate-500">
-															{isOuenBase ? '応援拠点' : '支援拠点'}
-														</p>
-													</div>
-													{renderFavoriteButton(facility.id, facility.name)}
-												</div>
-
-												{scheduleRows.length === 0 ? (
-													<p className="mt-2 text-xs text-slate-500">
-														開所曜日・開所時間の情報は準備中です。
+									return (
+										<article
+											key={facility.id}
+											className={`px-3 py-3 ${isOuenBase ? "bg-primary-50/40" : "bg-white"}`}
+										>
+											<div className="flex items-start justify-between gap-3">
+												<div className="min-w-0">
+													<p className="truncate text-sm font-medium text-slate-900">
+														{facility.name}
 													</p>
-												) : (
-													<div className="mt-2 overflow-x-auto">
-														<table className="w-full min-w-[540px] text-xs">
-															<thead className="bg-slate-50 text-slate-700">
-																<tr>
+													<p className="mt-0.5 text-[11px] text-slate-500">
+														{isOuenBase ? "応援拠点" : "支援拠点"}
+													</p>
+												</div>
+												{renderFavoriteButton(facility.id, facility.name)}
+											</div>
+
+											{scheduleRows.length === 0 ? (
+												<p className="mt-2 text-xs text-slate-500">
+													開所曜日・開所時間の情報は準備中です。
+												</p>
+											) : (
+												<div className="mt-2 overflow-x-auto">
+													<table className="w-full min-w-[540px] text-xs">
+														<thead className="bg-slate-50 text-slate-700">
+															<tr>
+																<th
+																	scope="col"
+																	className="whitespace-nowrap border border-primary-100 px-2 py-1.5 text-left font-medium"
+																>
+																	時間
+																</th>
+																{WEEKDAY_COLUMNS.map((column) => (
 																	<th
+																		key={column.key}
 																		scope="col"
+																		className="border border-primary-100 px-2 py-1.5 text-center font-medium"
+																	>
+																		{column.label}
+																	</th>
+																))}
+															</tr>
+														</thead>
+														<tbody className="text-slate-700">
+															{scheduleRows.map((row) => (
+																<tr key={row.id}>
+																	<th
+																		scope="row"
 																		className="whitespace-nowrap border border-primary-100 px-2 py-1.5 text-left font-medium"
 																	>
-																		時間
+																		{formatTimeRangeLabel(
+																			row.open_time,
+																			row.close_time,
+																		)}
 																	</th>
-																	{WEEKDAY_COLUMNS.map((column) => (
-																		<th
-																			key={column.key}
-																			scope="col"
-																			className="border border-primary-100 px-2 py-1.5 text-center font-medium"
-																		>
-																			{column.label}
-																		</th>
-																	))}
+																	{WEEKDAY_COLUMNS.map((column) => {
+																		const isOpen = row[column.key];
+																		return (
+																			<td
+																				key={column.key}
+																				className="border border-primary-100 px-2 py-1.5 text-center"
+																			>
+																				<span className="sr-only">
+																					{isOpen ? "開所" : "休み"}
+																				</span>
+																				<span aria-hidden="true">
+																					{isOpen ? "●" : "－"}
+																				</span>
+																			</td>
+																		);
+																	})}
 																</tr>
-															</thead>
-															<tbody className="text-slate-700">
-																{scheduleRows.map((row, index) => (
-																	<tr key={`${row.id}-${index}`}>
-																		<th
-																			scope="row"
-																			className="whitespace-nowrap border border-primary-100 px-2 py-1.5 text-left font-medium"
-																		>
-																			{formatTimeRangeLabel(row.open_time, row.close_time)}
-																		</th>
-																		{WEEKDAY_COLUMNS.map((column) => {
-																			const isOpen = row[column.key];
-																			return (
-																				<td
-																					key={column.key}
-																					className="border border-primary-100 px-2 py-1.5 text-center"
-																				>
-																					<span className="sr-only">
-																						{isOpen ? '開所' : '休み'}
-																					</span>
-																					<span aria-hidden="true">
-																						{isOpen ? '●' : '－'}
-																					</span>
-																				</td>
-																			);
-																		})}
-																	</tr>
-																))}
-															</tbody>
-														</table>
-													</div>
-												)}
-											</article>
-										);
-									})
-								)}
-							</div>
-						</section>
+															))}
+														</tbody>
+													</table>
+												</div>
+											)}
+										</article>
+									);
+								})
+							)}
+						</div>
+					</section>
 				))}
 				{hasActiveFilter && totalVisibleFacilities === 0 && (
 					<div className="rounded-xl border border-primary-100 bg-white px-3 py-4 text-sm text-slate-600 shadow-sm">
@@ -370,5 +431,3 @@ export function FacilitiesTable({ wards, facilitiesByWard, initialFavoriteIds = 
 		</section>
 	);
 }
-
-

@@ -33,11 +33,16 @@ const args = process.argv.slice(2);
 const isApply = args.includes("--apply");
 const isYes = args.includes("--yes");
 const limitArg = args.find((arg) => arg.startsWith("--limit="))?.split("=")[1];
-const limit = limitArg ? Math.max(0, Number(limitArg)) : null;
+const parsedLimit = limitArg === undefined ? null : Number(limitArg);
+const limit =
+	parsedLimit !== null && Number.isFinite(parsedLimit) && parsedLimit >= 0
+		? Math.floor(parsedLimit)
+		: null;
 
 const REQUEST_INTERVAL_MS = 1100;
 const MAX_RETRIES = 3;
 const BACKOFF_DELAYS_MS = [500, 1000, 2000];
+const INSERT_BATCH_SIZE = 500;
 
 const DAY_KEYS = [
 	"monday",
@@ -219,7 +224,7 @@ function parseDayFlags(text: string): {
 	const isClosedExpression = /(休|除く|お休み)/.test(normalized);
 
 	const rangeMatch = normalized.match(
-		/([月火水木金土日])曜日?から([月火水木金土日])曜日?/,
+		/([月火水木金土日])(?:曜日)?\s*(?:から|[-~～〜−ー―])\s*([月火水木金土日])(?:曜日)?/,
 	);
 	if (rangeMatch) {
 		const startKey = parseDayTokenToKey(rangeMatch[1] ?? "");
@@ -237,9 +242,20 @@ function parseDayFlags(text: string): {
 			const startIndex = dayOrder.indexOf(startKey);
 			const endIndex = dayOrder.indexOf(endKey);
 			if (startIndex >= 0 && endIndex >= 0) {
-				for (let index = startIndex; index <= endIndex; index += 1) {
-					const key = dayOrder[index];
-					if (key) flags[key] = true;
+				if (startIndex <= endIndex) {
+					for (let index = startIndex; index <= endIndex; index += 1) {
+						const key = dayOrder[index];
+						if (key) flags[key] = true;
+					}
+				} else {
+					for (let index = startIndex; index < dayOrder.length; index += 1) {
+						const key = dayOrder[index];
+						if (key) flags[key] = true;
+					}
+					for (let index = 0; index <= endIndex; index += 1) {
+						const key = dayOrder[index];
+						if (key) flags[key] = true;
+					}
 				}
 			}
 		}
@@ -303,9 +319,12 @@ function formatMinutesToTime(totalMinutes: number): string {
 function parseTimeRanges(text: string): ParsedTimeRange[] {
 	const normalized = normalizeJapaneseText(text);
 	const ranges: ParsedTimeRange[] = [];
-
-	const regex =
-		/((?:午前|午後)?\s*\d{1,2}(?:\s*時(?:\s*\d{1,2}\s*分?)?|\s*:\s*\d{1,2})?(?:\s*半)?|正午)\s*から\s*((?:午前|午後)?\s*\d{1,2}(?:\s*時(?:\s*\d{1,2}\s*分?)?|\s*:\s*\d{1,2})?(?:\s*半)?|正午)/g;
+	const timeToken =
+		"(?:午前|午後)?\\s*\\d{1,2}(?:\\s*時(?:\\s*\\d{1,2}\\s*分?)?|\\s*:\\s*\\d{1,2})?(?:\\s*半)?|正午";
+	const regex = new RegExp(
+		`(${timeToken})\\s*(?:から|[-~～〜−ー―])\\s*(${timeToken})`,
+		"g",
+	);
 	let match: RegExpExecArray | null = regex.exec(normalized);
 	while (match) {
 		const rawOpen = match[1]?.trim() ?? "";
@@ -658,6 +677,9 @@ async function main(): Promise<void> {
 	if (isApply && !isYes) {
 		throw new Error("--apply mode requires --yes flag for confirmation");
 	}
+	if (limitArg !== undefined && limit === null) {
+		throw new Error(`--limit must be a non-negative number: ${limitArg}`);
+	}
 
 	const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 	const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -691,28 +713,18 @@ async function main(): Promise<void> {
 	const allParsedRows: FacilityScheduleInsert[] = [];
 
 	for (const facility of facilities) {
-		if (!facility.detail_page_url) {
-			results.push({
-				facilityId: facility.id,
-				facilityName: facility.name,
-				wardName: facility.ward_name,
-				detailPageUrl: "",
-				reason: "no_detail_page_url",
-				scheduleCount: 0,
-				warnings: [],
-			});
-			continue;
-		}
+		const detailPageUrl = facility.detail_page_url;
+		if (!detailPageUrl) continue;
 
 		try {
-			const html = await fetchHtmlWithRetry(facility.detail_page_url);
+			const html = await fetchHtmlWithRetry(detailPageUrl);
 			const sectionText = extractScheduleSectionText(html);
 			if (!sectionText) {
 				results.push({
 					facilityId: facility.id,
 					facilityName: facility.name,
 					wardName: facility.ward_name,
-					detailPageUrl: facility.detail_page_url,
+					detailPageUrl,
 					reason: "no_schedule_section",
 					scheduleCount: 0,
 					warnings: [],
@@ -727,7 +739,7 @@ async function main(): Promise<void> {
 					facilityId: facility.id,
 					facilityName: facility.name,
 					wardName: facility.ward_name,
-					detailPageUrl: facility.detail_page_url,
+					detailPageUrl,
 					reason: "parse_failed",
 					scheduleCount: 0,
 					warnings: parsed.warnings,
@@ -742,7 +754,7 @@ async function main(): Promise<void> {
 				facilityId: facility.id,
 				facilityName: facility.name,
 				wardName: facility.ward_name,
-				detailPageUrl: facility.detail_page_url,
+				detailPageUrl,
 				reason: isApply ? "updated" : "dry_run",
 				scheduleCount: parsed.schedules.length,
 				warnings: parsed.warnings,
@@ -753,7 +765,7 @@ async function main(): Promise<void> {
 				facilityId: facility.id,
 				facilityName: facility.name,
 				wardName: facility.ward_name,
-				detailPageUrl: facility.detail_page_url,
+				detailPageUrl,
 				reason: "fetch_failed",
 				scheduleCount: 0,
 				warnings: [],
@@ -794,13 +806,20 @@ async function main(): Promise<void> {
 				);
 			}
 
-			const { error: insertError } = await supabase
-				.from("facility_schedules")
-				.insert(allParsedRows);
-			if (insertError) {
-				throw new Error(
-					`Failed to insert facility_schedules rows: ${insertError.message}. Backup log: ${backupJsonLogPath ?? "N/A"}`,
-				);
+			for (
+				let start = 0;
+				start < allParsedRows.length;
+				start += INSERT_BATCH_SIZE
+			) {
+				const rows = allParsedRows.slice(start, start + INSERT_BATCH_SIZE);
+				const { error: insertError } = await supabase
+					.from("facility_schedules")
+					.insert(rows);
+				if (insertError) {
+					throw new Error(
+						`Failed to insert facility_schedules rows (batch ${start}-${start + rows.length - 1}): ${insertError.message}. Backup log: ${backupJsonLogPath ?? "N/A"}`,
+					);
+				}
 			}
 		}
 	}
