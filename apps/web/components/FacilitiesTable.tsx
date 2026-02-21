@@ -333,11 +333,11 @@ export function FacilitiesTable({
 											key={facility.id}
 											className={`px-3 py-3 ${isOuenBase ? "bg-primary-50/40" : "bg-white"}`}
 										>
-											<div className="flex items-start gap-3">
-												<div className="shrink-0 pt-0.5">
+											<div className="grid grid-cols-[2rem_9rem_minmax(0,1fr)] items-center gap-3">
+												<div className="flex h-7 items-center justify-center">
 													{renderFavoriteButton(facility.id, facility.name)}
 												</div>
-												<div className="w-36 shrink-0">
+												<div className="min-w-0">
 													<p className="truncate text-sm font-medium text-slate-900">
 														{facility.name}
 													</p>
@@ -348,12 +348,18 @@ export function FacilitiesTable({
 															開所曜日・開所時間の情報は準備中です。
 														</p>
 													) : (
-														<table className="w-full min-w-[540px] text-xs">
+														<table className="w-full min-w-[540px] table-fixed text-xs">
+															<colgroup>
+																<col className="w-40" />
+																{WEEKDAY_COLUMNS.map((column) => (
+																	<col key={column.key} className="w-10" />
+																))}
+															</colgroup>
 															<thead className="bg-slate-50 text-slate-700">
 																<tr>
 																	<th
 																		scope="col"
-																		className="whitespace-nowrap border border-primary-100 px-2 py-1.5 text-left font-medium"
+																		className="whitespace-nowrap border border-primary-100 px-2 py-1.5 text-left font-medium align-middle"
 																	>
 																		時間
 																	</th>
@@ -361,7 +367,7 @@ export function FacilitiesTable({
 																		<th
 																			key={column.key}
 																			scope="col"
-																			className="border border-primary-100 px-2 py-1.5 text-center font-medium"
+																			className="border border-primary-100 px-2 py-1.5 text-center font-medium align-middle"
 																		>
 																			{column.label}
 																		</th>
@@ -373,7 +379,7 @@ export function FacilitiesTable({
 																	<tr key={row.id}>
 																		<th
 																			scope="row"
-																			className="whitespace-nowrap border border-primary-100 px-2 py-1.5 text-left font-medium"
+																			className="whitespace-nowrap border border-primary-100 px-2 py-1.5 text-left font-medium align-middle"
 																		>
 																			{formatTimeRangeLabel(
 																				row.open_time,
@@ -385,7 +391,7 @@ export function FacilitiesTable({
 																			return (
 																				<td
 																					key={column.key}
-																					className="border border-primary-100 px-2 py-1.5 text-center"
+																					className="border border-primary-100 px-2 py-1.5 text-center align-middle"
 																				>
 																					<span className="sr-only">
 																						{isOpen ? "開所" : "休み"}
