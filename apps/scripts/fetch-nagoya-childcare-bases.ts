@@ -9,12 +9,12 @@
  */
 
 import * as cheerio from 'cheerio';
-import fetch from 'node-fetch';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { mkdirSync, writeFileSync } from 'fs';
+import { fetchTextWithRetry } from './lib/http-client';
 
 // 環境変数の読み込み（.env.local から）
 const __filename = fileURLToPath(import.meta.url);
@@ -63,10 +63,6 @@ const NAGOYA_WARD_CODE_MAP: Readonly<Record<string, string>> = {
   '千種区': '23116',
 } as const;
 
-// リトライ設定値（[04 開発ガイド](../docs/04-development.md) 9.5.1 節のスクレイピングガイドラインに準拠）
-const MAX_RETRIES = 3;
-const BACKOFF_DELAYS_MS = [500, 1000, 2000]; // 指数バックオフ: 500ms → 1s → 2s
-
 // 型定義
 interface FacilityRaw {
   name: string;
@@ -92,29 +88,13 @@ interface FacilityRaw {
  * [04 開発ガイド](../docs/04-development.md) 9.5.1 節のスクレイピングガイドラインに準拠
  */
 async function fetchAndParse(url: string, retryCount: number = 0): Promise<cheerio.CheerioAPI> {
-  try {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'ChildcareScheduleHub/1.0 (+https://childcare-schedule-hub.example.com)',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status} ${response.statusText}`);
-    }
-
-    const html = await response.text();
-    return cheerio.load(html);
-  } catch (error) {
-    if (retryCount < MAX_RETRIES) {
-      const delay = BACKOFF_DELAYS_MS[retryCount] || 2000;
-      console.log(`[INFO] Retrying fetch ${url} (attempt ${retryCount + 1}/${MAX_RETRIES}) after ${delay}ms...`);
-      await new Promise((resolve) => setTimeout(resolve, delay));
-      return fetchAndParse(url, retryCount + 1);
-    }
-    // 最終失敗時は既存と同様に Error を投げる
-    throw new Error(`Failed to fetch ${url} after ${MAX_RETRIES} retries: ${error instanceof Error ? error.message : String(error)}`);
-  }
+  const html = await fetchTextWithRetry(url, {
+    onRetry: ({ attempt, maxRetries, delayMs }) => {
+      console.log(`[INFO] Retrying fetch ${url} (attempt ${attempt}/${maxRetries}) after ${delayMs}ms...`);
+    },
+    wrapFinalError: true,
+  }, retryCount);
+  return cheerio.load(html);
 }
 
 /**
@@ -177,7 +157,7 @@ function extractWardName(address: string): { wardName: string | null; wardCode: 
  */
 function extractFacilityFromRow(
   $: cheerio.CheerioAPI,
-  $row: cheerio.Cheerio<cheerio.Element>,
+  $row: cheerio.Cheerio<any>,
   facilityType: typeof FACILITY_TYPES.OUEN | typeof FACILITY_TYPES.SHIEN,
   listingPageUrl: string
 ): FacilityRaw | null {
