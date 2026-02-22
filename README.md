@@ -29,7 +29,7 @@ pnpm install
 - `apps/web/env.local.example` を `apps/web/.env.local` にコピーし、実際の値を設定してください。
 - **`.env.local` は Git にコミットしない**（`.gitignore` で `.env.*` を除外しています）。
 - **秘匿情報（APIキー/トークン等）をログに出力しない**（例: `process.env.*` の `console.*` 出力は禁止）。
-- Google CSE / Instagram 連携など外部サービスのキーは **サーバー専用**として扱い、利用規約を遵守してください（詳細は `docs/04-development.md` を参照）。
+- Google CSE / Instagram 連携など外部サービスのキーは **サーバー専用**として扱い、利用規約を遵守してください。
 
 ## 開発サーバーの起動
 
@@ -116,10 +116,9 @@ pnpm --filter web format
 
 ## 開発資料
 
-`docs/` ディレクトリに要件定義や設計資料を格納しています。
+本プロジェクトのシステムアーキテクチャやDBスキーマ、コーディングルールについては `docs/` ディレクトリを参照してください。
 
-- 要件定義・設計資料: [`docs/01-requirements.md`](docs/01-requirements.md), [`docs/02-design.md`](docs/02-design.md)
-- 開発ガイド: [`docs/04-development.md`](docs/04-development.md)
+- ドキュメントインデックス: [`docs/README.md`](docs/README.md)
 - テストドキュメント: [`docs/tests/README.md`](docs/tests/README.md)
 
 ## ライセンス
