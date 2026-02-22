@@ -18,13 +18,13 @@
  */
 
 import * as cheerio from 'cheerio';
-import fetch from 'node-fetch';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { mkdirSync, writeFileSync } from 'fs';
 import { normalizeInstagramUrl } from './lib/instagram-url';
+import { fetchTextWithRetry } from './lib/http-client';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -38,8 +38,6 @@ const limit = limitArg ? Math.max(0, Number(limitArg)) : null;
 
 // スクレイピングガイドラインに準拠（最低1秒間隔）
 const REQUEST_INTERVAL_MS = 1100;
-const MAX_RETRIES = 3;
-const BACKOFF_DELAYS_MS = [500, 1000, 2000];
 
 type FacilityRow = {
 	id: string;
@@ -73,24 +71,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 async function fetchHtmlWithRetry(url: string, retryCount = 0): Promise<string> {
-	try {
-		const response = await fetch(url, {
-			headers: {
-				'User-Agent': 'ChildcareScheduleHub/1.0 (+https://childcare-schedule-hub.example.com)',
-			},
-		});
-		if (!response.ok) {
-			throw new Error(`HTTP ${response.status} ${response.statusText}`);
-		}
-		return await response.text();
-	} catch (error) {
-		if (retryCount < MAX_RETRIES) {
-			const delay = BACKOFF_DELAYS_MS[retryCount] ?? 2000;
-			await sleep(delay);
-			return fetchHtmlWithRetry(url, retryCount + 1);
-		}
-		throw error;
-	}
+	return fetchTextWithRetry(url, {}, retryCount);
 }
 
 function extractInstagramLinksFromDetailHtml(html: string): { raw: string[]; normalized: string[] } {
