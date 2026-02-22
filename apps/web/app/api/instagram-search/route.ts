@@ -7,6 +7,7 @@ import {
 	processSearchResultsHybrid,
 	type Candidate,
 } from '../../../lib/instagram-search';
+import { searchGoogleCse } from '../../../lib/google-cse-client';
 
 export async function GET(request: NextRequest) {
 	const adminToken = request.headers.get('x-admin-token');
@@ -91,61 +92,40 @@ export async function GET(request: NextRequest) {
 		const stopGap = 2;
 
 		for (const query of queries.slice(0, maxQueries)) {
-			try {
-				const searchUrl = new URL('https://www.googleapis.com/customsearch/v1');
-				searchUrl.searchParams.set('key', apiKey);
-				searchUrl.searchParams.set('cx', cx);
-				searchUrl.searchParams.set('q', query);
-				searchUrl.searchParams.set('num', '10');
-				searchUrl.searchParams.set('hl', 'ja');
-				searchUrl.searchParams.set('gl', 'jp');
-				
-				const response = await fetch(searchUrl.toString(), {
-					method: 'GET',
-					headers: {
-						'User-Agent': 'ChildcareScheduleHub/1.0',
-					},
-				});
-				
-				if (!response.ok) {
-					triedQueries.push(query);
-					continue;
-				}
-				
-				const data = await response.json();
-				
-				if (data.error) {
-					return NextResponse.json(
-						{ error: { code: 'CSE_ERROR', message: data.error.message || 'Google CSE API error' } },
-						{ status: 500 }
-					);
-				}
-				
-				const items = data.items || [];
-				triedQueries.push(query);
-				
-				if (items.length > 0) {
-					const candidates = processSearchResults(items, targetFacilityName, targetWardName);
-					for (const c of candidates) {
-						const existing = merged.get(c.link);
-						if (!existing || c.score > existing.score) {
-							merged.set(c.link, c);
-						}
-					}
-				}
-
-				const currentCandidates = Array.from(merged.values()).sort((a, b) => b.score - a.score);
-				if (currentCandidates.length > 0) {
-					const top = currentCandidates[0];
-					const second = currentCandidates[1];
-					const gap = second ? top.score - second.score : 999;
-					if (top.score >= stopScore && gap >= stopGap) {
-						break;
-					}
-				}
-			} catch {
+			const cseResult = await searchGoogleCse({ apiKey, cx, query });
+			if (cseResult.kind === 'http_error' || cseResult.kind === 'network_error') {
 				triedQueries.push(query);
 				continue;
+			}
+
+			if (cseResult.kind === 'api_error') {
+				return NextResponse.json(
+					{ error: { code: 'CSE_ERROR', message: cseResult.message } },
+					{ status: 500 }
+				);
+			}
+
+			const items = cseResult.items;
+			triedQueries.push(query);
+
+			if (items.length > 0) {
+				const candidates = processSearchResults(items, targetFacilityName, targetWardName);
+				for (const c of candidates) {
+					const existing = merged.get(c.link);
+					if (!existing || c.score > existing.score) {
+						merged.set(c.link, c);
+					}
+				}
+			}
+
+			const currentCandidates = Array.from(merged.values()).sort((a, b) => b.score - a.score);
+			if (currentCandidates.length > 0) {
+				const top = currentCandidates[0];
+				const second = currentCandidates[1];
+				const gap = second ? top.score - second.score : 999;
+				if (top.score >= stopScore && gap >= stopGap) {
+					break;
+				}
 			}
 		}
 
@@ -158,50 +138,29 @@ export async function GET(request: NextRequest) {
 		const candidates: Candidate[] = [];
 
 		for (const query of queries.slice(0, maxQueries)) {
-			try {
-				const searchUrl = new URL('https://www.googleapis.com/customsearch/v1');
-				searchUrl.searchParams.set('key', apiKey);
-				searchUrl.searchParams.set('cx', cx);
-				searchUrl.searchParams.set('q', query);
-				searchUrl.searchParams.set('num', '10');
-				searchUrl.searchParams.set('hl', 'ja');
-				searchUrl.searchParams.set('gl', 'jp');
-				
-				const response = await fetch(searchUrl.toString(), {
-					method: 'GET',
-					headers: {
-						'User-Agent': 'ChildcareScheduleHub/1.0',
-					},
-				});
-				
-				if (!response.ok) {
-					triedQueries.push(query);
-					continue;
-				}
-				
-				const data = await response.json();
-				
-				if (data.error) {
-					return NextResponse.json(
-						{ error: { code: 'CSE_ERROR', message: data.error.message || 'Google CSE API error' } },
-						{ status: 500 }
-					);
-				}
-				
-				const items = data.items || [];
-				triedQueries.push(query);
-				
-				if (items.length > 0) {
-					const rankCandidates = processSearchResultsRank(items, targetFacilityName, targetWardName, 3);
-					candidates.push(...rankCandidates);
-					
-					if (candidates.length > 0) {
-						break;
-					}
-				}
-			} catch {
+			const cseResult = await searchGoogleCse({ apiKey, cx, query });
+			if (cseResult.kind === 'http_error' || cseResult.kind === 'network_error') {
 				triedQueries.push(query);
 				continue;
+			}
+
+			if (cseResult.kind === 'api_error') {
+				return NextResponse.json(
+					{ error: { code: 'CSE_ERROR', message: cseResult.message } },
+					{ status: 500 }
+				);
+			}
+
+			const items = cseResult.items;
+			triedQueries.push(query);
+
+			if (items.length > 0) {
+				const rankCandidates = processSearchResultsRank(items, targetFacilityName, targetWardName, 3);
+				candidates.push(...rankCandidates);
+
+				if (candidates.length > 0) {
+					break;
+				}
 			}
 		}
 
@@ -213,50 +172,29 @@ export async function GET(request: NextRequest) {
 		const candidates: Candidate[] = [];
 
 		for (const query of queries.slice(0, maxQueries)) {
-			try {
-				const searchUrl = new URL('https://www.googleapis.com/customsearch/v1');
-				searchUrl.searchParams.set('key', apiKey);
-				searchUrl.searchParams.set('cx', cx);
-				searchUrl.searchParams.set('q', query);
-				searchUrl.searchParams.set('num', '10');
-				searchUrl.searchParams.set('hl', 'ja');
-				searchUrl.searchParams.set('gl', 'jp');
-				
-				const response = await fetch(searchUrl.toString(), {
-					method: 'GET',
-					headers: {
-						'User-Agent': 'ChildcareScheduleHub/1.0',
-					},
-				});
-				
-				if (!response.ok) {
-					triedQueries.push(query);
-					continue;
-				}
-				
-				const data = await response.json();
-				
-				if (data.error) {
-					return NextResponse.json(
-						{ error: { code: 'CSE_ERROR', message: data.error.message || 'Google CSE API error' } },
-						{ status: 500 }
-					);
-				}
-				
-				const items = data.items || [];
-				triedQueries.push(query);
-				
-				if (items.length > 0) {
-					const hybridCandidates = processSearchResultsHybrid(items, targetFacilityName, targetWardName, 10);
-					candidates.push(...hybridCandidates);
-					
-					if (candidates.length > 0) {
-						break;
-					}
-				}
-			} catch {
+			const cseResult = await searchGoogleCse({ apiKey, cx, query });
+			if (cseResult.kind === 'http_error' || cseResult.kind === 'network_error') {
 				triedQueries.push(query);
 				continue;
+			}
+
+			if (cseResult.kind === 'api_error') {
+				return NextResponse.json(
+					{ error: { code: 'CSE_ERROR', message: cseResult.message } },
+					{ status: 500 }
+				);
+			}
+
+			const items = cseResult.items;
+			triedQueries.push(query);
+
+			if (items.length > 0) {
+				const hybridCandidates = processSearchResultsHybrid(items, targetFacilityName, targetWardName, 10);
+				candidates.push(...hybridCandidates);
+
+				if (candidates.length > 0) {
+					break;
+				}
 			}
 		}
 

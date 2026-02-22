@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "format": "pnpm exec biome format components/FacilitiesTable.tsx components/FacilityScheduleMatrix.tsx components/FilterCheckbox.tsx components/facilities-table-utils.ts lib/instagram-search.ts lib/instagram-schedule-search.ts lib/instagram-url.ts lib/facility-name-utils.ts app/api/admin/schedules/upsert/route.ts --write",
+    "format:check": "pnpm exec biome format components/FacilitiesTable.tsx components/FacilityScheduleMatrix.tsx components/FilterCheckbox.tsx components/facilities-table-utils.ts lib/instagram-search.ts lib/instagram-schedule-search.ts lib/instagram-url.ts lib/facility-name-utils.ts app/api/admin/schedules/upsert/route.ts",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
