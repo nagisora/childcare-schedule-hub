@@ -14,7 +14,6 @@
 
 ## 関連ドキュメント
 
-- テスト戦略・方針: [`docs/04-development.md`](../../../docs/04-development.md) 5.6節
 - E2E テスト観点表: [`docs/tests/representative-flow.md`](../../../docs/tests/representative-flow.md)
 - 単体テスト観点表: [`docs/tests/web-unit-test-perspectives.md`](../../../docs/tests/web-unit-test-perspectives.md)
 - テストドキュメント一覧: [`docs/tests/README.md`](../../../docs/tests/README.md)
