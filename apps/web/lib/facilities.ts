@@ -1,13 +1,24 @@
-import { supabase } from './supabase';
-import type { Facility } from './types';
-import { createSupabaseErrorMessage } from './supabase-errors';
-import { unstable_cache } from 'next/cache';
+import { unstable_cache } from "next/cache";
+import { supabase } from "./supabase";
+import { createSupabaseErrorMessage } from "./supabase-errors";
+import type { Facility } from "./types";
 
 /**
  * 施設データ取得時に選択するフィールド（共通定義）
  * Facility 型の主要フィールドに対応
  */
-const FACILITY_FIELDS_FOR_LIST = 'id,name,ward_name,address_full_raw,phone,instagram_url,website_url,facility_type,detail_page_url';
+const FACILITY_FIELDS_FOR_LIST = [
+	"id",
+	"name",
+	"ward_name",
+	"address_full_raw",
+	"phone",
+	"instagram_url",
+	"website_url",
+	"facility_type",
+	"detail_page_url",
+	"facility_schedules(id,facility_id,open_time,close_time,monday,tuesday,wednesday,thursday,friday,saturday,sunday,holiday)",
+].join(",");
 
 /**
  * Supabase から拠点一覧を取得する（内部実装）
@@ -15,13 +26,14 @@ const FACILITY_FIELDS_FOR_LIST = 'id,name,ward_name,address_full_raw,phone,insta
  */
 async function getFacilitiesInternal(): Promise<Facility[]> {
 	const { data, error } = await supabase
-		.from('facilities')
+		.from("facilities")
 		.select(FACILITY_FIELDS_FOR_LIST)
-		.order('ward_name', { ascending: true, nullsFirst: false })
-		.order('name', { ascending: true });
+		.order("ward_name", { ascending: true, nullsFirst: false })
+		.order("name", { ascending: true })
+		.overrideTypes<Facility[]>();
 
 	if (error) {
-		throw new Error(createSupabaseErrorMessage('facility', 'LIST', error));
+		throw new Error(createSupabaseErrorMessage("facility", "LIST", error));
 	}
 
 	return data || [];
@@ -35,11 +47,11 @@ async function getFacilitiesInternal(): Promise<Facility[]> {
  */
 export const getFacilities = unstable_cache(
 	async () => getFacilitiesInternal(),
-	['facilities'],
+	["facilities"],
 	{
-		tags: ['facilities'],
+		tags: ["facilities"],
 		revalidate: 3600, // 60分
-	}
+	},
 );
 
 /**
@@ -49,19 +61,19 @@ export const getFacilities = unstable_cache(
  */
 export async function getFacilityById(id: string): Promise<Facility | null> {
 	const { data, error } = await supabase
-		.from('facilities')
+		.from("facilities")
 		.select(FACILITY_FIELDS_FOR_LIST)
-		.eq('id', id)
-		.single();
+		.eq("id", id)
+		.single()
+		.overrideTypes<Facility>();
 
 	if (error) {
-		if (error.code === 'PGRST116') {
+		if (error.code === "PGRST116") {
 			// レコードが見つからない場合
 			return null;
 		}
-		throw new Error(createSupabaseErrorMessage('facility', 'GET_BY_ID', error));
+		throw new Error(createSupabaseErrorMessage("facility", "GET_BY_ID", error));
 	}
 
 	return data;
 }
-

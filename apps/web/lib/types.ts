@@ -15,6 +15,30 @@ export type Facility = {
 	facility_type: string | null;
 	/** 事業者独自の詳細ページURL（外部リンク） */
 	detail_page_url: string | null;
+	/** 開所曜日・開所時間の行データ（時間帯×曜日） */
+	facility_schedules?: FacilitySchedule[];
+	created_at?: string;
+	updated_at?: string;
+};
+
+/**
+ * 拠点ごとの開所曜日・開所時間（時間帯×曜日1行分）の型定義
+ */
+export type FacilitySchedule = {
+	id: string;
+	facility_id: string;
+	/** HH:mm:ss 形式（Supabase の time 型） */
+	open_time: string;
+	/** HH:mm:ss 形式（Supabase の time 型） */
+	close_time: string;
+	monday: boolean;
+	tuesday: boolean;
+	wednesday: boolean;
+	thursday: boolean;
+	friday: boolean;
+	saturday: boolean;
+	sunday: boolean;
+	holiday: boolean;
 	created_at?: string;
 	updated_at?: string;
 };
