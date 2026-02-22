@@ -26,6 +26,21 @@ function mergeSelectedMonths(
 	return { next, newIds };
 }
 
+function removeUntrackedFacilities<T>(
+	state: Record<string, T>,
+	currentIdsSet: Set<string>
+): Record<string, T> | null {
+	const updated = { ...state };
+	let hasChanges = false;
+	for (const id of Object.keys(updated)) {
+		if (!currentIdsSet.has(id)) {
+			delete updated[id];
+			hasChanges = true;
+		}
+	}
+	return hasChanges ? updated : null;
+}
+
 export function useFacilitySchedules() {
 	const [schedules, setSchedules] = useState<Record<string, Schedule>>({});
 	const [selectedMonths, setSelectedMonths] = useState<Record<string, string>>({});
@@ -95,39 +110,18 @@ export function useFacilitySchedules() {
 		const currentIdsSet = new Set(currentFacilityIds);
 
 		setSchedules((prev) => {
-			const updated = { ...prev };
-			let hasChanges = false;
-			for (const id of Object.keys(updated)) {
-				if (!currentIdsSet.has(id)) {
-					delete updated[id];
-					hasChanges = true;
-				}
-			}
-			return hasChanges ? updated : prev;
+			const next = removeUntrackedFacilities(prev, currentIdsSet);
+			return next ?? prev;
 		});
 
 		setLoadingStates((prev) => {
-			const updated = { ...prev };
-			let hasChanges = false;
-			for (const id of Object.keys(updated)) {
-				if (!currentIdsSet.has(id)) {
-					delete updated[id];
-					hasChanges = true;
-				}
-			}
-			return hasChanges ? updated : prev;
+			const next = removeUntrackedFacilities(prev, currentIdsSet);
+			return next ?? prev;
 		});
 
 		setErrors((prev) => {
-			const updated = { ...prev };
-			let hasChanges = false;
-			for (const id of Object.keys(updated)) {
-				if (!currentIdsSet.has(id)) {
-					delete updated[id];
-					hasChanges = true;
-				}
-			}
-			return hasChanges ? updated : prev;
+			const next = removeUntrackedFacilities(prev, currentIdsSet);
+			return next ?? prev;
 		});
 	}, []);
 

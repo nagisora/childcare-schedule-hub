@@ -11,11 +11,10 @@ import type { Facility, FacilitiesByWard } from '../lib/types';
 /**
  * トップページ（サーバーコンポーネント）
  * Supabase から拠点一覧を取得し、区別にグルーピングして表示する
- * [04 開発ガイド](../docs/04-development.md) 5.7節を参照
- * 
- * ISR: 60分間キャッシュ（[02 設計資料](../docs/02-design.md) 2.3節参照）
+ *
+ * ISR: 60分間キャッシュ
  * データ更新時は `/api/revalidate?tag=facilities` を呼び出すことでキャッシュを無効化できる。
- * 
+ *
  * お気に入りはlocalStorageに保存されるため、サーバー側では初期値として空配列を渡す。
  * クライアント側で useEffect により読み込まれる。
  */
@@ -28,7 +27,7 @@ export default async function HomePage() {
 	let error: Error | null = null;
 
 	try {
-	// Supabase から拠点一覧を取得
+		// Supabase から拠点一覧を取得
 		facilities = await getFacilities();
 		const grouped = groupFacilitiesByWard(facilities);
 		wards = grouped.wards;
@@ -38,10 +37,6 @@ export default async function HomePage() {
 		error = e instanceof Error ? e : new Error('データの取得に失敗しました');
 		facilities = [];
 	}
-
-	// お気に入りはlocalStorageに保存されるため、サーバー側では空配列を初期値とする
-	// クライアント側で useEffect により読み込まれる
-	const favoriteIds: string[] = [];
 
 	return (
 		<main className="space-y-12 px-6 py-10 rounded-2xl">
@@ -63,7 +58,7 @@ export default async function HomePage() {
 				{error ? (
 					<ErrorAlert message="お気に入り拠点のデータを取得できませんでした。ページを再読み込みしてください。" />
 				) : (
-				<FavoritesSection initialFavorites={[]} allFacilities={facilities} />
+					<FavoritesSection initialFavorites={[]} allFacilities={facilities} />
 				)}
 			</section>
 
@@ -79,7 +74,7 @@ export default async function HomePage() {
 					/>
 				</section>
 			) : (
-			<FacilitiesTable wards={wards} facilitiesByWard={facilitiesByWard} initialFavoriteIds={favoriteIds} />
+				<FacilitiesTable wards={wards} facilitiesByWard={facilitiesByWard} initialFavoriteIds={[]} />
 			)}
 		</main>
 	);

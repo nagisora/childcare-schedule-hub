@@ -6,6 +6,7 @@ import {
 	extractInstagramUsername,
 	type ScheduleCandidate,
 } from '../../../lib/instagram-schedule-search';
+import { searchGoogleCse } from '../../../lib/google-cse-client';
 
 export async function GET(request: NextRequest) {
 	const adminToken = request.headers.get('x-admin-token');
@@ -109,53 +110,31 @@ export async function GET(request: NextRequest) {
 
 	// 最大4クエリまで実行
 	for (const query of queries.slice(0, 4)) {
-		try {
-			const searchUrl = new URL('https://www.googleapis.com/customsearch/v1');
-			searchUrl.searchParams.set('key', apiKey);
-			searchUrl.searchParams.set('cx', cx);
-			searchUrl.searchParams.set('q', query);
-			searchUrl.searchParams.set('num', '10');
-			searchUrl.searchParams.set('hl', 'ja');
-			searchUrl.searchParams.set('gl', 'jp');
-
-			const response = await fetch(searchUrl.toString(), {
-				method: 'GET',
-				headers: {
-					'User-Agent': 'ChildcareScheduleHub/1.0',
-				},
-			});
-
-			if (!response.ok) {
-				triedQueries.push(query);
-				continue;
-			}
-
-			const data = await response.json();
-
-			if (data.error) {
-				return NextResponse.json(
-					{ error: { code: 'CSE_ERROR', message: data.error.message || 'Google CSE API error' } },
-					{ status: 500 }
-				);
-			}
-
-			const items = data.items || [];
+		const cseResult = await searchGoogleCse({ apiKey, cx, query });
+		if (cseResult.kind === 'http_error' || cseResult.kind === 'network_error') {
 			triedQueries.push(query);
+			continue;
+		}
 
-			if (items.length > 0) {
-				const candidates = extractScheduleCandidates(items, month);
-				for (const candidate of candidates) {
-					// 重複排除（複数クエリで同じURLが出てくる可能性がある）
-					if (!seenUrls.has(candidate.url)) {
-						seenUrls.add(candidate.url);
-						allCandidates.push(candidate);
-					}
+		if (cseResult.kind === 'api_error') {
+			return NextResponse.json(
+				{ error: { code: 'CSE_ERROR', message: cseResult.message } },
+				{ status: 500 }
+			);
+		}
+
+		const items = cseResult.items;
+		triedQueries.push(query);
+
+		if (items.length > 0) {
+			const candidates = extractScheduleCandidates(items, month);
+			for (const candidate of candidates) {
+				// 重複排除（複数クエリで同じURLが出てくる可能性がある）
+				if (!seenUrls.has(candidate.url)) {
+					seenUrls.add(candidate.url);
+					allCandidates.push(candidate);
 				}
 			}
-		} catch {
-			triedQueries.push(query);
-			// 個別クエリのエラーは続行（他のクエリで成功する可能性がある）
-			continue;
 		}
 	}
 
