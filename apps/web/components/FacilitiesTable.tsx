@@ -156,7 +156,7 @@ export function FacilitiesTable({
 			holidayOnly: filterHolidayOnly,
 		};
 		const isFiltering = Object.values(filters).some(Boolean);
-		return wards
+		const sections = wards
 			.map((ward) => {
 				const facilities = facilitiesByWard[ward] ?? [];
 				const ouen = facilities.filter(
@@ -178,6 +178,7 @@ export function FacilitiesTable({
 				return { ward, facilities: visibleFacilities };
 			})
 			.filter((section) => !isFiltering || section.facilities.length > 0);
+		return sections;
 	}, [
 		wards,
 		facilitiesByWard,

@@ -50,7 +50,8 @@ export const getFacilities = unstable_cache(
 	["facilities"],
 	{
 		tags: ["facilities"],
-		revalidate: 3600, // 60分
+		// 開発時は1秒で再検証し、新規追加施設をすぐ反映。本番は60分
+		revalidate: process.env.NODE_ENV === "development" ? 1 : 3600,
 	},
 );
 
