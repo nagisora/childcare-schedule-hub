@@ -1,24 +1,61 @@
 ---
 name: supabase-cli
-description: Supabase CLI の実行方法とワークフロー（コマンド・認証・マイグレーション適用）。リモート操作時は CLI を優先し、CLI が使えない場合は処理を止めてユーザーに login を依頼する。Use when working with Supabase CLI, migrations, db push, db diff, link, or when the user mentions "supabase コマンドが見つかりません" or "Access token not provided".
+description: Supabase の操作手段（CLI / MCP / スクリプト）の使い分け、実行方法、認証。Cursor マーケットプレイスで Supabase プラグイン導入時は Supabase MCP も同梱される。Use when working with Supabase CLI, MCP, migrations, db push, db diff, link, or when the user mentions "supabase コマンドが見つかりません" or "Access token not provided".
 ---
 
-# Supabase CLI 操作
+# Supabase 操作ガイド（CLI / MCP / スクリプト）
 
-## 方針
+## 使い分け方針
 
-- **リモート操作（db push, link 等）**: 原則 **Supabase CLI** を使う。
-- **CLI が使えない場合**（「Access token not provided」「Cannot find project ref」）: **処理を止め**、ユーザーに `pnpm dlx supabase login`（必要なら `link`）の実行を依頼する。Node スクリプトで代替しない。
-- **データ操作**:
-  - スキーマ変更・マイグレーションの適用 → CLI（マイグレーション SQL）。
-  - 固定データの少量追加もマイグレーションで冪等に記述。
-  - スクレイピング結果の一括投入・条件分岐の多い更新など、**ロジックが複雑なデータ操作**のみ Node スクリプト（Supabase JS + service role）を使う。
+| 手段 | 主な用途 | 優先度 |
+|------|----------|--------|
+| **Supabase MCP** | テーブル一覧・スキーマ確認、簡単な SQL 実行、ログ取得、型生成、プロジェクト情報取得、開発用マイグレーション適用 | **最優先**（利用可能な場合） |
+| **Supabase CLI** | ローカル開発（start/stop）、マイグレーション生成（db diff）、本番/CI での db push、db lint、link | MCP でできない操作 |
+| **Node スクリプト** | スクレイピング結果の一括投入、条件分岐の多い複雑なデータ更新、繰り返しバッチ処理 | ロジックが複雑なデータ操作のみ |
 
-**SQL・スキーマ・RLS のベストプラクティス**は、マーケットプレイス導入の **supabase-postgres-best-practices** スキルを参照する。本スキルは CLI の実行手順と認証に特化する。
+### 詳細な使い分け
+
+- **テーブル一覧・スキーマ確認**: MCP の `list_tables` を優先。CLI の inspect はローカル DB 向けの詳細統計（table-stats 等）に使用。
+- **簡単な SELECT / INSERT / UPDATE**: MCP の `execute_sql` を優先。Cursor 内で完結する。
+- **型生成**: MCP の `generate_typescript_types` を優先。CLI の `gen types` は MCP が使えない場合の代替。
+- **マイグレーション適用**: 開発用プロジェクトでは MCP の `apply_migration` で可。本番・CI では CLI の `db push` を推奨（履歴追跡・自動化のため）。
+- **マイグレーション生成（db diff）**: CLI のみ。ローカル DB との差分から SQL を生成する。
+- **ローカル開発**: CLI のみ（`supabase start` / `stop`）。
+- **ログ・アドバイザー取得**: MCP の `get_logs` / `get_advisors` を優先。
+
+**SQL・スキーマ・RLS のベストプラクティス**は、マーケットプレイス導入の **supabase-postgres-best-practices** スキルを参照する。
 
 ---
 
-## コマンドの実行方法
+## Supabase MCP（Cursor プラグイン同梱）
+
+Cursor マーケットプレイスで Supabase プラグインを導入すると、**Supabase MCP** も同梱される。AI アシスタントが Supabase プロジェクトに直接アクセスできる。
+
+### 主な MCP ツール
+
+| カテゴリ | ツール | 用途 |
+|----------|--------|------|
+| DB | `list_tables` | テーブル一覧・スキーマ確認 |
+| DB | `execute_sql` | SQL 実行（SELECT / INSERT / UPDATE 等） |
+| DB | `list_migrations` / `apply_migration` | マイグレーション一覧・適用 |
+| DB | `list_extensions` | Postgres 拡張一覧 |
+| ユーティリティ | `generate_typescript_types` | 型生成 |
+| ユーティリティ | `get_project_url` / `get_anon_key` | プロジェクト情報取得 |
+| デバッグ | `get_logs` | API / Postgres / Auth 等のログ取得 |
+| デバッグ | `get_advisors` | セキュリティ・パフォーマンスアドバイザー |
+| プロジェクト | `list_projects` / `get_project` | プロジェクト一覧・詳細 |
+
+### MCP 利用時の注意
+
+- **開発用プロジェクト**での利用を推奨。本番接続時は読み取り専用モードやプロジェクトスコープを検討。
+- 初回利用時は OAuth で Supabase にログインする必要がある。
+- MCP が使えない環境（CI 等）では CLI にフォールバックする。
+
+---
+
+## Supabase CLI
+
+### コマンドの実行方法
 
 `supabase` が PATH にない場合は、直接 `supabase` を叩かず次を使う:
 
@@ -28,9 +65,7 @@ pnpm dlx supabase <サブコマンド>
 
 または: `npx supabase <サブコマンド>`
 
----
-
-## 認証・リンク
+### 認証・リンク
 
 `SUPABASE_DB_PASSWORD` と project-ref は `apps/web/.env.local` に格納。
 
@@ -50,11 +85,9 @@ DB_URL="postgresql://postgres:${SUPABASE_DB_PASSWORD}@db.${PROJECT_REF}.supabase
 1. `pnpm dlx supabase login`
 2. 未リンクなら: `pnpm dlx supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"`
 
----
+### 操作一覧
 
-## 操作一覧
-
-### ローカル開発
+#### ローカル開発
 
 | 操作 | コマンド |
 |------|----------|
@@ -62,7 +95,7 @@ DB_URL="postgresql://postgres:${SUPABASE_DB_PASSWORD}@db.${PROJECT_REF}.supabase
 | 停止 | `pnpm dlx supabase stop` |
 | 状態確認 | `pnpm dlx supabase status` |
 
-### マイグレーション
+#### マイグレーション
 
 | 操作 | コマンド |
 |------|----------|
@@ -72,7 +105,7 @@ DB_URL="postgresql://postgres:${SUPABASE_DB_PASSWORD}@db.${PROJECT_REF}.supabase
 | 整合性チェック | `pnpm dlx supabase db lint` |
 | リモートとリンク | `pnpm dlx supabase link --project-ref $PROJECT_REF --password "$SUPABASE_DB_PASSWORD"` |
 
-### DB 情報取得（inspect）
+#### DB 情報取得（inspect）
 
 リモートの場合は `--db-url "$DB_URL"` を付与。リンク済みなら省略可。
 
@@ -83,19 +116,19 @@ DB_URL="postgresql://postgres:${SUPABASE_DB_PASSWORD}@db.${PROJECT_REF}.supabase
 | インデックス統計 | `pnpm dlx supabase inspect db index-stats --db-url "$DB_URL"` |
 | 長時間クエリ | `pnpm dlx supabase inspect db long-running-queries --db-url "$DB_URL"` |
 
-### その他
+#### その他
 
 | 操作 | コマンド |
 |------|----------|
-| 型生成 | `pnpm dlx supabase gen types typescript --project-id $PROJECT_REF > lib/database.types.ts` |
+| 型生成（MCP が使えない場合の代替） | `pnpm dlx supabase gen types typescript --project-id $PROJECT_REF > lib/database.types.ts` |
 | ログイン | `pnpm dlx supabase login` |
 | プロジェクト一覧 | `pnpm dlx supabase projects list` |
 
-### データ取得（SELECT 相当）
+#### データ取得（SELECT 相当）
 
-**inspect**: 上記の table-stats など。
+**MCP が使える場合**: `execute_sql` を優先。
 
-**REST API（curl）**:
+**MCP が使えない場合** - REST API（curl）:
 
 ```bash
 SUPABASE_URL=$(grep '^NEXT_PUBLIC_SUPABASE_URL=' apps/web/.env.local | cut -d= -f2- | tr -d '"')
@@ -106,11 +139,23 @@ curl -s "${SUPABASE_URL}/rest/v1/<テーブル名>?select=col1,col2&limit=10" \
 
 ---
 
+## Node スクリプト（Supabase JS）
+
+以下の場合に Node スクリプト（`@supabase/supabase-js` + service role）を使う:
+
+- スクレイピング結果の一括投入
+- 条件分岐の多い複雑なデータ更新
+- 繰り返し実行するバッチ処理
+
+スキーマ変更・固定データの少量追加は、マイグレーション SQL で冪等に記述する。
+
+---
+
 ## 実行前チェック
 
-- プロジェクトルート（`supabase/` があるディレクトリ）で実行する。
+- プロジェクトルート（`supabase/` があるディレクトリ）で CLI を実行する。
 - `apps/web/.env.local` に必要な変数がある。
-- **リモート操作（link, db push）**: `supabase login` 済みであること。未済の場合は処理を止め、ユーザーに login（と必要なら link）を依頼する。
+- **CLI のリモート操作（link, db push）**: `supabase login` 済みであること。未済の場合は処理を止め、ユーザーに login（と必要なら link）を依頼する。
 
 ---
 
@@ -122,3 +167,4 @@ curl -s "${SUPABASE_URL}/rest/v1/<テーブル名>?select=col1,col2&limit=10" \
 | **Cannot find project ref** | 同上のあと、`pnpm dlx supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"` を依頼する。 |
 | **supabase コマンドが見つかりません** | `pnpm dlx supabase` または `npx supabase` を使う。 |
 | **connection refused** | ローカル DB 未起動なら `supabase start`。リモートなら `--db-url "$DB_URL"` を指定する。 |
+| **MCP が使えない** | CLI または REST API / スクリプトにフォールバック。MCP の OAuth 未ログインなら、初回実行時にブラウザで認証する。 |
