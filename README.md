@@ -56,7 +56,12 @@ pnpm --filter scripts fetch-operating-hours
 
 # 開設日・時間の取得（facility_schedules）: DB反映
 pnpm --filter scripts fetch-operating-hours --apply --yes
+
+# Supabase の退避（seed.sql + ローカルJSONバックアップ）
+pnpm --filter scripts export-supabase-backup
 ```
+
+クローズ時の詳細な手順は [`docs/decommissioning.md`](docs/decommissioning.md) を参照してください。
 
 ## テスト
 

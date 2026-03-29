@@ -22,6 +22,11 @@
 - **[コーディング規約と運用方針 (`coding-guides.md`)](./rules/coding-guides.md)**
   - ディレクトリ構成の原則、AI（Cursor等）の運用方針、パッケージ管理（pnpm）について
 
+### 📌 運用・クローズ手順
+
+- **[Decommissioning and backup (`decommissioning.md`)](./decommissioning.md)**
+  - Supabase の退避方針、`seed.sql` 生成方法、Vercel / Supabase の終了手順
+
 ### 📢 お知らせ・リリースノート (`docs/announcements/`)
 機能追加やリリース記事などの公開用ドキュメント（ブログ用など）のドラフトや記録です。
 ### 📦 アーカイブ (`docs/archive/`)
